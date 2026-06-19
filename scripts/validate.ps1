@@ -7,7 +7,7 @@ param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Only)
 $ErrorActionPreference = 'Stop'
 $Repo = Split-Path -Parent $PSScriptRoot
 $PluginsDir = Join-Path $Repo 'plugins'
-$MarketFile = Join-Path $Repo '.claude-plugin\marketplace.json'
+$MarketFile = Join-Path $Repo '.claude-plugin/marketplace.json'
 $errs = New-Object System.Collections.Generic.List[string]
 function Fail($m) { $errs.Add($m) }
 
@@ -23,7 +23,7 @@ else {
 $onDisk = @()
 if (Test-Path $PluginsDir) {
     $onDisk = Get-ChildItem $PluginsDir -Directory |
-        Where-Object { Test-Path (Join-Path $_.FullName '.claude-plugin\plugin.json') } |
+        Where-Object { Test-Path (Join-Path $_.FullName '.claude-plugin/plugin.json') } |
         ForEach-Object Name
 }
 $packs = if ($Only) { $Only } else { $onDisk }
@@ -31,7 +31,7 @@ $semver = '^\d+\.\d+\.\d+$'
 
 foreach ($p in $packs) {
     $pdir = Join-Path $PluginsDir $p
-    $pj = Join-Path $pdir '.claude-plugin\plugin.json'
+    $pj = Join-Path $pdir '.claude-plugin/plugin.json'
     if (-not (Test-Path $pj)) { Fail "${p}: missing plugin.json"; continue }
     $man = $null
     try { $man = Get-Content $pj -Raw | ConvertFrom-Json } catch { Fail "${p}: plugin.json invalid JSON: $_"; continue }
@@ -86,6 +86,30 @@ if ($bash) {
             if ($LASTEXITCODE -ne 0) { Fail "${p}: bash -n failed for $($sh.Name)" }
         }
     }
+}
+
+# Rich rollup on the GitHub Actions run page (no-op locally).
+if ($env:GITHUB_STEP_SUMMARY) {
+    $ok = $errs.Count -eq 0
+    $badge = if ($ok) { ':white_check_mark: passed' } else { ":x: failed ($($errs.Count))" }
+    $md = New-Object System.Collections.Generic.List[string]
+    $md.Add(":test_tube: **validate** - $badge")
+    $md.Add('')
+    $md.Add('| Pack | Version | Runes | Scripts |')
+    $md.Add('|---|---|---|---|')
+    foreach ($p in ($onDisk | Sort-Object)) {
+        $pdir = Join-Path $PluginsDir $p
+        $ver = (Get-Content (Join-Path $pdir '.claude-plugin/plugin.json') -Raw | ConvertFrom-Json).version
+        $runes = (@(Get-ChildItem (Join-Path $pdir 'skills') -Directory -ErrorAction SilentlyContinue | ForEach-Object Name) | Sort-Object) -join ', '
+        $nscripts = @(Get-ChildItem $pdir -Recurse -Include '*.ps1', '*.sh' -ErrorAction SilentlyContinue).Count
+        $md.Add("| $p | $ver | $runes | $nscripts |")
+    }
+    if (-not $ok) {
+        $md.Add('')
+        $md.Add('### Failures')
+        foreach ($e in $errs) { $md.Add("- $e") }
+    }
+    ($md -join "`n") | Add-Content -Path $env:GITHUB_STEP_SUMMARY -Encoding utf8
 }
 
 if ($errs.Count) {

@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -27,24 +27,6 @@ jobs:
         run: ./scripts/validate.ps1
 
       - name: Publish a release per pack at its manifest version
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          Get-ChildItem plugins -Directory | ForEach-Object {
-            $manifest = Join-Path $_.FullName '.claude-plugin/plugin.json'
-            if (-not (Test-Path $manifest)) { return }
-            $name = $_.Name
-            $ver  = (Get-Content $manifest -Raw | ConvertFrom-Json).version
-            $tag  = "$name--v$ver"
-            $zip  = "$name-$ver.zip"
-            Compress-Archive -Path "plugins/$name/*" -DestinationPath $zip -Force
-            gh release view $tag *> $null
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "Refreshing release $tag"
-              gh release upload $tag $zip --clobber
-            } else {
-              Write-Host "Creating release $tag"
-              gh release create $tag $zip --title $tag --generate-notes
-            }
-          }
+        run: bash .github/scripts/release-packs.sh

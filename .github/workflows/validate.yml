@@ -16,9 +16,12 @@ on:
 
 jobs:
   validate:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      # pwsh (preinstalled on ubuntu) runs the one validator: it must parse the
+      # PowerShell rune scripts, and it is the same script `runes validate` runs
+      # locally - keeping it single-source avoids a drifting bash duplicate.
       - name: Structural validation
         shell: pwsh
         run: ./scripts/validate.ps1
