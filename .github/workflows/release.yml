@@ -1,9 +1,9 @@
 name: "🚀 release"
 
-# Releases on every push to main (no manual tags). For each pack, publishes a
-# release at the pack's plugin.json version: a version bump creates a new release
-# (tag <pack>--vX.Y.Z); pushes that don't bump the version refresh that release's
-# zip in place.
+# Tags each pack on every push to main (no manual tags). A version bump in a
+# pack's plugin.json creates + pushes the tag <pack>--vX.Y.Z; unchanged versions
+# are left as-is. No GitHub Release objects, zips, or source-code archives - the
+# tag is the version marker; consumers install via the marketplace.
 on:
   push:
     branches: [main]
@@ -16,14 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Validate
         shell: pwsh
         run: ./scripts/validate.ps1
 
-      - name: Publish a release per pack at its manifest version
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: bash .github/scripts/release-packs.sh
+      - name: Tag each pack at its manifest version
+        run: bash .github/scripts/tag-packs.sh
