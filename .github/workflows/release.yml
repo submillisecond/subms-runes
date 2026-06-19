@@ -7,9 +7,6 @@ name: "🚀 release"
 on:
   push:
     branches: [main]
-    paths:
-      - "plugins/**"
-      - ".claude-plugin/**"
 
 permissions:
   contents: write

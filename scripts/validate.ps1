@@ -93,7 +93,7 @@ if ($env:GITHUB_STEP_SUMMARY) {
     $ok = $errs.Count -eq 0
     $badge = if ($ok) { ':white_check_mark: passed' } else { ":x: failed ($($errs.Count))" }
     $md = New-Object System.Collections.Generic.List[string]
-    $md.Add(":test_tube: **validate** - $badge")
+    $md.Add(":mag: **validate** - $badge")
     $md.Add('')
     $md.Add('| Pack | Version | Runes | Scripts |')
     $md.Add('|---|---|---|---|')
