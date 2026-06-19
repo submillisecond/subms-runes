@@ -1,0 +1,6 @@
+{
+  "name": "clipboard",
+  "description": "Clipboard runes for Claude Code: clip (ask about what you copied - text/image/files), clip-edit (transform it and write it back, paste-ready), clip-save (save it to disk).",
+  "version": "0.1.0",
+  "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" }
+}

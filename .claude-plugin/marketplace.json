@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "subms-runes",
+  "description": "Runes - useful Claude Code skill packs. Each plugin is a themed pack; each skill is a rune you cast.",
+  "owner": { "name": "Kieran Smith", "email": "oss@submillisecond.com" },
+  "plugins": [
+    {
+      "name": "clipboard",
+      "source": "./plugins/clipboard",
+      "description": "Clipboard runes: clip (ask about what you copied - text/image/files), clip-edit (reformat/redact/convert and put it back), clip-save (save it to disk).",
+      "author": { "name": "Kieran Smith" }
+    },
+    {
+      "name": "screenshots",
+      "source": "./plugins/screenshots",
+      "description": "Screenshot runes: shots (ask about recent screenshots), shots-save (copy a set to a folder), shots-tidy (rename/delete/archive in place).",
+      "author": { "name": "Kieran Smith" }
+    }
+  ]
+}
