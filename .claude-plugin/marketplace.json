@@ -11,9 +11,9 @@
       "author": { "name": "Kieran Smith" }
     },
     {
-      "name": "screenshots",
-      "source": "./plugins/screenshots",
-      "description": "Screenshot runes: shots (ask about recent screenshots), shots-save (copy a set to a folder), shots-tidy (rename/delete/archive in place).",
+      "name": "images",
+      "source": "./plugins/images",
+      "description": "Image runes: ask (questions about recent screenshots or any folder), save (copy a selection out), organize (restructure / rename / archive / delete in place), dedup (remove exact-duplicate images).",
       "author": { "name": "Kieran Smith" }
     }
   ]

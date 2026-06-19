@@ -1,9 +1,15 @@
-name: release
+name: "🚀 release"
 
+# Releases on every push to main (no manual tags). For each pack, publishes a
+# release at the pack's plugin.json version: a version bump creates a new release
+# (tag <pack>--vX.Y.Z); pushes that don't bump the version refresh that release's
+# zip in place.
 on:
   push:
-    tags:
-      - "*--v*"
+    branches: [main]
+    paths:
+      - "plugins/**"
+      - ".claude-plugin/**"
 
 permissions:
   contents: write
@@ -13,35 +19,32 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Parse tag (pack--vX.Y.Z)
-        id: tag
-        shell: pwsh
-        run: |
-          $tag = "${{ github.ref_name }}"
-          if ($tag -notmatch '^(?<pack>.+)--v(?<ver>\d+\.\d+\.\d+)$') { throw "bad tag: $tag" }
-          "pack=$($matches.pack)"   | Out-File $env:GITHUB_OUTPUT -Append
-          "version=$($matches.ver)" | Out-File $env:GITHUB_OUTPUT -Append
-
-      - name: Validate pack
-        shell: pwsh
-        run: ./scripts/validate.ps1 ${{ steps.tag.outputs.pack }}
-
-      - name: Assert tag version matches manifest
-        shell: pwsh
-        run: |
-          $pack = "${{ steps.tag.outputs.pack }}"; $ver = "${{ steps.tag.outputs.version }}"
-          $man = Get-Content "plugins/$pack/.claude-plugin/plugin.json" -Raw | ConvertFrom-Json
-          if ($man.version -ne $ver) { throw "tag v$ver does not match plugin.json v$($man.version)" }
-
-      - name: Package pack
-        shell: pwsh
-        run: |
-          $pack = "${{ steps.tag.outputs.pack }}"; $ver = "${{ steps.tag.outputs.version }}"
-          Compress-Archive -Path "plugins/$pack/*" -DestinationPath "$pack-$ver.zip" -Force
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
-          files: ${{ steps.tag.outputs.pack }}-${{ steps.tag.outputs.version }}.zip
+          fetch-depth: 0
+
+      - name: Validate
+        shell: pwsh
+        run: ./scripts/validate.ps1
+
+      - name: Publish a release per pack at its manifest version
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          Get-ChildItem plugins -Directory | ForEach-Object {
+            $manifest = Join-Path $_.FullName '.claude-plugin/plugin.json'
+            if (-not (Test-Path $manifest)) { return }
+            $name = $_.Name
+            $ver  = (Get-Content $manifest -Raw | ConvertFrom-Json).version
+            $tag  = "$name--v$ver"
+            $zip  = "$name-$ver.zip"
+            Compress-Archive -Path "plugins/$name/*" -DestinationPath $zip -Force
+            gh release view $tag *> $null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "Refreshing release $tag"
+              gh release upload $tag $zip --clobber
+            } else {
+              Write-Host "Creating release $tag"
+              gh release create $tag $zip --title $tag --generate-notes
+            }
+          }

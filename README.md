@@ -19,9 +19,10 @@ Skills are grouped into packs so you install only what you use - a flat pile of
 | `clipboard` | `clip` | Ask questions about whatever is on your clipboard - text, an image/screenshot, or copied files. |
 | | `clip-edit` | Transform the clipboard text and write it back, paste-ready - reformat, to-table, redact, translate, tighten, fix code. |
 | | `clip-save` | Save the clipboard (text / image / files) to a file or folder on disk. |
-| `screenshots` | `shots` | Pull recent screenshots (last N / minutes / today / since / name) from the Screenshots folder and ask about them. |
-| | `shots-save` | Copy a selected set of screenshots to a folder (bug-report bundle / share set). |
-| | `shots-tidy` | Rename / delete / archive selected screenshots in place (dry-run + confirm). |
+| `images` | `ask` | Questions about recent screenshots (last N / today / since / name) or any `--dir` of images. |
+| | `save` | Copy a selected set of images to a folder (bug-report bundle / share set). |
+| | `organize` | Restructure (year/month, albums) / rename / archive / delete images in a folder, in place (dry-run + confirm; `--copy`). |
+| | `dedup` | Find exact-duplicate images and remove/archive the extras, keeping one (dry-run + confirm). |
 
 ## Platforms
 

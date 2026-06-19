@@ -1,6 +1,0 @@
-{
-  "name": "screenshots",
-  "description": "Screenshot runes for Claude Code: shots (ask about recent screenshots - last N / minutes / today / since / name), shots-save (copy a set to a folder), shots-tidy (rename/delete/archive in place).",
-  "version": "0.1.0",
-  "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" }
-}
