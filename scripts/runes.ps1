@@ -123,6 +123,26 @@ switch ($Command) {
         $skill | Set-Content (Join-Path $rdir 'SKILL.md') -Encoding UTF8
         Write-Host "Created rune '$pack/$rune'. Edit $rdir\SKILL.md, then: runes dev $pack"
     }
+    'release' {
+        # Auto-bump the MINOR + commit + tag locally, so you own the commit and
+        # never fall behind (no CI write-back). Then: git push --follow-tags.
+        $done = @()
+        foreach ($p in Resolve-Targets) {
+            $pj = Join-Path $PluginsDir "$p\.claude-plugin\plugin.json"
+            if (-not (Test-Path $pj)) { throw "No such pack: $p" }
+            $content = Get-Content $pj -Raw
+            if ($content -notmatch '"version"\s*:\s*"(\d+)\.(\d+)\.(\d+)"') { throw "no semver version in $pj" }
+            $new = '{0}.{1}.0' -f $Matches[1], ([int]$Matches[2] + 1)
+            $content = [regex]::Replace($content, '("version"\s*:\s*")\d+\.\d+\.\d+(")', "`${1}$new`${2}")
+            [System.IO.File]::WriteAllText($pj, $content)
+            & git -C $Repo add "plugins/$p/.claude-plugin/plugin.json"
+            & git -C $Repo commit -m "chore(release): $p v$new" | Out-Null
+            & git -C $Repo tag "$p--v$new"
+            $done += "$p v$new"
+            Write-Host "released $p -> v$new (committed + tagged $p--v$new)"
+        }
+        if ($done) { Write-Host 'Now push: git push --follow-tags' }
+    }
     'tag' {
         foreach ($p in Resolve-Targets) { claude plugin tag (Join-Path $PluginsDir $p) }
     }
@@ -141,7 +161,8 @@ switch ($Command) {
             '  test <pack> [rune]      run a pack/rune script standalone (clipboard: runes test clipboard)',
             '  new-pack <name>         scaffold a new pack',
             '  new-rune <pack> <rune>  scaffold a new rune',
-            '  tag [packs]             git release tag <pack>--vX.Y.Z',
+            '  release [packs]         bump minor + commit + tag locally (then git push --follow-tags)',
+            '  tag [packs]             git release tag <pack>--vX.Y.Z (current version, no bump)',
             '',
             'No packs = all packs.'
         ) -join "`n"

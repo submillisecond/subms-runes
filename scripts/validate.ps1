@@ -82,7 +82,8 @@ if ($bash) {
         $pdir = Join-Path $PluginsDir $p
         if (-not (Test-Path $pdir)) { continue }
         foreach ($sh in Get-ChildItem $pdir -Recurse -Filter *.sh -ErrorAction SilentlyContinue) {
-            & bash -n $sh.FullName 2>$null
+            # Forward slashes: git-bash on Windows treats backslashes as escapes.
+            & bash -n ($sh.FullName -replace '\\', '/') 2>$null
             if ($LASTEXITCODE -ne 0) { Fail "${p}: bash -n failed for $($sh.Name)" }
         }
     }

@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Tag each pack at its plugin.json version on push to main - lightweight version
-# markers only: NO GitHub Release, NO zip, NO source-code archives. A new version
-# creates + pushes the tag <pack>--vX.Y.Z; an existing tag is left untouched.
-# Needs contents:write (the default GITHUB_TOKEN). Run from the repo root.
+# markers only: NO GitHub Release, NO zip, NO source-code archives, and NO commits
+# back to main (so your local never falls behind). A version that isn't tagged yet
+# is tagged (and pushed); an already-tagged version is left untouched. Bumping the
+# version is done locally with `runes release`.
 set -euo pipefail
 
 git config user.name "github-actions[bot]"

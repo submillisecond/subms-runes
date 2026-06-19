@@ -1,9 +1,9 @@
 name: "🚀 release"
 
-# Tags each pack on every push to main (no manual tags). A version bump in a
-# pack's plugin.json creates + pushes the tag <pack>--vX.Y.Z; unchanged versions
-# are left as-is. No GitHub Release objects, zips, or source-code archives - the
-# tag is the version marker; consumers install via the marketplace.
+# On every push to main: tag each pack at its plugin.json version (if not already
+# tagged). NO commits back to main (your local never falls behind), no Release
+# objects/zips/source archives - the tag is the version marker. Bump the version
+# locally with `runes release`, which commits + tags before you push.
 on:
   push:
     branches: [main]
