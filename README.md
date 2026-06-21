@@ -19,10 +19,11 @@ Skills are grouped into packs so you install only what you use - a flat pile of
 | `clipboard` | `clip` | Ask questions about whatever is on your clipboard - text, an image/screenshot, or copied files. |
 | | `clip-edit` | Transform the clipboard text and write it back, paste-ready - reformat, to-table, redact, translate, tighten, fix code. |
 | | `clip-save` | Save the clipboard (text / image / files) to a file or folder on disk. |
-| `images` | `ask` | Questions about recent screenshots (last N / today / since / name) or any `--dir` of images. |
-| | `save` | Copy a selected set of images to a folder (bug-report bundle / share set). |
-| | `organize` | Restructure (year/month, albums) / rename / archive / delete images in a folder, in place (dry-run + confirm; `--copy`). |
-| | `dedup` | Find exact-duplicate images and remove/archive the extras, keeping one (dry-run + confirm). |
+| `imageverse` | `img` | Questions about recent screenshots (last N / today / since / name) or any `--dir` of images. |
+| | `img-edit` | Edit an image into a new file: crop / resize / redact / annotate / rotate / flip / grayscale / convert (deterministic, not generative). |
+| | `img-save` | Copy a selected set of images to a folder (bug-report bundle / share set). |
+| | `img-organize` | Restructure (year/month, albums) / rename / archive / delete images in a folder, in place (dry-run + confirm; `--copy`). |
+| | `img-dedup` | Find exact-duplicate images and remove/archive the extras, keeping one (dry-run + confirm). |
 
 ## Platforms
 
@@ -39,13 +40,17 @@ right one by OS, but they need verification on those systems and these tools:
 
 Clipboard file-lists are Windows + Linux (uri-list) only; not macOS.
 
+`img-edit` writes edited images with a built-in backend where possible: Windows
+`System.Drawing`, macOS `sips` (resize/rotate/flip/convert). Its draw-based ops
+(redact/box/text) and Linux use ImageMagick (`brew`/`apt install imagemagick`).
+
 ## Install
 
-Windows, with the `claude` CLI on PATH:
+With the `claude` CLI on PATH:
 
-```bat
-scripts\deploy.bat            :: installs all packs (official, from GitHub)
-scripts\runes.bat deploy clipboard   :: or a single pack
+```bash
+claude plugin marketplace add submillisecond/subms-runes
+claude plugin install clipboard@subms-runes   # and/or imageverse@subms-runes
 ```
 
 Restart the Claude Code session, then use a rune, e.g.:
@@ -56,19 +61,28 @@ Restart the Claude Code session, then use a rune, e.g.:
 /clip-save stash this screenshot as notes/shot.png
 ```
 
-Before the first GitHub push, bootstrap from the working tree:
-`scripts\runes.bat deploy -Local`.
-
 ## Develop
 
+The operator dispatcher `runes` (deploy / dev / status / validate / plugins /
+release / ...) lives in the private `subms-infra` repo at `automation/runes/`
+and drives this marketplace as a sibling under the umbrella. Run
+`automation\runes\runes.bat` with a command, or with none in a terminal for an
+interactive menu (`--help` or piped prints the command list):
+
 ```bat
-scripts\runes.bat dev clipboard     :: live-load the pack (edits reflected, no install)
-scripts\runes.bat test clipboard clip   :: run the rune's capture script standalone
-scripts\runes.bat validate          :: structural checks (same as CI)
-scripts\runes.bat status            :: working-tree vs installed version per pack
+runes dev clipboard         :: live-load the pack (edits reflected, no install)
+runes test clipboard clip   :: run the rune's capture script standalone
+runes validate              :: structural checks (CI runs .github/scripts/validate.sh)
+runes status                :: marketplace source + per-pack install state + per-rune list
+runes plugins               :: all Claude Code plugins on this machine + img-edit backend status
+runes deploy -Local         :: install/refresh from the working tree (e.g. before the first push)
 ```
 
-Run `scripts\runes.bat` with no arguments for the full command list. See
+`status` shows whether the marketplace is wired to the local working tree or the
+official GitHub source, each pack's installed version + commit, and every rune
+under it. `deploy -Local` force-refreshes the install cache from the working
+tree in one step (re-pointing the source if it was set to official). CI runs the
+bash validator at `.github/scripts/validate.sh`. See
 [CONTRIBUTING.md](CONTRIBUTING.md) for the skill development lifecycle and how to
 add a rune or a pack.
 

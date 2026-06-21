@@ -1,6 +1,6 @@
 {
   "name": "clipboard",
-  "description": "Clipboard runes for Claude Code: clip (ask about what you copied - text/image/files), clip-edit (transform it and write it back, paste-ready), clip-save (save it to disk).",
+  "description": "Clipboard runes for Claude Code: clip (ask about what you copied), clip-copy (clean deliverable from Claude's output onto the clipboard), clip-ocr (text out of a clipboard image, back onto the clipboard), clip-edit (transform and write back), clip-save (save to disk), clip-history (durable typed recall), clip-snippet (named text/image snippet library). Built-in secret detection: credentials are flagged and never stored.",
   "version": "0.1.0",
   "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" }
 }

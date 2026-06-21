@@ -7,13 +7,13 @@
     {
       "name": "clipboard",
       "source": "./plugins/clipboard",
-      "description": "Clipboard runes: clip (ask about what you copied - text/image/files), clip-edit (reformat/redact/convert and put it back), clip-save (save it to disk).",
+      "description": "Clipboard runes: clip (ask about what you copied), clip-copy (Claude output -> clipboard), clip-ocr (image text -> clipboard), clip-edit (reformat/redact/convert and put it back), clip-save (save to disk), clip-history (typed, searchable recall), clip-snippet (named text/image library). Secret-aware: credentials flagged, never stored.",
       "author": { "name": "Kieran Smith" }
     },
     {
-      "name": "images",
-      "source": "./plugins/images",
-      "description": "Image runes: ask (questions about recent screenshots or any folder), save (copy a selection out), organize (restructure / rename / archive / delete in place), dedup (remove exact-duplicate images).",
+      "name": "imageverse",
+      "source": "./plugins/imageverse",
+      "description": "imageverse - image runes: img (questions about recent screenshots or any folder), img-edit (crop / resize / redact / annotate / rotate / convert into a new image), img-save (copy a selection out), img-organize (restructure / rename / archive / delete in place), img-dedup (remove exact-duplicate images).",
       "author": { "name": "Kieran Smith" }
     }
   ]

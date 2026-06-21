@@ -6,22 +6,45 @@ on:
     paths:
       - "plugins/**"
       - ".claude-plugin/**"
-      - "scripts/validate.ps1"
+      - "tests/**"
+      - ".github/scripts/validate.sh"
       - ".github/workflows/validate.yml"
   pull_request:
     paths:
       - "plugins/**"
       - ".claude-plugin/**"
-      - "scripts/validate.ps1"
+      - "tests/**"
+      - ".github/scripts/validate.sh"
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # pwsh (preinstalled on ubuntu) runs the one validator: it must parse the
-      # PowerShell rune scripts, and it is the same script `runes validate` runs
-      # locally - keeping it single-source avoids a drifting bash duplicate.
+      # Bash + jq run the structure checks; pwsh (preinstalled on ubuntu)
+      # parse-checks the PowerShell rune scripts. The local `runes validate`
+      # folds the same checks into runes.ps1 - keep the two in step.
       - name: Structural validation
+        run: bash .github/scripts/validate.sh
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gawk (cluster.sh time math)
+        run: sudo apt-get update && sudo apt-get install -y gawk
+      # FUNCTIONAL tests: run the backend scripts against synthetic fixtures and
+      # assert their output contracts (empty scan.tsv, miscounted clusters, dropped
+      # coverage - the regressions a structural lint can't see). pwsh is
+      # preinstalled on ubuntu; image-find/thumbs degrade off-Windows (no GDI+),
+      # but the data-path logic under test still runs.
+      - name: Functional tests (PowerShell backends)
         shell: pwsh
-        run: ./scripts/validate.ps1
+        run: |
+          $fail = 0
+          foreach ($t in (Get-ChildItem ./tests -Filter *.tests.ps1)) {
+            Write-Host "== $($t.Name) =="
+            & $t.FullName
+            if ($LASTEXITCODE -ne 0) { $fail = 1 }
+          }
+          exit $fail

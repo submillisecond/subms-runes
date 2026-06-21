@@ -1,12 +1,21 @@
 name: "🚀 release"
 
-# On every push to main: tag each pack at its plugin.json version (if not already
-# tagged). NO commits back to main (your local never falls behind), no Release
-# objects/zips/source archives - the tag is the version marker. Bump the version
-# locally with `runes release`, which commits + tags before you push.
+# Trigger-based release. On push to main:
+#   - if the head commit message contains [release], OR the workflow is run
+#     manually (Run workflow), CI BUMPS each pack's version (plugin.json + every
+#     skill's frontmatter, in lockstep) + commits ([skip ci]) + tags + pushes.
+#   - otherwise it just TAGS each pack at its current plugin.json version (if a
+#     version was already bumped locally via `runes release`).
+# The [skip ci] on the bump commit prevents a re-trigger loop.
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      packs:
+        description: "Packs to release (space-separated; blank = all)"
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -16,10 +25,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Validate
-        shell: pwsh
-        run: ./scripts/validate.ps1
+        run: bash .github/scripts/validate.sh
 
-      - name: Tag each pack at its manifest version
+      - name: Release (bump + tag + push)
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[release]')
+        run: bash .github/scripts/release-bump.sh "${{ github.event.inputs.packs }}"
+
+      - name: Tag at current version (no bump)
+        if: github.event_name == 'push' && !contains(github.event.head_commit.message, '[release]')
         run: bash .github/scripts/tag-packs.sh

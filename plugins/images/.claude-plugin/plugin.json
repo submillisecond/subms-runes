@@ -1,6 +1,0 @@
-{
-  "name": "images",
-  "description": "Image runes for Claude Code: ask (questions about recent screenshots or any folder), save (copy a selection out), organize (restructure / rename / archive / delete in place), dedup (remove exact-duplicate images).",
-  "version": "0.1.0",
-  "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" }
-}

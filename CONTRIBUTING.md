@@ -12,9 +12,13 @@ plugins/<pack>/
   skills/<rune>/
     SKILL.md                        frontmatter (name + description) + instructions
     scripts/                        optional deterministic helpers
-scripts/runes.ps1                   the management dispatcher (+ .bat wrappers)
-scripts/validate.ps1                structural checks (run by `runes validate` and CI)
+.github/scripts/validate.sh         CI structural checks (bash + jq)
 ```
+
+The operator dispatcher (`runes` - deploy / status / dev / validate / etc.) lives
+in the private `subms-infra` repo at `automation/runes/` (it drives this
+marketplace as a sibling under the umbrella). `runes validate` folds the same
+structural checks in PowerShell; CI runs the bash port above. Keep the two in step.
 
 ## The lifecycle (AISkill-DLC)
 
@@ -28,11 +32,16 @@ scripts/validate.ps1                structural checks (run by `runes validate` a
    `runes test <pack> <rune>` runs a rune's script standalone.
 4. **Validate** - `runes validate` (the same checks CI runs on every PR).
 5. **Integrate** - open a PR; merge to `main` when green.
-6. **Release** - bump the pack's `plugin.json` `version` (semver), commit, then
-   `runes tag <pack>` to cut the `<pack>--vX.Y.Z` git tag. Push `main` + the tag;
-   `release.yml` publishes a GitHub Release.
+6. **Release** - trigger-based via CI (`release.yml`). Two ways to cut one:
+   - **CI bumps** (preferred): put `[release]` in your commit message, OR run the
+     "🚀 release" workflow manually (Run workflow). CI bumps each pack's MINOR
+     (`plugin.json` + every skill's frontmatter, in lockstep), commits `[skip ci]`,
+     tags `<pack>--vX.Y.0`, and pushes. Then `git pull` to catch the bump commit.
+   - **Local bump**: `runes release` bumps + commits + tags locally; `git push
+     --follow-tags`. A normal push (no `[release]`) just tags the current version.
+   Either way the version is version-locked across pack + skills (validate enforces it).
 7. **Deploy** - `runes deploy` / `runes redeploy` installs the official version.
-   `runes status` shows working-tree vs installed versions.
+   `runes status` shows working-tree vs installed versions (and per-rune version + drift).
 
 ## Channels
 
