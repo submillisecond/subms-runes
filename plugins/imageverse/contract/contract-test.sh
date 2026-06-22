@@ -28,7 +28,9 @@ eq "imagefind.columns count" "$(grep -c . "$HERE/imagefind.columns")" "7"
 
 echo "== 2. script<->schema drift guard (image-index.ps1 \$COLS == captions.columns) =="
 pscols="$(awk '/\$COLS = @\(/{f=1} f{print} f&&/\)/{exit}' "$SCRIPTS/image-index.ps1" | grep -oE "'[a-z_]+'" | tr -d "'")"
-if diff <(printf '%s\n' "$pscols") "$HERE/captions.columns" >/dev/null 2>&1; then ok; else bad "image-index.ps1 \$COLS drifted from captions.columns"; fi
+# tr -d '\r' both sides: a Windows checkout (autocrlf) gives captions.columns CRLF
+# while the awk/grep-extracted $COLS is LF - that is a line-ending mismatch, not drift.
+if diff <(printf '%s\n' "$pscols" | tr -d '\r') <(tr -d '\r' < "$HERE/captions.columns") >/dev/null 2>&1; then ok; else bad "image-index.ps1 \$COLS drifted from captions.columns"; fi
 
 # fixtures
 SCAN="$T/scan.tsv"

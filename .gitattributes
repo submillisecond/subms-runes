@@ -1,0 +1,9 @@
+# Files consumed by bash or line-diffed by the contract tests must be LF on EVERY
+# platform - including the Windows CI runner, where git's autocrlf would otherwise
+# check them out as CRLF and break (a) bash scripts run under Git Bash and (b) the
+# contract test's line-by-line diff of .columns against the script's $COLS array.
+# PowerShell .ps1 are left native (CRLF on Windows) - they are not line-diffed.
+*.sh        text eol=lf
+*.columns   text eol=lf
+*.tsv       text eol=lf
+*.md        text eol=lf

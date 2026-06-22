@@ -89,10 +89,10 @@ try {
     $g = Run 'clip-snippet.ps1' @('get', '-Name', 'mit-header')
     Check 'clip-snippet get returns the updated body' (Has $g 'updated MIT')
 
-    # image snippet
-    Add-Type -AssemblyName System.Drawing | Out-Null
-    $bmp = New-Object System.Drawing.Bitmap 6, 6
-    $png = Join-Path $snipbox 'logo.png'; $bmp.Save($png, [System.Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
+    # image snippet - a tiny valid PNG written as BYTES (no System.Drawing/GDI+, so
+    # this runs on Linux CI too; clip-snippet just copies the file, it never decodes).
+    $png = Join-Path $snipbox 'logo.png'
+    [IO.File]::WriteAllBytes($png, [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='))
     Run 'clip-snippet.ps1' @('save', '-Name', 'logo', '-Kind', 'image', '-Path', $png) | Out-Null
     $li = Run 'clip-snippet.ps1' @('list')
     Check 'clip-snippet stores an IMAGE snippet (kind=image)' (Has $li 'image')
