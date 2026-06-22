@@ -5,21 +5,8 @@
   structural lint can't see. Runs under pwsh on Linux CI and powershell/pwsh locally.
   Exit code 0 = all pass; non-zero = a failure (CI gate).
 #>
-$ErrorActionPreference = 'Stop'
-$Scripts = Join-Path $PSScriptRoot '..\plugins\imageverse\scripts'
-$HostExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-$script:pass = 0; $script:fail = 0
-
-function Run([string]$name, [string[]]$arguments) {
-    $sp = Join-Path $Scripts $name
-    (& $HostExe -NoProfile -ExecutionPolicy Bypass -File $sp @arguments 2>&1) | ForEach-Object { "$_" }
-}
-function NewTemp { $p = Join-Path ([IO.Path]::GetTempPath()) ("ivt-" + [Guid]::NewGuid().ToString('N').Substring(0, 8)); New-Item -ItemType Directory -Force $p | Out-Null; $p }
-function Check([string]$desc, [bool]$cond) {
-    if ($cond) { $script:pass++; Write-Host "  ok  $desc" }
-    else { $script:fail++; Write-Host "  FAIL $desc" -ForegroundColor Red }
-}
-function Has($lines, $pattern) { @($lines | Select-String -SimpleMatch $pattern).Count -gt 0 }
+. (Join-Path $PSScriptRoot '..\lib\test\suite-lib.ps1')
+Set-SuiteScripts (Join-Path $PSScriptRoot '..\plugins\imageverse\scripts')
 
 Write-Host "imageverse functional tests"
 
@@ -128,6 +115,4 @@ try {
 }
 catch { $script:fail++; Write-Host "  FAIL prefs threw: $_" -ForegroundColor Red }
 
-Write-Host ""
-Write-Host ("imageverse tests: {0} passed, {1} failed" -f $script:pass, $script:fail)
-if ($script:fail -gt 0) { exit 1 }
+Complete-Suite 'imageverse'

@@ -1,27 +1,58 @@
 #!/usr/bin/env bash
-# geocode - reverse-geocode ONE coordinate to a place name via OpenStreetMap
-# Nominatim (macOS/Linux backend; see geocode.ps1). NETWORK + PRIVACY: sends the
-# lat/lon to a third-party API. img-organize calls this ONLY on cluster centroids
-# and ONLY after the user confirms in that run.
-#   --lat <deg> --lon <deg> [--base-url URL]
-# Prints GEOCODE_PLACE=<place>, <country> or GEOCODE_NONE. Nominatim policy:
-# <=1 req/s + a real User-Agent. Needs curl.
+# geocode - bridge between place names and coordinates via OpenStreetMap
+# Nominatim (macOS/Linux backend; see geocode.ps1). Two modes:
+#   REVERSE  --lat <deg> --lon <deg>   coordinate -> place name
+#   FORWARD  --query "<place>"         place name -> coordinate + bbox + radius
+# NETWORK + PRIVACY: calls a third-party API. REVERSE sends a lat/lon; FORWARD
+# sends only a place NAME. img-organize calls REVERSE on cluster centroids after
+# the user confirms; img-search calls FORWARD to resolve "near <place>". Never
+# per-photo, never without opt-in. Nominatim policy: <=1 req/s + a real
+# User-Agent. Needs curl.
+#
+# REVERSE prints GEOCODE_PLACE=<place>, <country> or GEOCODE_NONE.
+# FORWARD prints GEOCODE_LATLON=<lat>,<lon>, GEOCODE_BBOX=<south>,<west>,<north>,<east>,
+# and GEOCODE_RADIUS_KM=<km> (center -> NE corner), or GEOCODE_NONE.
 set -u
 
-LAT=""; LON=""; BASE="https://nominatim.openstreetmap.org"
+LAT=""; LON=""; QUERY=""; BASE="https://nominatim.openstreetmap.org"
 while [ $# -gt 0 ]; do
   case "$1" in
     --lat) LAT="$2"; shift 2;;
     --lon) LON="$2"; shift 2;;
+    --query) QUERY="$2"; shift 2;;
     --base-url) BASE="$2"; shift 2;;
     *) shift;;
   esac
 done
-[ -n "$LAT" ] && [ -n "$LON" ] || { echo "GEOCODE_NONE=1"; echo "GEOCODE_ERROR=missing --lat/--lon"; exit 1; }
 command -v curl >/dev/null 2>&1 || { echo "GEOCODE_NONE=1"; echo "GEOCODE_ERROR=curl not found"; exit 1; }
+UA='subms-runes-imageverse/0.1 (image organiser)'
 
-json="$(curl -s -A 'subms-runes-imageverse/0.1 (image organiser)' \
-  "$BASE/reverse?lat=$LAT&lon=$LON&format=jsonv2&zoom=12&addressdetails=1" 2>/dev/null)"
+hav() { awk -v la1="$1" -v lo1="$2" -v la2="$3" -v lo2="$4" 'BEGIN{
+  d=3.141592653589793/180; dla=(la2-la1)*d; dlo=(lo2-lo1)*d;
+  a=sin(dla/2)*sin(dla/2)+cos(la1*d)*cos(la2*d)*sin(dlo/2)*sin(dlo/2);
+  printf "%.1f", 6371.0*2*atan2(sqrt(a),sqrt(1-a)) }'; }
+
+if [ -n "$QUERY" ]; then
+  # curl -G moves --data-urlencode into the query string, encoding the place name.
+  json="$(curl -s -A "$UA" -G "$BASE/search" --data-urlencode "q=$QUERY" -d 'format=jsonv2' -d 'limit=1' 2>/dev/null)"
+  [ -n "$json" ] || { echo "GEOCODE_NONE=1"; exit 0; }
+  clat="$(printf '%s' "$json" | grep -oE '"lat":"[^"]*"' | head -1 | sed 's/.*:"//;s/"$//')"
+  clon="$(printf '%s' "$json" | grep -oE '"lon":"[^"]*"' | head -1 | sed 's/.*:"//;s/"$//')"
+  [ -n "$clat" ] && [ -n "$clon" ] || { echo "GEOCODE_NONE=1"; exit 0; }
+  # boundingbox: ["south","north","west","east"]
+  bb="$(printf '%s' "$json" | grep -oE '"boundingbox":\[[^]]*\]' | head -1)"
+  set -- $(printf '%s' "$bb" | grep -oE '\-?[0-9]+\.[0-9]+')
+  south="${1:-}"; north="${2:-}"; west="${3:-}"; east="${4:-}"
+  echo "GEOCODE_LATLON=$clat,$clon"
+  if [ -n "$south" ] && [ -n "$north" ] && [ -n "$west" ] && [ -n "$east" ]; then
+    echo "GEOCODE_BBOX=$south,$west,$north,$east"
+    echo "GEOCODE_RADIUS_KM=$(hav "$clat" "$clon" "$north" "$east")"
+  fi
+  exit 0
+fi
+
+[ -n "$LAT" ] && [ -n "$LON" ] || { echo "GEOCODE_NONE=1"; echo "GEOCODE_ERROR=give --query <place> (forward) or --lat/--lon (reverse)"; exit 1; }
+json="$(curl -s -A "$UA" "$BASE/reverse?lat=$LAT&lon=$LON&format=jsonv2&zoom=12&addressdetails=1" 2>/dev/null)"
 [ -n "$json" ] || { echo "GEOCODE_NONE=1"; exit 0; }
 
 extract() { printf '%s' "$json" | sed -n "s/.*\"$1\"[[:space:]]*:[[:space:]]*\"\([^\"]*\)\".*/\1/p" | head -1; }

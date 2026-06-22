@@ -7,6 +7,7 @@ on:
       - "plugins/**"
       - ".claude-plugin/**"
       - "tests/**"
+      - "lib/**"
       - ".github/scripts/validate.sh"
       - ".github/workflows/validate.yml"
   pull_request:
@@ -14,6 +15,7 @@ on:
       - "plugins/**"
       - ".claude-plugin/**"
       - "tests/**"
+      - "lib/**"
       - ".github/scripts/validate.sh"
 
 jobs:
@@ -48,3 +50,18 @@ jobs:
             if ($LASTEXITCODE -ne 0) { $fail = 1 }
           }
           exit $fail
+
+  # The contract tests run BOTH backends, so they need powershell.exe AND Git Bash
+  # together - that pairing only exists on Windows. windows-latest mirrors exactly
+  # how they are verified locally (no cross-platform script surgery). This is the
+  # canonical doc<->schema<->script<->skill drift guard.
+  contract:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: imageverse contract
+        shell: bash
+        run: bash plugins/imageverse/contract/contract-test.sh
+      - name: clipboard contract
+        shell: bash
+        run: bash plugins/clipboard/contract/contract-test.sh

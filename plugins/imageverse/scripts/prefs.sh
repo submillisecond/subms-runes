@@ -7,7 +7,7 @@
 set -uo pipefail
 
 ACTION="${1:-get}"; shift || true
-DIR=""; ALBUMS=""; OP="move"; SCHEME="albums"; PLUGIN="images"
+DIR=""; ALBUMS=""; OP="move"; SCHEME="albums"; PLUGIN="imageverse"
 while [ $# -gt 0 ]; do
   case "$1" in
     --dir) DIR="$2"; shift 2;;

@@ -7,7 +7,7 @@
 
     -Tsv file        the image-find -TsvFile output (date[.subsec] \t size \t hash
                      \t path \t lat \t lon \t camera; file order == shots.txt order)
-    -GapMinutes N    a time gap > N starts a new cluster (default 45)
+    -GapMinutes N    a time gap > N starts a new cluster (default 2)
     -GeoKm K         with GPS on both, a jump > K km starts a new cluster (default 2)
 
   Output: CLUSTER_COUNT=N, then one line per cluster (newest first):

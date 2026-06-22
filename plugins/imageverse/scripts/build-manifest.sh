@@ -92,7 +92,9 @@ while IFS=$'\t' read -r album val rest; do
   case "$album" in \#*) continue;; esac
   [ -n "${val:-}" ] || continue
   if [ -n "$SHOTS" ] && printf '%s' "$val" | grep -qE '^[0-9,[:space:]-]+$'; then
-    printf '%s' "$val" | tr ',' '\n' | while IFS= read -r tok; do
+    # printf '%s\n' (NOT '%s'): without the trailing newline the final `read` gets
+    # the value but returns EOF-false, so a single-index "1" would expand to nothing.
+    printf '%s\n' "$val" | tr ',' '\n' | while IFS= read -r tok; do
       tok="$(printf '%s' "$tok" | tr -d '[:space:]')"; [ -z "$tok" ] && continue
       if printf '%s' "$tok" | grep -qE '^[0-9]+-[0-9]+$'; then
         a="${tok%-*}"; b="${tok#*-}"; i="$a"
@@ -131,10 +133,23 @@ done < "$pairs"
 
 : > "$MANIFEST"
 prev=""; n=0
-while IFS=$'\t' read -r album date time subsec src; do
+while IFS= read -r row; do
+  [ -n "$row" ] || continue
+  # cut, NOT `IFS=tab read`: subsec is often empty, and tab is IFS-whitespace, so
+  # read would FOLD the empty field and shift src into subsec (path ends up in the
+  # name, src goes blank). cut keeps empty fields; -f5- captures src incl. any tabs.
+  album="$(printf '%s' "$row" | cut -f1)"
+  date="$(printf '%s' "$row" | cut -f2)"
+  time="$(printf '%s' "$row" | cut -f3)"
+  subsec="$(printf '%s' "$row" | cut -f4)"
+  src="$(printf '%s' "$row" | cut -f5-)"
   # album may be a NESTED path (yyyy/mm/album); use the LEAF for the file name.
   leaf="${album##*/}"
-  if [ -n "$subsec" ]; then stem="${leaf}-${date}-${time}-${subsec}"; else stem="${leaf}-${date}-${time}"; fi
+  # FOLDER keeps any chronological "MM. " month prefix; the FILE name drops it
+  # (the date already orders files): "06. Paris-..." -> "Paris-...".
+  fileleaf="$(printf '%s' "$leaf" | sed -E 's/^(0[1-9]|1[0-2])\.[[:space:]]+//')"
+  [ -n "$fileleaf" ] || fileleaf="$leaf"
+  if [ -n "$subsec" ]; then stem="${fileleaf}-${date}-${time}-${subsec}"; else stem="${fileleaf}-${date}-${time}"; fi
   key="${album}|${stem}"
   if [ "$key" = "$prev" ]; then n=$((n + 1)); else n=1; prev="$key"; fi
   ext=".${src##*.}"

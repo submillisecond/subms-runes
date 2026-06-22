@@ -32,9 +32,11 @@ while [ $# -gt 0 ]; do
         --hash) hash=1; shift ;;
         --outfile) outfile="${2:-}"; shift 2 ;;
         --tsvfile) tsvfile="${2:-}"; shift 2 ;;
+        --hashcache) hashcache="${2:-}"; shift 2 ;;
         *) shift ;;
     esac
 done
+hashcache="${hashcache:-}"
 
 os="$(uname -s)"
 cand=()
@@ -88,6 +90,10 @@ shift_back() {
     fi
 }
 if stat -c '%Y' . >/dev/null 2>&1; then mtime() { stat -c '%Y' "$1" 2>/dev/null; }; else mtime() { stat -f '%m' "$1" 2>/dev/null; }; fi
+# tier-0 cache signature: size_mtime_ctime_inode. inode is the file-IDENTITY term
+# (a different file at the same path gets a new inode), so "same path/size/mtime,
+# different file" still misses the cache. GNU %Z / BSD %c = ctime; %i = inode.
+if stat -c '%s' . >/dev/null 2>&1; then file_sig() { stat -c '%s_%Y_%Z_%i' "$1" 2>/dev/null; }; else file_sig() { stat -f '%z_%m_%c_%i' "$1" 2>/dev/null; }; fi
 
 lo=0; hi=99999999999
 [ "$minutes" -gt 0 ] && { c=$((now - minutes * 60)); [ "$c" -gt "$lo" ] && lo=$c; }
@@ -153,6 +159,9 @@ echo "IMG_COUNT=$(printf '%s\n' "$sorted" | grep -c .)"
 # together (free alongside the date); mtime fallback for the date. SubSecTimeOriginal
 # appended as `.fff` for burst ordering. --tsvfile persists this for build-manifest -Meta.
 have_exif=0; command -v exiftool >/dev/null 2>&1 && have_exif=1
+# tier-0 cache (REBUILT this run, self-pruning): new entries go to $hcnew, then the
+# old file is replaced after emit_tsv. Lookup reads the OLD $hashcache by path+sig.
+hcnew=""; if [ -n "$hashcache" ] && [ "$hash" = 1 ]; then hcnew="$(mktemp)"; : > "$hcnew"; fi
 emit_tsv() {
   printf '%s\n' "$sorted" | grep . | while IFS= read -r f; do
     dt=""; ss=""; lat=""; lon=""; cam=""
@@ -167,8 +176,19 @@ emit_tsv() {
     fi
     ss="$(printf '%s' "$ss" | tr -cd '0-9')"; [ -n "$ss" ] && dt="$dt.$(printf '%s000' "$ss" | cut -c1-3)"
     sz="$(wc -c < "$f" 2>/dev/null | tr -d ' ')"
-    h=""; [ "$hash" = 1 ] && h="$( (command -v shasum >/dev/null 2>&1 && shasum -a1 "$f" || sha1sum "$f") 2>/dev/null | awk '{print $1}')"
+    h=""
+    if [ "$hash" = 1 ]; then
+      if [ -n "$hashcache" ]; then
+        sig="$(file_sig "$f")"
+        h="$(awk -F'\t' -v p="$f" -v sg="$sig" '$1==p && $2==sg{print $3; exit}' "$hashcache" 2>/dev/null)"
+        [ -n "$h" ] || h="$( (command -v shasum >/dev/null 2>&1 && shasum -a1 "$f" || sha1sum "$f") 2>/dev/null | awk '{print $1}')"
+        printf '%s\t%s\t%s\n' "$f" "$sig" "$h" >> "$hcnew"
+      else
+        h="$( (command -v shasum >/dev/null 2>&1 && shasum -a1 "$f" || sha1sum "$f") 2>/dev/null | awk '{print $1}')"
+      fi
+    fi
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$dt" "$sz" "$h" "$f" "$lat" "$lon" "$cam"
   done
 }
 if [ -n "$tsvfile" ]; then emit_tsv | tee "$tsvfile"; echo "IMG_TSVFILE=$tsvfile"; else emit_tsv; fi
+if [ -n "$hcnew" ]; then mv -f "$hcnew" "$hashcache"; echo "IMG_HASHCACHE=$hashcache"; fi

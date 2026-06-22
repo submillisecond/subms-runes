@@ -5,21 +5,8 @@
   powershell/pwsh locally. Exit 0 = all pass; non-zero = a failure (CI gate).
   (clipboard-io read needs a live OS clipboard, so it is exercised manually, not here.)
 #>
-$ErrorActionPreference = 'Stop'
-$Scripts = Join-Path $PSScriptRoot '..\plugins\clipboard\scripts'
-$HostExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
-$script:pass = 0; $script:fail = 0
-
-function Run([string]$name, [string[]]$arguments) {
-    $sp = Join-Path $Scripts $name
-    (& $HostExe -NoProfile -ExecutionPolicy Bypass -File $sp @arguments 2>&1) | ForEach-Object { "$_" }
-}
-function NewTemp { $p = Join-Path ([IO.Path]::GetTempPath()) ("cbt-" + [Guid]::NewGuid().ToString('N').Substring(0, 8)); New-Item -ItemType Directory -Force $p | Out-Null; $p }
-function Check([string]$desc, [bool]$cond) {
-    if ($cond) { $script:pass++; Write-Host "  ok  $desc" }
-    else { $script:fail++; Write-Host "  FAIL $desc" -ForegroundColor Red }
-}
-function Has($lines, $pattern) { @($lines | Select-String -SimpleMatch $pattern).Count -gt 0 }
+. (Join-Path $PSScriptRoot '..\lib\test\suite-lib.ps1')
+Set-SuiteScripts (Join-Path $PSScriptRoot '..\plugins\clipboard\scripts')
 
 Write-Host "clipboard functional tests"
 
@@ -115,6 +102,4 @@ try {
 catch { $script:fail++; Write-Host "  FAIL clip-snippet threw: $_" -ForegroundColor Red }
 finally { Remove-Item Env:\LOCALAPPDATA -ErrorAction SilentlyContinue; Remove-Item $snipbox -Recurse -Force -ErrorAction SilentlyContinue }
 
-Write-Host ""
-Write-Host ("clipboard tests: {0} passed, {1} failed" -f $script:pass, $script:fail)
-if ($script:fail -gt 0) { exit 1 }
+Complete-Suite 'clipboard'

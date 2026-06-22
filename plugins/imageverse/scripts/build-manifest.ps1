@@ -136,9 +136,14 @@ foreach ($e in ($entries | Sort-Object album, date, time, subsec, src)) {
     # schema) - normalise separators, use the LEAF segment for the file name.
     $albumPath = $e.album -replace '[\\/]+', [IO.Path]::DirectorySeparatorChar
     $leaf = ($e.album -split '[\\/]+')[-1]
+    # The FOLDER keeps any chronological "MM. " month prefix (so albums sort by
+    # month); the FILE name drops it - the date in the name already orders files,
+    # so "06. Paris-2026-06-12-..." becomes "Paris-2026-06-12-...".
+    $fileLeaf = $leaf -replace '^(0[1-9]|1[0-2])\.\s+', ''
+    if (-not $fileLeaf) { $fileLeaf = $leaf }
     # Sub-second (from EXIF) gives bursts unique, true-ordered names; else the -N
     # counter still keeps same-second files collision-safe.
-    $stem = if ($e.subsec) { "$leaf-$($e.date)-$($e.time)-$($e.subsec)" } else { "$leaf-$($e.date)-$($e.time)" }
+    $stem = if ($e.subsec) { "$fileLeaf-$($e.date)-$($e.time)-$($e.subsec)" } else { "$fileLeaf-$($e.date)-$($e.time)" }
     $n = ([int]$seen["$albumPath|$stem"]) + 1; $seen["$albumPath|$stem"] = $n
     $name = if ($n -eq 1) { "$stem$ext" } else { "$stem-$n$ext" }
     $dest = Join-Path (Join-Path $Base $albumPath) $name

@@ -11,13 +11,16 @@
 
   Params (only -In/-Out are needed; the *able ones repeat):
     -In   path         source image (png/jpg/jpeg/bmp/gif/tiff)
-    -Out  path         destination; pixel format inferred from the extension
+    -Out  path         destination; format from extension (png/jpg/jpeg/bmp/gif/tif/tiff;
+                       an unsupported extension is a hard error, not a silent PNG)
     -Redact "X,Y,W,H"  fill a rectangle (default black); repeatable
     -Box    "X,Y,W,H[,#RRGGBB[,T]]"  outline a rectangle (T = thickness px); repeatable
     -Text   "X,Y,SIZE,#RRGGBB,the text"  draw text (text may contain commas); repeatable
     -Crop   "X,Y,W,H"  crop to this rectangle (clamped to bounds)
-    -Resize "WxH"      resize; put 0/auto on one side to keep aspect (e.g. 800x0)
-    -Scale  f          scale by factor (0.5 = half); ignored when -Resize is given
+    -Resize "WxH"      resize; put 0/auto on one side to keep aspect (e.g. 800x0).
+                       Shrink-only: a target larger than the source is clamped (never upscales)
+    -Scale  f          scale by factor (0.5 = half); ignored when -Resize is given.
+                       Clamped to 1.0 effective (never upscales)
     -Rotate deg        rotate clockwise; 90/180/270 are lossless RotateFlip
     -Flip   h|v        mirror horizontally or vertically
     -Grayscale         desaturate (luma ColorMatrix)
@@ -133,7 +136,19 @@ try {
     elseif ($Scale -gt 0) {
         $newW = [int][math]::Round($img.Width * $Scale); $newH = [int][math]::Round($img.Height * $Scale)
     }
+    # Never upscale (mirrors thumbs' shrink-only contract). Clamp each axis to the
+    # source dimension so a target larger than the original just leaves it as-is;
+    # for aspect-preserving requests, scale BOTH axes by the binding (smaller) ratio
+    # so the image is not distorted by clamping one side independently.
     if ($newW -gt 0 -and $newH -gt 0) {
+        $sw = if ($newW -gt $img.Width) { $img.Width / $newW } else { 1.0 }
+        $sh = if ($newH -gt $img.Height) { $img.Height / $newH } else { 1.0 }
+        $s = [math]::Min($sw, $sh)
+        if ($s -lt 1.0) {
+            $newW = [int][math]::Round($newW * $s); $newH = [int][math]::Round($newH * $s)
+        }
+    }
+    if ($newW -gt 0 -and $newH -gt 0 -and ($newW -ne $img.Width -or $newH -ne $img.Height)) {
         $dst = New-Object System.Drawing.Bitmap($newW, $newH)
         $g = [System.Drawing.Graphics]::FromImage($dst)
         $g.InterpolationMode = [System.Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
@@ -194,6 +209,14 @@ try {
     $outDir = [System.IO.Path]::GetDirectoryName($full)
     if ($outDir -and -not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
     $ext = [System.IO.Path]::GetExtension($full).ToLower().TrimStart('.')
+    # Reject an unknown output extension loudly instead of silently writing PNG
+    # bytes under a misleading name. GDI+ has no built-in WebP encoder, so it is
+    # not in this backend's supported set (the .sh ImageMagick path does support it).
+    $supportedExt = @('png', 'jpg', 'jpeg', 'bmp', 'gif', 'tif', 'tiff')
+    if ($ext -notin $supportedExt) {
+        Write-Output "EDIT_ERROR=unsupported output extension '$ext' (supported: png, jpg, jpeg, bmp, gif, tif, tiff)"
+        $img.Dispose(); exit 1
+    }
     switch -Regex ($ext) {
         '^(jpg|jpeg)$' {
             $codec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() | Where-Object { $_.MimeType -eq 'image/jpeg' }
@@ -209,7 +232,7 @@ try {
         '^bmp$' { $img.Save($full, [System.Drawing.Imaging.ImageFormat]::Bmp) }
         '^gif$' { $img.Save($full, [System.Drawing.Imaging.ImageFormat]::Gif) }
         '^(tif|tiff)$' { $img.Save($full, [System.Drawing.Imaging.ImageFormat]::Tiff) }
-        default { $img.Save($full, [System.Drawing.Imaging.ImageFormat]::Png) }
+        '^png$' { $img.Save($full, [System.Drawing.Imaging.ImageFormat]::Png) }
     }
 
     $finalW = $img.Width; $finalH = $img.Height

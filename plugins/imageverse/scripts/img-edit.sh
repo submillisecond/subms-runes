@@ -17,6 +17,9 @@
 #   --text   "X,Y,SIZE,#RRGGBB,the text"  (repeatable; text may contain commas)
 #   --crop "X,Y,W,H"  --resize "WxH"  --scale F  --rotate DEG  --flip h|v
 #   --grayscale  --quality N
+# --resize/--scale are shrink-only: a target above the source is clamped (never upscales).
+# --out format is taken from the extension (png/jpg/jpeg/bmp/gif/tif/tiff, plus webp on the
+# ImageMagick backend); an unsupported extension is a hard error, not a silent PNG.
 # Prints EDIT_OUT / EDIT_FROM / EDIT_SIZE / EDIT_OPS / EDIT_BYTES, or EDIT_ERROR.
 set -euo pipefail
 
@@ -87,8 +90,10 @@ run_magick() {
     args+=(-stroke none -fill "$col" -pointsize "$t" -annotate "+$x+$y" "$txt"); ops+=("text")
   done
   if [ -n "$CROP" ]; then IFS=',' read -r x y w h <<< "$CROP"; args+=(-crop "${w}x${h}+${x}+${y}" +repage); ops+=("crop"); fi
-  if [ -n "$RESIZE" ]; then args+=(-filter Lanczos -resize "$RESIZE"); ops+=("resize")
-  elif [ -n "$SCALE" ]; then pct="$(awk "BEGIN{print $SCALE*100}")"; args+=(-filter Lanczos -resize "${pct}%"); ops+=("resize"); fi
+  # Shrink-only: the trailing '>' tells ImageMagick to resize ONLY if the image is
+  # larger than the geometry, so a target/percent above the source is a no-op (never upscales).
+  if [ -n "$RESIZE" ]; then args+=(-filter Lanczos -resize "${RESIZE}>"); ops+=("resize")
+  elif [ -n "$SCALE" ]; then pct="$(awk "BEGIN{print $SCALE*100}")"; args+=(-filter Lanczos -resize "${pct}%>"); ops+=("resize"); fi
   [ -n "$ROTATE" ] && { args+=(-background none -rotate "$ROTATE"); ops+=("rotate$ROTATE"); }
   [ "$FLIP" = "h" ] && { args+=(-flop); ops+=("flipH"); }
   [ "$FLIP" = "v" ] && { args+=(-flip); ops+=("flipV"); }
@@ -102,16 +107,23 @@ run_magick() {
 run_sips() {
   local ops=() ext fmt w h cw ch
   cp "$IN" "$OUT"
+  # sips' --resample* flags WILL enlarge; ImageMagick's '>' qualifier has no sips
+  # equivalent, so clamp each requested axis to the source dimension by hand to
+  # preserve the shrink-only contract (never upscales).
+  cw="$("$SIPS" -g pixelWidth "$OUT" | awk '/pixelWidth/{print $2}')"
+  ch="$("$SIPS" -g pixelHeight "$OUT" | awk '/pixelHeight/{print $2}')"
   if [ -n "$RESIZE" ]; then
     w="${RESIZE%x*}"; h="${RESIZE#*x}"
     [ "$w" = "auto" ] && w=0; [ "$h" = "auto" ] && h=0
+    [ "${w:-0}" -gt 0 ] && [ "$w" -gt "$cw" ] && w="$cw"
+    [ "${h:-0}" -gt 0 ] && [ "$h" -gt "$ch" ] && h="$ch"
     if [ "${w:-0}" -gt 0 ] && [ "${h:-0}" -gt 0 ]; then "$SIPS" --resampleHeightWidth "$h" "$w" "$OUT" >/dev/null
     elif [ "${w:-0}" -gt 0 ]; then "$SIPS" --resampleWidth "$w" "$OUT" >/dev/null
     elif [ "${h:-0}" -gt 0 ]; then "$SIPS" --resampleHeight "$h" "$OUT" >/dev/null; fi
     ops+=("resize")
   elif [ -n "$SCALE" ]; then
-    cw="$("$SIPS" -g pixelWidth "$OUT" | awk '/pixelWidth/{print $2}')"
     w="$(awk "BEGIN{print int($cw*$SCALE+0.5)}")"
+    [ "$w" -gt "$cw" ] && w="$cw"
     "$SIPS" --resampleWidth "$w" "$OUT" >/dev/null; ops+=("resize")
   fi
   [ -n "$ROTATE" ] && { "$SIPS" -r "$ROTATE" "$OUT" >/dev/null; ops+=("rotate$ROTATE"); }
@@ -119,20 +131,32 @@ run_sips() {
   [ "$FLIP" = "v" ] && { "$SIPS" -f vertical "$OUT" >/dev/null; ops+=("flipV"); }
   ext="$(echo "${OUT##*.}" | tr '[:upper:]' '[:lower:]')"
   case "$ext" in
-    jpg|jpeg) fmt=jpeg;; png) fmt=png;; gif) fmt=gif;; tif|tiff) fmt=tiff;; bmp) fmt=bmp;; *) fmt=png;;
+    jpg|jpeg) fmt=jpeg;; png) fmt=png;; gif) fmt=gif;; tif|tiff) fmt=tiff;; bmp) fmt=bmp;;
   esac
   "$SIPS" -s format "$fmt" "$OUT" >/dev/null
   [ "$fmt" = "jpeg" ] && "$SIPS" -s formatOptions "$QUALITY" "$OUT" >/dev/null
   report "$( IFS=,; echo "${ops[*]:-}" )"
 }
 
+# Reject an unknown output extension loudly instead of silently writing one
+# format's bytes under another name. The two backends differ on webp: ImageMagick
+# encodes it when built with the webp delegate; sips has no webp encoder.
+out_ext="$(echo "${OUT##*.}" | tr '[:upper:]' '[:lower:]')"
 if [ -n "$MAGICK" ]; then
+  case "$out_ext" in
+    png|jpg|jpeg|bmp|gif|tif|tiff|webp) ;;
+    *) echo "EDIT_ERROR=unsupported output extension '$out_ext' (supported: png, jpg, jpeg, bmp, gif, tif, tiff, webp)"; exit 1;;
+  esac
   run_magick
 elif [ -n "$SIPS" ]; then
   if [ "$needs_im" = 1 ]; then
     echo "EDIT_ERROR=redact/box/text/grayscale/offset-crop need ImageMagick; install it (brew install imagemagick). sips covers resize/scale/rotate/flip/convert."
     exit 1
   fi
+  case "$out_ext" in
+    png|jpg|jpeg|bmp|gif|tif|tiff) ;;
+    *) echo "EDIT_ERROR=unsupported output extension '$out_ext' (supported: png, jpg, jpeg, bmp, gif, tif, tiff; webp needs the ImageMagick backend)"; exit 1;;
+  esac
   run_sips
 else
   echo "EDIT_ERROR=no image backend found. macOS has sips built in; on Linux install ImageMagick (e.g. apt install imagemagick or dnf install ImageMagick)."

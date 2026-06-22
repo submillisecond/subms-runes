@@ -39,7 +39,8 @@ param(
     [switch]$Recurse,
     [switch]$Hash,
     [string]$OutFile,
-    [string]$TsvFile
+    [string]$TsvFile,
+    [string]$HashCache
 )
 $ErrorActionPreference = 'SilentlyContinue'
 # Windows-only (GDI+). Off Windows the type is absent; degrade to file-time dates
@@ -170,6 +171,19 @@ if ($OutFile) {
     @($files | ForEach-Object { $_.FullName }) | Set-Content -Path $OutFile -Encoding UTF8
     Write-Output ('IMG_OUTFILE=' + $OutFile)
 }
+# Optional tier-0 hash cache: avoid re-reading a file's bytes to rehash it when
+# nothing about it changed. Keyed by path; signature = size + mtime + ctime ticks.
+# ctime (creation time) is the file-IDENTITY proxy: a DIFFERENT file replacing a
+# path gets a new creation time, so "same path, same size+mtime, different file"
+# still misses the cache and forces a rehash (no FileId P/Invoke needed). The hash
+# stays the authority - this only skips recomputation, never decides content.
+$hcOld = @{}; $hcNew = @{}
+if ($HashCache -and (Test-Path $HashCache)) {
+    foreach ($l in Get-Content $HashCache) {
+        $c = $l -split "`t"; if ($c.Count -ge 3) { $hcOld[$c[0]] = @{ sig = $c[1]; sha1 = $c[2] } }
+    }
+}
+
 # TSV: <date[.subsec]> <size> <sha1-or-empty> <path> <lat> <lon> <camera>.
 # The date carries EXIF sub-second (e.g. 2026-05-03 19:16:21.042) when present, so
 # build-manifest can order/name bursts by true capture time (-Meta consumes this).
@@ -180,7 +194,16 @@ foreach ($f in $files) {
     $dtStr = '{0:yyyy-MM-dd HH:mm:ss}' -f $dt
     if ($ex.subsec) { $dtStr += '.' + $ex.subsec }
     $h = ''
-    if ($Hash) { $h = (Get-FileHash -Algorithm SHA1 -LiteralPath $f.FullName).Hash }
+    if ($Hash) {
+        if ($HashCache) {
+            $sig = "$($f.Length)_$($f.LastWriteTimeUtc.Ticks)_$($f.CreationTimeUtc.Ticks)"
+            $cached = $hcOld[$f.FullName]
+            if ($cached -and $cached.sig -eq $sig) { $h = $cached.sha1 }
+            else { $h = (Get-FileHash -Algorithm SHA1 -LiteralPath $f.FullName).Hash }
+            $hcNew[$f.FullName] = @{ sig = $sig; sha1 = $h }
+        }
+        else { $h = (Get-FileHash -Algorithm SHA1 -LiteralPath $f.FullName).Hash }
+    }
     # -join, NOT -f: the format operator drops trailing null/empty args (lat/lon/cam
     # are empty for screenshots), throwing "index out of range" and emptying the TSV.
     $tsv.Add((@($dtStr, $f.Length, $h, $f.FullName, $ex.lat, $ex.lon, $ex.cam) -join "`t"))
@@ -189,4 +212,13 @@ foreach ($l in $tsv) { Write-Output $l }
 if ($TsvFile) {
     $tsv | Set-Content -Path $TsvFile -Encoding UTF8
     Write-Output ('IMG_TSVFILE=' + $TsvFile)
+}
+# Persist the tier-0 cache, REBUILT from this scan's files (self-pruning: entries
+# for files no longer scanned drop out). Intended for full -Recurse indexing
+# scans; a filtered scan simply shrinks the cache, which only costs recomputation
+# next time. path <TAB> sig <TAB> sha1.
+if ($HashCache -and $Hash) {
+    $hcLines = $hcNew.GetEnumerator() | ForEach-Object { $_.Key + "`t" + $_.Value.sig + "`t" + $_.Value.sha1 }
+    $hcLines | Set-Content -Path $HashCache -Encoding UTF8
+    Write-Output ('IMG_HASHCACHE=' + $HashCache)
 }

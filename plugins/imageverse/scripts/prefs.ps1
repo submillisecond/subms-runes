@@ -14,7 +14,7 @@ param(
     [string]$Albums,
     [string]$Op = 'move',
     [string]$Scheme = 'albums',
-    [string]$Plugin = 'images'
+    [string]$Plugin = 'imageverse'
 )
 $ErrorActionPreference = 'Stop'
 if (-not $Dir) { Write-Output 'PREFS_ERROR=missing -Dir'; exit 1 }
