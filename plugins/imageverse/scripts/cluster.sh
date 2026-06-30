@@ -38,7 +38,7 @@ printf '%s\n' "$sorted" | "$AWK" -F'\t' -v gap="$GAP" -v geokm="$GEOKM" -v tripg
     a=sin(dla/2)^2+cos(la1*d)*cos(la2*d)*sin(dlo/2)^2; return 6371*2*atan2(sqrt(a),sqrt(1-a)) }
   { ep[NR]=$1; idx[NR]=$2; lat[NR]=$3; lon[NR]=$4; n=NR }
   END{
-    cid=0;
+    cid=0; curgeo=0;
     for(i=1;i<=n;i++){
       brk=(i==1);
       if(!brk){
@@ -46,17 +46,23 @@ printf '%s\n' "$sorted" | "$AWK" -F'\t' -v gap="$GAP" -v geokm="$GEOKM" -v tripg
           # GPS regime: place dominates; same place tolerates a long within-trip gap.
           if(hav(lat[i-1],lon[i-1],lat[i],lon[i])>geokm) brk=1;
           else if(ep[i]>=0 && ep[i-1]>=0 && (ep[i]-ep[i-1])/3600 > tripgap) brk=1;
+        } else if(curgeo){
+          # Ride-along: this record has no GPS (typically a VIDEO - phone clips omit
+          # GPS) but the running cluster is a GEO/trip cluster, so keep it within the
+          # trip gap instead of splitting a singleton. Only a day-sized gap ends it.
+          if(ep[i]>=0 && ep[i-1]>=0){ if((ep[i]-ep[i-1])/3600 > tripgap) brk=1 }
+          else if((ep[i]>=0) != (ep[i-1]>=0)) brk=1;
         } else {
           # No-GPS regime: tight time-session gap.
           if(ep[i]>=0 && ep[i-1]>=0){ if((ep[i]-ep[i-1])/60 > gap) brk=1 }
           else if((ep[i]>=0) != (ep[i-1]>=0)) brk=1;
         }
       }
-      if(brk){ cid++; }
+      if(brk){ cid++; curgeo=0; }
       cl[i]=cid; members[cid]=members[cid] (members[cid]?",":"") idx[i];
       cnt[cid]++; if(ep[i]>=0){ if(!(cid in smin)){smin[cid]=ep[i]} ; smax[cid]=ep[i] }
       # accumulate geo avg
-      if(lat[i]!=""){ gla[cid]+=lat[i]; glo[cid]+=lon[i]; gn[cid]++ }
+      if(lat[i]!=""){ gla[cid]+=lat[i]; glo[cid]+=lon[i]; gn[cid]++; curgeo=1 }
       # remember member order for reps (time-sorted since input is sorted)
       ord[cid]=ord[cid] (ord[cid]?",":"") idx[i];
     }

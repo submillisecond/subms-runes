@@ -53,6 +53,7 @@ $sorted = $recs | Sort-Object @{ Expression = { if ($_.dt) { $_.dt } else { [dat
 $clusters = New-Object System.Collections.Generic.List[object]
 $cur = $null
 $prev = $null
+$curHasGeo = $false   # does the RUNNING cluster have any GPS anchor yet?
 foreach ($r in $sorted) {
     $brk = $false
     if (-not $cur) { $brk = $true }
@@ -64,14 +65,24 @@ foreach ($r in $sorted) {
             if ((Haversine $prev.lat $prev.lon $r.lat $r.lon) -gt $GeoKm) { $brk = $true }
             elseif ($r.dt -and $prev.dt -and (($r.dt - $prev.dt).TotalHours -gt $TripGapHours)) { $brk = $true }
         }
+        elseif ($curHasGeo) {
+            # The running cluster is a GEO/trip cluster but THIS record carries no
+            # GPS - typically a VIDEO (phone clips often omit GPS) taken on the trip.
+            # Let it RIDE ALONG within the trip gap rather than splitting a singleton;
+            # only a real day-sized gap ends the trip. The rune's homogeneity check
+            # still splits a cluster whose reps genuinely disagree.
+            if ($r.dt -and $prev.dt) { if (($r.dt - $prev.dt).TotalHours -gt $TripGapHours) { $brk = $true } }
+            elseif (($r.dt -and -not $prev.dt) -or (-not $r.dt -and $prev.dt)) { $brk = $true }
+        }
         else {
             # No-GPS regime (screenshots): tight time-session gap.
             if ($r.dt -and $prev.dt) { if (($r.dt - $prev.dt).TotalMinutes -gt $GapMinutes) { $brk = $true } }
             elseif (($r.dt -and -not $prev.dt) -or (-not $r.dt -and $prev.dt)) { $brk = $true }
         }
     }
-    if ($brk) { $cur = New-Object System.Collections.Generic.List[object]; $clusters.Add($cur) }
+    if ($brk) { $cur = New-Object System.Collections.Generic.List[object]; $clusters.Add($cur); $curHasGeo = $false }
     $cur.Add($r); $prev = $r
+    if ($null -ne $r.lat) { $curHasGeo = $true }
 }
 
 function Compress-Ranges($nums) {

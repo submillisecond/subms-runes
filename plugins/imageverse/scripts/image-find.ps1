@@ -12,8 +12,19 @@
     -Since "..." / -Until "..."   date-time bounds (any parseable form)
     -Within spec  calendar bucket (0=current,1=previous): t|today|0d, yesterday|1d, <N>h|d|w|m|y
     -Name glob    filename contains this
-    -Dir path     scan here instead of the auto-detected Screenshots folders
+    -Dir path     where to scan: a literal path, OR the keyword `screenshots` /
+                  `downloads` (resolved to the OS folders). Omit = `screenshots`.
     -Recurse      include subfolders (needed when RE-ORGANIZING a structured folder)
+    -NoVideo      EXCLUDE video files. Videos (mp4/mov/...) are matched BY DEFAULT -
+                  a photo library holds clips too, and leaving them behind is the
+                  bug this fixes. Pass -NoVideo for an images-only scan. Videos carry
+                  no GDI+ EXIF here, so they get the file-time date and blank
+                  GPS/camera (like screenshots) - they still cluster by time and are
+                  thumbnailed as contact sheets by `thumbs`.
+    -NoAudio      EXCLUDE audio files. Audio (mp3/m4a/wav/...) is also matched BY
+                  DEFAULT (voice memos in a camera roll). Audio has NO frames, so it
+                  is never thumbnailed/content-classified - it is grouped purely by
+                  time/cluster and moved (extension kept) like any file.
     -Hash         also emit a SHA1 per file (for dedup)
     -OutFile f    also write just the absolute paths (one per line) to f, so
                   `thumbs -List f` consumes them directly (one shell, one path)
@@ -37,6 +48,8 @@ param(
     [string]$Name,
     [string]$Dir,
     [switch]$Recurse,
+    [switch]$NoVideo,
+    [switch]$NoAudio,
     [switch]$Hash,
     [string]$OutFile,
     [string]$TsvFile,
@@ -47,31 +60,56 @@ $ErrorActionPreference = 'SilentlyContinue'
 # rather than dying at load - Read-Exif's own try/catch handles the missing type.
 try { Add-Type -AssemblyName System.Drawing -ErrorAction SilentlyContinue | Out-Null } catch {}
 
-$dirs = New-Object System.Collections.Generic.List[string]
-if ($Dir) {
-    $dirs.Add($Dir)
-}
-else {
-    $cands = @()
-    if ($env:USERPROFILE) { $cands += (Join-Path $env:USERPROFILE 'Pictures\Screenshots') }
-    foreach ($od in @($env:OneDrive, $env:OneDriveConsumer, $env:OneDriveCommercial)) {
-        if ($od) { $cands += (Join-Path $od 'Pictures\Screenshots') }
-    }
+function Get-ShotDirs {
+    $c = @()
+    if ($env:USERPROFILE) { $c += (Join-Path $env:USERPROFILE 'Pictures\Screenshots') }
+    foreach ($od in @($env:OneDrive, $env:OneDriveConsumer, $env:OneDriveCommercial)) { if ($od) { $c += (Join-Path $od 'Pictures\Screenshots') } }
     $reg = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction SilentlyContinue).'{B7BEDE81-DF94-4682-A7D8-57A52620B86F}'
-    if ($reg) { $cands += [Environment]::ExpandEnvironmentVariables($reg) }
-    foreach ($c in ($cands | Select-Object -Unique)) { if (Test-Path $c) { $dirs.Add($c) } }
+    if ($reg) { $c += [Environment]::ExpandEnvironmentVariables($reg) }
+    $c
+}
+function Get-DownloadDirs {
+    $c = @()
+    if ($env:USERPROFILE) { $c += (Join-Path $env:USERPROFILE 'Downloads') }
+    foreach ($od in @($env:OneDrive, $env:OneDriveConsumer, $env:OneDriveCommercial)) { if ($od) { $c += (Join-Path $od 'Downloads') } }
+    $reg = (Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders' -ErrorAction SilentlyContinue).'{374DE290-123F-4565-9164-39C4925E467B}'
+    if ($reg) { $c += [Environment]::ExpandEnvironmentVariables($reg) }
+    $c
+}
+
+# -Dir accepts the special KEYWORDS `screenshots` / `downloads` (resolved to the OS
+# folders) or a literal path; omitting -Dir defaults to `screenshots`.
+$dirs = New-Object System.Collections.Generic.List[string]
+$key = if ($Dir) { $Dir.Trim() } else { 'screenshots' }
+switch -Regex ($key.ToLower()) {
+    '^screenshots?$' { foreach ($c in (Get-ShotDirs | Select-Object -Unique)) { if (Test-Path $c) { $dirs.Add($c) } } }
+    '^downloads?$' { foreach ($c in (Get-DownloadDirs | Select-Object -Unique)) { if (Test-Path $c) { $dirs.Add($c) } } }
+    default { $dirs.Add($Dir) }
 }
 
 if ($dirs.Count -eq 0) {
     Write-Output 'IMG_COUNT=0'
-    Write-Output 'IMG_NOTE=no Screenshots folder found; pass -Dir <path>'
+    Write-Output ("IMG_NOTE=no folder resolved for '$key'; pass -Dir <path> or the keywords screenshots/downloads")
     return
 }
 
 $exts = @('.jpg', '.jpeg', '.png', '.heic', '.heif', '.gif', '.bmp', '.tif', '.tiff', '.webp')
+# Video + audio files live alongside photos in a camera roll (clips, voice memos),
+# so BOTH are matched BY DEFAULT - a re-organize must sweep them into the trip's
+# album, not leave them behind; -NoVideo / -NoAudio opt out. Kept SEPARATE from
+# $exts so we can report how many of each matched (IMG_VIDEOS / IMG_AUDIO). Audio
+# has no frames, so it is never thumbnailed - it is grouped purely by time/cluster.
+$vexts = @('.mp4', '.mov', '.m4v', '.avi', '.mkv', '.webm', '.3gp', '.3g2', '.wmv', '.mpg', '.mpeg', '.mts', '.m2ts')
+$aexts = @('.mp3', '.m4a', '.wav', '.aac', '.ogg', '.oga', '.opus', '.flac', '.wma', '.amr', '.aiff', '.aif')
+$match = $exts
+if (-not $NoVideo) { $match += $vexts }
+if (-not $NoAudio) { $match += $aexts }
+# `_duplicates` is the archive for perceptual-duplicate re-shares (see img-organize's
+# dedup step) - it gets SPECIAL HANDLING: never scanned, so it is not re-organized,
+# not re-flagged, and not used as a routing reference. Always excluded, even with -Recurse.
 $files = foreach ($d in $dirs) {
     Get-ChildItem -Path $d -File -Recurse:$Recurse -ErrorAction SilentlyContinue |
-        Where-Object { $exts -contains $_.Extension.ToLower() }
+        Where-Object { $match -contains $_.Extension.ToLower() -and $_.FullName -notmatch '[\\/]_duplicates[\\/]' }
 }
 $files = $files | Sort-Object LastWriteTime -Descending
 
@@ -161,8 +199,32 @@ function Read-Exif($path) {
     $r
 }
 
+# Date from FILENAME, for files whose EXIF was stripped (WhatsApp re-encodes and
+# drops EXIF + GPS; screenshots/Signal carry the date only in the name). Tried
+# AFTER EXIF, BEFORE mtime - mtime on a shared/downloaded file is the SAVE date, not
+# capture. Patterns: Android/screenshot `YYYYMMDD_HHMMSS`, WhatsApp `IMG-YYYYMMDD-WA`
+# (date-only), ISO `YYYY-MM-DD`. Date-only gets 00:00:00 so a day's shares group.
+function Get-NameDate($name) {
+    if ($name -match '(20\d{2})[-_]?(\d{2})[-_]?(\d{2})[-_ T]+(\d{2})[-_:.]?(\d{2})[-_:.]?(\d{2})') {
+        try { return [datetime]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], [int]$Matches[4], [int]$Matches[5], [int]$Matches[6]) } catch {}
+    }
+    if ($name -match '(20\d{2})-(\d{2})-(\d{2})') {
+        try { return [datetime]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], 0, 0, 0) } catch {}
+    }
+    if ($name -match '(20\d{2})(\d{2})(\d{2})') {
+        try { return [datetime]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], 0, 0, 0) } catch {}
+    }
+    return $null
+}
+
 foreach ($d in $dirs) { Write-Output ('IMG_DIR=' + $d) }
 Write-Output ('IMG_COUNT=' + $files.Count)
+if (-not $NoVideo) {
+    Write-Output ('IMG_VIDEOS=' + @($files | Where-Object { $vexts -contains $_.Extension.ToLower() }).Count)
+}
+if (-not $NoAudio) {
+    Write-Output ('IMG_AUDIO=' + @($files | Where-Object { $aexts -contains $_.Extension.ToLower() }).Count)
+}
 # When a caller asks for the paths file, always emit the sibling scan.tsv too
 # (the EXIF/GPS data is computed regardless) so the cluster step never finds it
 # missing - the canonical workspace path is <outfile-dir>\scan.tsv.
@@ -188,9 +250,15 @@ if ($HashCache -and (Test-Path $HashCache)) {
 # The date carries EXIF sub-second (e.g. 2026-05-03 19:16:21.042) when present, so
 # build-manifest can order/name bursts by true capture time (-Meta consumes this).
 $tsv = New-Object System.Collections.Generic.List[string]
+$dsExif = 0; $dsName = 0; $dsMtime = 0
 foreach ($f in $files) {
     $ex = Read-Exif $f.FullName
-    $dt = if ($ex.date) { $ex.date } else { $f.LastWriteTime }
+    # Date priority: EXIF capture time > date parsed from filename > file mtime.
+    if ($ex.date) { $dt = $ex.date; $dsExif++ }
+    else {
+        $nd = Get-NameDate $f.Name
+        if ($nd) { $dt = $nd; $dsName++ } else { $dt = $f.LastWriteTime; $dsMtime++ }
+    }
     $dtStr = '{0:yyyy-MM-dd HH:mm:ss}' -f $dt
     if ($ex.subsec) { $dtStr += '.' + $ex.subsec }
     $h = ''
@@ -208,6 +276,7 @@ foreach ($f in $files) {
     # are empty for screenshots), throwing "index out of range" and emptying the TSV.
     $tsv.Add((@($dtStr, $f.Length, $h, $f.FullName, $ex.lat, $ex.lon, $ex.cam) -join "`t"))
 }
+Write-Output ("IMG_DATESRC=exif=$dsExif name=$dsName mtime=$dsMtime")
 foreach ($l in $tsv) { Write-Output $l }
 if ($TsvFile) {
     $tsv | Set-Content -Path $TsvFile -Encoding UTF8

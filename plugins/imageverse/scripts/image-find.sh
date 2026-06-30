@@ -7,7 +7,12 @@
 # for re-organize (img-organize).
 #   --count N --minutes X --today --yesterday --since STR --until STR
 #   --within SPEC  calendar bucket (0=current,1=previous): t|today|0d, yesterday|1d, <N>h|d|w|m|y
-#   --name SUB --dir PATH --recurse --hash --outfile F --tsvfile F
+#   --name SUB --dir PATH --recurse --no-video --no-audio --hash --outfile F --tsvfile F
+#   --dir accepts a literal path OR the keyword `screenshots`/`downloads` (resolved to
+#   the OS folders, incl. the Windows drive under WSL). Omit --dir = screenshots.
+#   videos (mp4/mov/...) AND audio (mp3/m4a/wav/...) are matched BY DEFAULT so a
+#   re-organize sweeps clips + voice memos into the trip's album, not leaves them
+#   behind. --no-video / --no-audio opt out (e.g. an images-only scan).
 #   --tsvfile F  also persist the full TSV to F (for build-manifest --meta).
 # Prints IMG_DIR (each searched), IMG_COUNT, then TSV per file (newest first):
 #   <yyyy-MM-dd HH:MM:SS[.fff]> \t <size> \t <sha1-or-empty> \t <path> \t <lat> \t <lon> \t <camera>
@@ -16,7 +21,7 @@
 # blank without exiftool or on files with no EXIF). NOTE: the .ps1 is the verified backend.
 set -u
 
-count=0; minutes=0; today=0; yesterday=0; since=""; until_=""; within=""; name=""; dir=""; recurse=0; hash=0; outfile=""; tsvfile=""
+count=0; minutes=0; today=0; yesterday=0; since=""; until_=""; within=""; name=""; dir=""; recurse=0; video=1; audio=1; hash=0; outfile=""; tsvfile=""
 while [ $# -gt 0 ]; do
     case "$1" in
         --count) count="${2:-0}"; shift 2 ;;
@@ -29,6 +34,8 @@ while [ $# -gt 0 ]; do
         --name) name="${2:-}"; shift 2 ;;
         --dir) dir="${2:-}"; shift 2 ;;
         --recurse) recurse=1; shift ;;
+        --no-video) video=0; shift ;;
+        --no-audio) audio=0; shift ;;
         --hash) hash=1; shift ;;
         --outfile) outfile="${2:-}"; shift 2 ;;
         --tsvfile) tsvfile="${2:-}"; shift 2 ;;
@@ -38,18 +45,32 @@ while [ $# -gt 0 ]; do
 done
 hashcache="${hashcache:-}"
 
+# --dir accepts the special KEYWORDS `screenshots` / `downloads` (resolved to the OS
+# folders, incl. the Windows drive when run under WSL) or a literal path; omitting
+# --dir defaults to `screenshots`.
 os="$(uname -s)"
+key="${dir:-screenshots}"; keyl="$(printf '%s' "$key" | tr '[:upper:]' '[:lower:]')"
 cand=()
-if [ -n "$dir" ]; then
-    cand+=("$dir")
-elif [ "$os" = "Darwin" ]; then
-    loc="$(defaults read com.apple.screencapture location 2>/dev/null || true)"
-    [ -n "$loc" ] && cand+=("${loc/#\~/$HOME}")
-    cand+=("$HOME/Desktop")
-else
+case "$keyl" in
+  screenshot|screenshots)
+    if [ "$os" = "Darwin" ]; then
+        loc="$(defaults read com.apple.screencapture location 2>/dev/null || true)"
+        [ -n "$loc" ] && cand+=("${loc/#\~/$HOME}")
+        cand+=("$HOME/Desktop")
+    fi
     [ -n "${XDG_PICTURES_DIR:-}" ] && cand+=("$XDG_PICTURES_DIR/Screenshots" "$XDG_PICTURES_DIR")
     cand+=("$HOME/Pictures/Screenshots" "$HOME/Pictures")
-fi
+    [ -d /mnt/c/Users ] && for u in /mnt/c/Users/*/; do [ -d "${u}Pictures/Screenshots" ] && cand+=("${u}Pictures/Screenshots"); done
+    ;;
+  download|downloads)
+    [ -n "${XDG_DOWNLOAD_DIR:-}" ] && cand+=("$XDG_DOWNLOAD_DIR")
+    cand+=("$HOME/Downloads")
+    [ -d /mnt/c/Users ] && for u in /mnt/c/Users/*/; do [ -d "${u}Downloads" ] && cand+=("${u}Downloads"); done
+    ;;
+  *)
+    cand+=("$dir")
+    ;;
+esac
 
 dirs=()
 for d in "${cand[@]}"; do
@@ -57,7 +78,7 @@ for d in "${cand[@]}"; do
     [ -d "$d" ] && dirs+=("$d")
 done
 if [ ${#dirs[@]} -eq 0 ]; then
-    echo "IMG_COUNT=0"; echo "IMG_NOTE=no Screenshots folder found; pass --dir <path>"; exit 0
+    echo "IMG_COUNT=0"; echo "IMG_NOTE=no folder resolved for '$key'; pass --dir <path> or the keywords screenshots/downloads"; exit 0
 fi
 
 gnu_date=0; date -d @0 +%s >/dev/null 2>&1 && gnu_date=1
@@ -125,6 +146,9 @@ emit=""; skipped=0; TAB="$(printf '\t')"
 for d in "${dirs[@]}"; do
     while IFS= read -r f; do
         [ -n "$f" ] || continue
+        # _duplicates = the perceptual-duplicate archive (special handling): never
+        # scanned, so it is not re-organized / re-flagged / used as a routing ref.
+        case "$f" in */_duplicates/*) continue ;; esac
         # A tab in a path would corrupt the TSV; skip + warn. (Newlines in
         # filenames are a known limit of this line-based find - would need -print0.)
         case "$f" in *"$TAB"*) skipped=$((skipped + 1)); continue ;; esac
@@ -136,7 +160,9 @@ for d in "${dirs[@]}"; do
         [ "$m" -ge "$lo" ] && [ "$m" -le "$hi" ] && emit="$emit$m	$f
 "
     done <<EOF
-$(find "$d" $maxdepth -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.heic' -o -iname '*.heif' -o -iname '*.gif' -o -iname '*.bmp' -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.webp' \) 2>/dev/null)
+$(find "$d" $maxdepth -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.heic' -o -iname '*.heif' -o -iname '*.gif' -o -iname '*.bmp' -o -iname '*.tif' -o -iname '*.tiff' -o -iname '*.webp' \) 2>/dev/null
+[ "$video" = 1 ] && find "$d" $maxdepth -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.m4v' -o -iname '*.avi' -o -iname '*.mkv' -o -iname '*.webm' -o -iname '*.3gp' -o -iname '*.3g2' -o -iname '*.wmv' -o -iname '*.mpg' -o -iname '*.mpeg' -o -iname '*.mts' -o -iname '*.m2ts' \) 2>/dev/null
+[ "$audio" = 1 ] && find "$d" $maxdepth -type f \( -iname '*.mp3' -o -iname '*.m4a' -o -iname '*.wav' -o -iname '*.aac' -o -iname '*.ogg' -o -iname '*.oga' -o -iname '*.opus' -o -iname '*.flac' -o -iname '*.wma' -o -iname '*.amr' -o -iname '*.aiff' -o -iname '*.aif' \) 2>/dev/null)
 EOF
 done
 
@@ -149,6 +175,8 @@ anyfilter=0
 
 for d in "${dirs[@]}"; do echo "IMG_DIR=$d"; done
 echo "IMG_COUNT=$(printf '%s\n' "$sorted" | grep -c .)"
+[ "$video" = 1 ] && echo "IMG_VIDEOS=$(printf '%s\n' "$sorted" | grep -ciE '\.(mp4|mov|m4v|avi|mkv|webm|3gp|3g2|wmv|mpg|mpeg|mts|m2ts)$')"
+[ "$audio" = 1 ] && echo "IMG_AUDIO=$(printf '%s\n' "$sorted" | grep -ciE '\.(mp3|m4a|wav|aac|ogg|oga|opus|flac|wma|amr|aiff|aif)$')"
 [ "$skipped" -gt 0 ] && echo "IMG_SKIPPED=$skipped (path contains tab)"
 # Asking for the paths file always emits the sibling scan.tsv too (EXIF/GPS is
 # computed regardless) so the cluster step never finds it missing.
@@ -159,6 +187,18 @@ echo "IMG_COUNT=$(printf '%s\n' "$sorted" | grep -c .)"
 # together (free alongside the date); mtime fallback for the date. SubSecTimeOriginal
 # appended as `.fff` for burst ordering. --tsvfile persists this for build-manifest -Meta.
 have_exif=0; command -v exiftool >/dev/null 2>&1 && have_exif=1
+# Date from FILENAME for EXIF-stripped files (WhatsApp re-encodes away EXIF+GPS;
+# screenshots/Signal keep the date only in the name). Used AFTER exiftool, BEFORE
+# mtime (mtime of a shared file is the save date, not capture). Echoes
+# "YYYY-MM-DD HH:MM:SS" or nothing. Date-only patterns get 00:00:00 so a day groups.
+name_date() {
+  b="$(basename "$1")"
+  d="$(printf '%s' "$b" | sed -n -E 's/.*(20[0-9]{2})[-_]?([0-9]{2})[-_]?([0-9]{2})[-_ T]+([0-9]{2})[-_:.]?([0-9]{2})[-_:.]?([0-9]{2}).*/\1-\2-\3 \4:\5:\6/p' | head -n1)"
+  [ -n "$d" ] && { printf '%s' "$d"; return; }
+  d="$(printf '%s' "$b" | sed -n -E 's/.*(20[0-9]{2})-([0-9]{2})-([0-9]{2}).*/\1-\2-\3 00:00:00/p' | head -n1)"
+  [ -n "$d" ] && { printf '%s' "$d"; return; }
+  printf '%s' "$b" | sed -n -E 's/.*(20[0-9]{2})([0-9]{2})([0-9]{2}).*/\1-\2-\3 00:00:00/p' | head -n1
+}
 # tier-0 cache (REBUILT this run, self-pruning): new entries go to $hcnew, then the
 # old file is replaced after emit_tsv. Lookup reads the OLD $hashcache by path+sig.
 hcnew=""; if [ -n "$hashcache" ] && [ "$hash" = 1 ]; then hcnew="$(mktemp)"; : > "$hcnew"; fi
@@ -170,6 +210,7 @@ emit_tsv() {
         dt="$(printf '%s\n' "$ex" | sed -n '1p')"; ss="$(printf '%s\n' "$ex" | sed -n '2p')"
         lat="$(printf '%s\n' "$ex" | sed -n '3p')"; lon="$(printf '%s\n' "$ex" | sed -n '4p')"; cam="$(printf '%s\n' "$ex" | sed -n '5p')"
     fi
+    [ -z "$dt" ] && dt="$(name_date "$f")"
     if [ -z "$dt" ]; then
         m="$(mtime "$f")"
         if [ "$gnu_date" = 1 ]; then dt="$(date -d "@$m" '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"; else dt="$(date -r "$m" '+%Y-%m-%d %H:%M:%S' 2>/dev/null)"; fi
