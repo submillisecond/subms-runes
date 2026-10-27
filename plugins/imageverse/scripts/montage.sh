@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
-# montage - single-sheet montage of an album/folder for eyeballing its contents
-# (macOS/Linux backend; montage.ps1 is the verified Windows backend). DEDUPES
-# near-identical/burst shots (perceptual hash), shuffles to RANDOM order, and
-# crop-to-fills into gapless square tiles on ONE sheet with a FIXED column count
-# (default 8). IMAGES ONLY - videos excluded. Self-contained output: one folder with
-# the sheet + a list.txt (cell -> source) inside it. Reuses phash.sh + thumbs.sh;
-# needs ImageMagick (ffmpeg not needed - no videos).
-#   --dir folder | --list file    --out dir
-#   --cols N (default 8; fewer = bigger tiles)   --cell N (max px/cell, default 300)
-#   --dist N (dedup strictness, default 10)      --max N (cap distinct shots, 0=all)
-#   --indexed (stamped+padded cells instead of dense)   --plugin name (default imageverse)
+# montage: .sh port of montage.ps1 (one deduplicated, shuffled contact sheet; images only). Needs ImageMagick.
+# montage.sh --dir d | --list f [--out d] [--cols 8] [--cell 300] [--dist 10] [--max N] [--indexed] [--plugin p]
 set -uo pipefail
 
 dir=""; list=""; out=""; cols=8; cell=300; dist=10; max=0; indexed=0; plugin="imageverse"
@@ -26,7 +17,7 @@ iext='\.(jpg|jpeg|png|heic|heif|gif|bmp|tif|tiff|webp)$'
 tmp="${TMPDIR:-/tmp}/runes/$plugin/_montwork_$$"; mkdir -p "$tmp"
 trap 'rm -rf "$tmp"' EXIT
 
-# 1) gather IMAGES ONLY
+# 1) gather images only
 imglist="$tmp/imgs.txt"
 if [ -n "$dir" ]; then find "$dir" -maxdepth 1 -type f 2>/dev/null | grep -iE "$iext" | sort > "$imglist"
 elif [ -n "$list" ] && [ -f "$list" ]; then grep -iE "$iext" "$list" > "$imglist" || true
@@ -36,7 +27,7 @@ if [ "$total" -eq 0 ]; then echo "MONTAGE_ERROR=no images found"; exit 1; fi
 if [ -z "$out" ]; then nm="$(basename "${dir:-montage}" | sed 's/[^A-Za-z0-9]/_/g')"; out="${TMPDIR:-/tmp}/runes/$plugin/montages/$nm"; fi
 mkdir -p "$out"
 
-# 2) DEDUP via perceptual hash (one rep per distinct shot); fall back to all images
+# 2) dedup via perceptual hash (one rep per distinct shot); fall back to all images
 reps="$tmp/reps.txt"; : > "$reps"
 bash "$sd/phash.sh" hash --list "$imglist" --out "$tmp/ph.tsv" >/dev/null 2>&1 || true
 if [ -s "$tmp/ph.tsv" ]; then
@@ -45,7 +36,7 @@ if [ -s "$tmp/ph.tsv" ]; then
 fi
 [ -s "$reps" ] || cp "$imglist" "$reps"
 
-# 3) RANDOM order
+# 3) random order
 if command -v shuf >/dev/null 2>&1; then shuf "$reps" > "$tmp/shuf.txt"
 else awk 'BEGIN{srand()}{print rand()"\t"$0}' "$reps" | sort | cut -f2- > "$tmp/shuf.txt"; fi
 N=$(grep -c . "$tmp/shuf.txt")

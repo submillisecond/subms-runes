@@ -1,10 +1,5 @@
-<#
-  Functional tests for the clipboard backend scripts: the secret-detection engine
-  and the typed history store. Runs each script as a child process against
-  synthetic input and asserts its output contract. Runs under pwsh on Linux CI and
-  powershell/pwsh locally. Exit 0 = all pass; non-zero = a failure (CI gate).
-  (clipboard-io read needs a live OS clipboard, so it is exercised manually, not here.)
-#>
+# Functional tests for the clipboard scripts (secret detection, history store), run as child processes.
+# Runs under pwsh on Linux CI; clipboard-io needs a live clipboard and is not covered.
 . (Join-Path $PSScriptRoot '..\lib\test\suite-lib.ps1')
 Set-SuiteScripts (Join-Path $PSScriptRoot '..\plugins\clipboard\scripts')
 
@@ -89,7 +84,7 @@ try {
     $g = Run 'clip-snippet.ps1' @('get', '-Name', 'mit-header')
     Check 'clip-snippet get returns the updated body' (Has $g 'updated MIT')
 
-    # image snippet - a tiny valid PNG written as BYTES (no System.Drawing/GDI+, so
+    # image snippet - a tiny valid PNG written as bytes (no System.Drawing/GDI+, so
     # this runs on Linux CI too; clip-snippet just copies the file, it never decodes).
     $png = Join-Path $snipbox 'logo.png'
     [IO.File]::WriteAllBytes($png, [Convert]::FromBase64String('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='))

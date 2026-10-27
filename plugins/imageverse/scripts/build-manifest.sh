@@ -1,21 +1,6 @@
 #!/usr/bin/env bash
-# build-manifest - turn a CLASSIFICATION into a file-ops manifest. macOS/Linux
-# backend (see build-manifest.ps1). The rune's only judgement call is "which
-# album does each image belong to"; all mechanical naming/sequencing/dest paths
-# are deterministic and live here - do NOT hand-roll manifest lines in the rune.
-#   --class file|dir  tab-separated <album>\t<source> (source = full path OR a
-#                     bare filename resolved via --shots). A DIRECTORY = concat all
-#                     batch *.tsv name-sorted (no hand-rolled `cat batch*.tsv`).
-#   --shots file      image-find --outfile full-path list; resolves bare filenames + index ranges
-#   --meta file       image-find --tsvfile TSV; true EXIF capture time (incl.
-#                     sub-second) for naming/ordering instead of filename/mtime
-#   --base dir        dest base (default: parent folder of the first source)
-#   --op move|copy    default move
-#   --plugin name     calling plugin/pack; namespaces the default temp (default misc)
-#   --manifest file   output (default $TMPDIR/runes/<plugin>/manifest.tsv)
-# Writes <op>\t<src>\t<dest> (dest=<base>/<album>/<album>-<date>-NN.ext, date from
-# the filename's YYYY-MM-DD else file mtime). Prints MANIFEST_FILE + MANIFEST_COUNT
-# then the manifest. Feed the result to file-ops.
+# build-manifest: .sh port of build-manifest.ps1 (classification -> file-ops manifest with dated, collision-safe names).
+# Flags, the dest-name rule and output: ../contract/CONTRACTS.md 1.5, 2.4.
 set -uo pipefail
 
 CLASS=""; SHOTS=""; META=""; BASE=""; OP="move"; MANIFEST=""; PLUGIN="misc"
@@ -32,9 +17,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ -n "$CLASS" ] || { echo "MANIFEST_ERROR=missing --class"; exit 1; }
-# --class may be a single file OR a DIRECTORY of batch *.tsv files (compaction-safe
-# per-batch classification) - concatenate all of them, name-sorted, so there is no
-# hand-rolled `cat batch*.tsv` step.
+# --class may be a directory of batch .tsv files, read in name order.
 mtime() { date -r "$1" +%s 2>/dev/null || stat -f %m "$1" 2>/dev/null || echo 0; }
 classfile="$CLASS"; batchinfo=""
 if [ -d "$CLASS" ]; then
@@ -83,9 +66,8 @@ if [ -n "$META" ] && [ -f "$META" ]; then
 fi
 meta_lookup() { awk -F'\t' -v p="$1" '$1==p {print $2"\t"$3"\t"$4; exit}' "$metamap" 2>/dev/null; }
 
-# Pass 1: expand each class line into (album, src) pairs. A line whose second
-# field is an INDEX SPEC (e.g. "1-16,19,22-26") + --shots is the COMPACT grouped
-# form: indices into the shots list. Else it is a per-image filename/path.
+# Expand each class line into (album, src) pairs. With --shots, a second field like "1-16,19" is shots indices;
+# otherwise it is a filename or path.
 pairs="$(mktemp)"
 while IFS=$'\t' read -r album val rest; do
   [ -z "${album:-}" ] && continue
@@ -112,7 +94,7 @@ while IFS=$'\t' read -r album val rest; do
   fi
 done < "$CLASS" >> "$pairs"
 
-# Pass 2: date/time(+subsec) + dest naming per EXPANDED pair (album<TAB>src).
+# Pass 2: date/time(+subsec) + dest naming per expanded pair (album<TAB>src).
 tmp="$(mktemp)"
 while IFS=$'\t' read -r album src rest; do
   [ -z "${album:-}" ] && continue
@@ -135,17 +117,15 @@ done < "$pairs"
 prev=""; n=0
 while IFS= read -r row; do
   [ -n "$row" ] || continue
-  # cut, NOT `IFS=tab read`: subsec is often empty, and tab is IFS-whitespace, so
-  # read would FOLD the empty field and shift src into subsec (path ends up in the
-  # name, src goes blank). cut keeps empty fields; -f5- captures src incl. any tabs.
+  # cut, not IFS=tab read: read folds an empty subsec field and shifts src into it. -f5- keeps tabs in src.
   album="$(printf '%s' "$row" | cut -f1)"
   date="$(printf '%s' "$row" | cut -f2)"
   time="$(printf '%s' "$row" | cut -f3)"
   subsec="$(printf '%s' "$row" | cut -f4)"
   src="$(printf '%s' "$row" | cut -f5-)"
-  # album may be a NESTED path (yyyy/mm/album); use the LEAF for the file name.
+  # album may be a nested path (yyyy/mm/album); use the leaf for the file name.
   leaf="${album##*/}"
-  # FOLDER keeps any chronological "MM. " month prefix; the FILE name drops it
+  # folder keeps any chronological "MM. " month prefix; the file name drops it
   # (the date already orders files): "06. Paris-..." -> "Paris-...".
   fileleaf="$(printf '%s' "$leaf" | sed -E 's/^(0[1-9]|1[0-2])\.[[:space:]]+//')"
   [ -n "$fileleaf" ] || fileleaf="$leaf"
@@ -162,7 +142,7 @@ echo "MANIFEST_FILE=$MANIFEST"
 echo "MANIFEST_COUNT=$(wc -l < "$MANIFEST" | tr -d ' ')"
 [ -n "$batchinfo" ] && echo "$batchinfo"
 
-# Coverage check vs the shots list: catch DROPPED (no album) or DOUBLE-assigned
+# Coverage check vs the shots list: catch dropped (no album) or double-assigned
 # images. Safety net for any format, main guard for the compact index form.
 if [ -n "$SHOTS" ] && [ -f "$SHOTS" ]; then
   assigned="$(cut -f2 "$pairs" | sort)"

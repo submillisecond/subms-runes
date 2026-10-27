@@ -1,16 +1,5 @@
-<#
-  set-dates - set each file's modified-time (and creation-time) to its CAPTURE date,
-  read from the organised filename (`...-YYYY-MM-DD-HHMMSS[-fff]...`). WhatsApp/messenger
-  images lose EXIF, so after organizing they carry the DOWNLOAD date and sort wrong in
-  Explorer/Finder/Photos - this rewrites the timestamp to the real/inferred capture
-  date the organiser put in the name. Read-only on content; only touches timestamps.
-  Cross-platform: set-dates.sh is the macOS/Linux backend.
-
-    -Dir folder      folder to walk (default: current dir)
-    -Recurse         include subfolders (default ON)
-    -NoRecurse       top level only
-  Prints DATES_SET=<n> DATES_SKIPPED=<n> (skipped = no parseable date in the name).
-#>
+# set-dates: set file times to the capture date in an organised name (...-YYYY-MM-DD-HHMMSS...). Content is untouched.
+# set-dates.ps1 [-Dir d] [-NoRecurse]; prints DATES_SET and DATES_SKIPPED.
 param(
     [string]$Dir = '.',
     [switch]$NoRecurse

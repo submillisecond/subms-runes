@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# prefs - remember the organize scheme used for a directory (see prefs.ps1).
-# Per-plugin tab-separated store at <data>/runes/<plugin>/prefs.tsv, keyed by folder.
-#   get --dir <folder>                        print remembered scheme or PREFS_NONE
-#   set --dir <folder> --albums a,b,c [--op move|copy] [--scheme albums]
-# get prints PREFS_DIR / PREFS_SCHEME / PREFS_OP / PREFS_ALBUMS / PREFS_UPDATED.
+# prefs: .sh port of prefs.ps1 (remember the organize scheme per folder).
+# prefs.sh get --dir d | set --dir d --albums a,b [--op move|copy] [--scheme s]. Contract: ../contract/CONTRACTS.md 2.9.
 set -uo pipefail
 
 ACTION="${1:-get}"; shift || true

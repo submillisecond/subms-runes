@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# contract-test - the executable spec for the deltagraph pack. Runs BOTH dg-url
-# backends (.ps1 via powershell.exe where present, .sh in place) over one
-# fixture that carries every character class the encoder has to get right, and
-# asserts: identical plain output across backends; the URL decodes back to the
-# fixture, plain or compressed; LENGTH is right; options land in the documented
-# order and spelling; error paths exit 2 with ERROR= on stderr; every flag in
-# CONTRACTS.md is real in both backends of both scripts; the MCP entry names
-# the documented server; SKILL.md documents the options it relies on. No
-# network, no viewer. Exits non-zero on drift.
+# contract-test: offline checks that both dg-url backends agree, links decode, errors exit 2, and that CONTRACTS.md,
+# SKILL.md and .mcp.json match the scripts. live-test.sh covers the hosted engine.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$(cd "$HERE/../scripts" && pwd)"
@@ -36,7 +29,7 @@ fi
 SH="bash $SCRIPTS/dg-url.sh"
 DBG="bash $SCRIPTS/dg-debug.sh"
 HAVE_PS=0
-if command -v powershell.exe >/dev/null 2>&1; then
+if ps_backend; then
   HAVE_PS=1
   PSFIX="$FIX"; command -v cygpath >/dev/null 2>&1 && PSFIX="$(cygpath -w "$FIX")"
   PS="powershell.exe -NoProfile -ExecutionPolicy Bypass -File $(cygpath -w "$SCRIPTS/dg-url.ps1" 2>/dev/null || echo "$SCRIPTS/dg-url.ps1")"
@@ -153,5 +146,7 @@ for word in deltagraph_debug dg-debug '-Compress' '--compress' '-Bg' '--bg'; do
 done
 VERSION="$(sed -n 's/.*"version": "\([^"]*\)".*/\1/p' "$PACK/.claude-plugin/plugin.json")"
 has "SKILL.md version matches plugin.json ($VERSION)" "$SKILL" "^version: $VERSION\$"
+has ".mcp.json X-Runes-Pack matches plugin.json ($VERSION)" "$MCP" "\"X-Runes-Pack\": \"deltagraph/$VERSION\""
+has "CONTRACTS.md documents X-Runes-Pack" "$CONTRACT" 'X-Runes-Pack'
 
 contract_result

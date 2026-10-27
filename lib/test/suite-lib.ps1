@@ -1,17 +1,5 @@
-<#
-  suite-lib - shared scaffolding for the PowerShell functional suites
-  (`tests/*.tests.ps1`). DOT-SOURCED, never run.
-
-  Repo-level TEST tooling only - the .sh peer is ./contract-lib.sh. Plugin RUNTIME
-  scripts cannot share code (plugin isolation copies each pack's own scripts), so
-  this stays in subms-runes test tooling and never ships in a plugin.
-
-  Usage from a suite:
-    . (Join-Path $PSScriptRoot '..\lib\test\suite-lib.ps1')
-    Set-SuiteScripts (Join-Path $PSScriptRoot '..\plugins\<pack>\scripts')
-    ... Run / NewTemp / Check / Has ...
-    Complete-Suite '<pack>'
-#>
+# suite-lib: helpers for tests/*.tests.ps1 (Set-SuiteScripts, Run, NewTemp, Check, Has, Complete-Suite). Dot-sourced.
+# Test tooling only; contract-lib.sh is the bash peer.
 $ErrorActionPreference = 'Stop'
 $script:pass = 0; $script:fail = 0
 $script:HostExe = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
@@ -20,7 +8,7 @@ $script:SuiteScripts = ''
 # Point Run at a pack's scripts dir.
 function Set-SuiteScripts([string]$dir) { $script:SuiteScripts = $dir }
 
-# Run a backend script as a child of THIS host (pwsh on CI, powershell/pwsh local),
+# Run a backend script as a child of this host (pwsh on CI, powershell/pwsh local),
 # capturing stdout+stderr as string lines.
 function Run([string]$name, [string[]]$arguments) {
     $sp = Join-Path $script:SuiteScripts $name

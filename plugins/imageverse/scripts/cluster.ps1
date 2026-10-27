@@ -1,21 +1,5 @@
-<#
-  cluster - group images into trips/events/sessions from the image-find TSV, using
-  TIME gaps + GPS proximity. This is the cheap, metadata-only grouping prior that
-  drives classification: the model then assigns ONE album per cluster (reading a
-  few representatives) instead of classifying every image. Geo/time become
-  first-class classification signals.
-
-    -Tsv file        the image-find -TsvFile output (date[.subsec] \t size \t hash
-                     \t path \t lat \t lon \t camera; file order == shots.txt order)
-    -GapMinutes N    a time gap > N starts a new cluster (default 2)
-    -GeoKm K         with GPS on both, a jump > K km starts a new cluster (default 2)
-
-  Output: CLUSTER_COUNT=N, then one line per cluster (newest first):
-    CLUSTER \t <id> \t <count> \t <start>..<end> \t <geo lat,lon or -> \t
-            reps=<i,j,k> \t <member index-ranges into shots order>
-  `reps` are 1-based shots indices to READ (first/middle/last by time); the ranges
-  are ALL members, ready to drop into a grouped classification line `<album>\t<ranges>`.
-#>
+# cluster: group an image-find scan into trips and sessions by time gaps and GPS jumps, so classification runs per cluster.
+# Flags and the CLUSTER line: ../contract/CONTRACTS.md 1.4, 2.3.
 param(
     [Parameter(Mandatory)][string]$Tsv,
     [int]$GapMinutes = 2,       # NO-GPS (screenshots): a session gap > this starts a new cluster
@@ -41,7 +25,7 @@ foreach ($line in Get-Content $Tsv) {
 if ($recs.Count -eq 0) { Write-Output 'CLUSTER_COUNT=0'; return }
 
 function Haversine($la1, $lo1, $la2, $lo2) {
-    # NB: PowerShell variables are case-insensitive - do NOT use $R and $r together.
+    # PowerShell variables are case-insensitive - do NOT use $R and $r together.
     $km = 6371.0; $deg = [math]::PI / 180
     $dLa = ($la2 - $la1) * $deg; $dLo = ($lo2 - $lo1) * $deg
     $a = [math]::Sin($dLa / 2) * [math]::Sin($dLa / 2) + [math]::Cos($la1 * $deg) * [math]::Cos($la2 * $deg) * [math]::Sin($dLo / 2) * [math]::Sin($dLo / 2)
@@ -66,11 +50,8 @@ foreach ($r in $sorted) {
             elseif ($r.dt -and $prev.dt -and (($r.dt - $prev.dt).TotalHours -gt $TripGapHours)) { $brk = $true }
         }
         elseif ($curHasGeo) {
-            # The running cluster is a GEO/trip cluster but THIS record carries no
-            # GPS - typically a VIDEO (phone clips often omit GPS) taken on the trip.
-            # Let it RIDE ALONG within the trip gap rather than splitting a singleton;
-            # only a real day-sized gap ends the trip. The rune's homogeneity check
-            # still splits a cluster whose reps genuinely disagree.
+            # A record with no GPS inside a GPS trip (usually a video) stays in the trip;
+            # only a day-sized gap ends it.
             if ($r.dt -and $prev.dt) { if (($r.dt - $prev.dt).TotalHours -gt $TripGapHours) { $brk = $true } }
             elseif (($r.dt -and -not $prev.dt) -or (-not $r.dt -and $prev.dt)) { $brk = $true }
         }

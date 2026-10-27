@@ -1,12 +1,7 @@
 name: "🚀 release"
 
-# Trigger-based release. On push to main:
-#   - if the head commit message contains [release], OR the workflow is run
-#     manually (Run workflow), CI BUMPS each pack's version (plugin.json + every
-#     skill's frontmatter, in lockstep) + commits ([skip ci]) + tags + pushes.
-#   - otherwise it just TAGS each pack at its current plugin.json version (if a
-#     version was already bumped locally via `runes release`).
-# The [skip ci] on the bump commit prevents a re-trigger loop.
+# On push to main: run every check, then tag each pack at its plugin.json version.
+# A `[release]` commit or a manual run also bumps the minor version first ([skip ci] on the bump commit).
 on:
   push:
     branches: [main]
@@ -17,19 +12,25 @@ on:
         required: false
         default: ""
 
-permissions:
-  contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
+  checks:
+    uses: ./.github/workflows/validate.yml
+    permissions:
+      contents: read
+
   release:
+    needs: checks
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Validate
-        run: bash .github/scripts/validate.sh
 
       - name: Release (bump + tag + push)
         if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[release]')

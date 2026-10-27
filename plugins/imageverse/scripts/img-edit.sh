@@ -1,26 +1,6 @@
 #!/usr/bin/env bash
-# img-edit - apply deterministic edits to an image, writing a NEW image.
-# Cross-platform backend, mirroring the Windows System.Drawing path.
-#
-# Two backends, picked per op set:
-#   * ImageMagick (magick / convert) - full op set; preferred when present.
-#   * sips (built into macOS) - zero-dep fast path for the geometric / format
-#     ops (resize, scale, rotate, flip, convert, quality). The draw-based ops
-#     (redact, box, text, grayscale) and arbitrary-offset crop need ImageMagick;
-#     if only sips is available and one of those is requested, we say so.
-#
-# Coordinate ops (--redact/--box/--text/--crop) use ORIGINAL pixel space and are
-# emitted BEFORE the geometric ops, matching the Windows backend's fixed order.
-#   --in PATH --out PATH
-#   --redact "X,Y,W,H"  (repeatable)   --redact-color "#RRGGBB"
-#   --box    "X,Y,W,H[,#RRGGBB[,T]]"  (repeatable)
-#   --text   "X,Y,SIZE,#RRGGBB,the text"  (repeatable; text may contain commas)
-#   --crop "X,Y,W,H"  --resize "WxH"  --scale F  --rotate DEG  --flip h|v
-#   --grayscale  --quality N
-# --resize/--scale are shrink-only: a target above the source is clamped (never upscales).
-# --out format is taken from the extension (png/jpg/jpeg/bmp/gif/tif/tiff, plus webp on the
-# ImageMagick backend); an unsupported extension is a hard error, not a silent PNG.
-# Prints EDIT_OUT / EDIT_FROM / EDIT_SIZE / EDIT_OPS / EDIT_BYTES, or EDIT_ERROR.
+# img-edit: .sh port of img-edit.ps1. ImageMagick does every op; macOS sips covers resize, scale, rotate, flip,
+# convert and quality only. Flags and output: ../skills/img-edit/SPEC.md.
 set -euo pipefail
 
 IN=""; OUT=""; CROP=""; RESIZE=""; SCALE=""; ROTATE=""; FLIP=""; GRAY=0
@@ -90,7 +70,7 @@ run_magick() {
     args+=(-stroke none -fill "$col" -pointsize "$t" -annotate "+$x+$y" "$txt"); ops+=("text")
   done
   if [ -n "$CROP" ]; then IFS=',' read -r x y w h <<< "$CROP"; args+=(-crop "${w}x${h}+${x}+${y}" +repage); ops+=("crop"); fi
-  # Shrink-only: the trailing '>' tells ImageMagick to resize ONLY if the image is
+  # Shrink-only: the trailing '>' tells ImageMagick to resize only if the image is
   # larger than the geometry, so a target/percent above the source is a no-op (never upscales).
   if [ -n "$RESIZE" ]; then args+=(-filter Lanczos -resize "${RESIZE}>"); ops+=("resize")
   elif [ -n "$SCALE" ]; then pct="$(awk "BEGIN{print $SCALE*100}")"; args+=(-filter Lanczos -resize "${pct}%>"); ops+=("resize"); fi
@@ -107,9 +87,7 @@ run_magick() {
 run_sips() {
   local ops=() ext fmt w h cw ch
   cp "$IN" "$OUT"
-  # sips' --resample* flags WILL enlarge; ImageMagick's '>' qualifier has no sips
-  # equivalent, so clamp each requested axis to the source dimension by hand to
-  # preserve the shrink-only contract (never upscales).
+  # sips --resample* will enlarge, so clamp each axis to the source size to stay shrink-only.
   cw="$("$SIPS" -g pixelWidth "$OUT" | awk '/pixelWidth/{print $2}')"
   ch="$("$SIPS" -g pixelHeight "$OUT" | awk '/pixelHeight/{print $2}')"
   if [ -n "$RESIZE" ]; then
@@ -138,9 +116,7 @@ run_sips() {
   report "$( IFS=,; echo "${ops[*]:-}" )"
 }
 
-# Reject an unknown output extension loudly instead of silently writing one
-# format's bytes under another name. The two backends differ on webp: ImageMagick
-# encodes it when built with the webp delegate; sips has no webp encoder.
+# Unknown extensions fail rather than write one format under another's name. Only ImageMagick encodes webp.
 out_ext="$(echo "${OUT##*.}" | tr '[:upper:]' '[:lower:]')"
 if [ -n "$MAGICK" ]; then
   case "$out_ext" in

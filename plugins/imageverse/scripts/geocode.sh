@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
-# geocode - bridge between place names and coordinates via OpenStreetMap
-# Nominatim (macOS/Linux backend; see geocode.ps1). Two modes:
-#   REVERSE  --lat <deg> --lon <deg>   coordinate -> place name
-#   FORWARD  --query "<place>"         place name -> coordinate + bbox + radius
-# NETWORK + PRIVACY: calls a third-party API. REVERSE sends a lat/lon; FORWARD
-# sends only a place NAME. img-organize calls REVERSE on cluster centroids after
-# the user confirms; img-search calls FORWARD to resolve "near <place>". Never
-# per-photo, never without opt-in. Nominatim policy: <=1 req/s + a real
-# User-Agent. Needs curl.
-#
-# REVERSE prints GEOCODE_PLACE=<place>, <country> or GEOCODE_NONE.
-# FORWARD prints GEOCODE_LATLON=<lat>,<lon>, GEOCODE_BBOX=<south>,<west>,<north>,<east>,
-# and GEOCODE_RADIUS_KM=<km> (center -> NE corner), or GEOCODE_NONE.
+# geocode: .sh port of geocode.ps1 (Nominatim, place <-> coordinates). Sends data to a third party; needs curl.
+# Modes and output: ../contract/CONTRACTS.md 1.7, 2.7. At most 1 request/s.
 set -u
 
 LAT=""; LON=""; QUERY=""; BASE="https://nominatim.openstreetmap.org"

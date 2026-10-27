@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
-# contract-test - the executable spec. Asserts that the imageverse scripts STILL
-# emit the documented shapes, so "is the spec accurate?" is a test run, not a
-# manual audit. Runs BOTH backends (.ps1 via powershell.exe, .sh in place) against
-# an ISOLATED temp store (XDG_DATA_HOME / LOCALAPPDATA are redirected, so your real
-# caches are untouched). Exits non-zero on any drift.
-#
-# Checks: (1) canonical column counts; (2) image-index.ps1 $COLS matches
-# captions.columns (script<->schema drift guard); (3) per-verb KEY=value output
-# contract + column ORDER on both backends; (4) every verb/flag is documented in
-# CONTRACTS.md (doc<->script drift guard); (5) the inline schema restatements in the
-# operational SKILL.md docs match the .columns field counts (skill<->schema guard).
+# contract-test: run both backends against an isolated store and fail when output, column order, schemas,
+# CONTRACTS.md or the schemas restated in SKILL.md drift.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$(cd "$HERE/../scripts" && pwd)"
@@ -83,7 +74,7 @@ backend() {
   # INDEX_FACET must carry 8 tab fields
   local faccols; faccols="$(printf '%s' "$FC" | grep "^INDEX_FACET${TAB}" | head -1 | awk -F'\t' '{print NF}')"
   eq "$L INDEX_FACET field count" "$faccols" "8"
-  # captions row: 20 cols, and col 13 (category) == the put marker -> column ORDER intact
+  # captions row: 20 cols, and col 13 (category) == the put marker -> column order intact
   eq "$L captions col count" "$(printf '%s' "$CAPROW" | awk -F'\t' '{print NF}')" "20"
   eq "$L captions category position" "$(printf '%s' "$CAPROW" | awk -F'\t' '{print $13}')" "CATMARK"
 }
@@ -92,7 +83,7 @@ echo "== 3a. .sh backend verb + column contract =="
 # re-put after clear inside backend(); CAP path for .sh store:
 backend ".sh" "$SH" sh "$XDG_DATA_HOME/runes/imageverse/index/captions.tsv"
 echo "== 3b. .ps1 backend verb + column contract =="
-backend ".ps1" "$PS" ps "$PS_CAP"
+ps_backend && backend ".ps1" "$PS" ps "$PS_CAP"
 
 echo "== 4. doc<->script drift guard (every verb + flag documented in CONTRACTS.md) =="
 DOC="$HERE/CONTRACTS.md"

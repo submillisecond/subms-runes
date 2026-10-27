@@ -1,33 +1,31 @@
 name: "🔍 validate"
 
+# Pushes to main run these checks through release.yml, which tags only when they pass.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "plugins/**"
-      - ".claude-plugin/**"
-      - "tests/**"
-      - "lib/**"
-      - ".github/scripts/validate.sh"
-      - ".github/workflows/validate.yml"
   pull_request:
     paths:
       - "plugins/**"
       - ".claude-plugin/**"
       - "tests/**"
       - "lib/**"
-      - ".github/scripts/validate.sh"
+      - ".github/**"
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Bash + jq run the structure checks; pwsh (preinstalled on ubuntu)
-      # parse-checks the PowerShell rune scripts. The local `runes validate`
-      # folds the same checks into runes.ps1 - keep the two in step.
-      - name: Structural validation
+      - name: Structure
         run: bash .github/scripts/validate.sh
+      - name: ASCII in scripts and contracts
+        run: bash .github/scripts/ascii-check.sh
+      - name: README inventory is current
+        run: bash .github/scripts/inventory.sh --check
 
   test:
     runs-on: ubuntu-latest
@@ -35,11 +33,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install gawk (cluster.sh time math)
         run: sudo apt-get update && sudo apt-get install -y gawk
-      # FUNCTIONAL tests: run the backend scripts against synthetic fixtures and
-      # assert their output contracts (empty scan.tsv, miscounted clusters, dropped
-      # coverage - the regressions a structural lint can't see). pwsh is
-      # preinstalled on ubuntu; image-find/thumbs degrade off-Windows (no GDI+),
-      # but the data-path logic under test still runs.
       - name: Functional tests (PowerShell backends)
         shell: pwsh
         run: |
@@ -51,30 +44,43 @@ jobs:
           }
           exit $fail
 
-  # The contract tests run BOTH backends, so they need powershell.exe AND Git Bash
-  # together - that pairing only exists on Windows. windows-latest mirrors exactly
-  # how they are verified locally (no cross-platform script surgery). This is the
-  # canonical doc<->schema<->script<->skill drift guard.
+  # Windows is the only runner with powershell.exe and Git Bash, so both backends run here.
   contract:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: imageverse contract
-        shell: bash
-        run: bash plugins/imageverse/contract/contract-test.sh
-      - name: clipboard contract
-        shell: bash
-        run: bash plugins/clipboard/contract/contract-test.sh
-      # Starts the bundled MCP server over stdio and checks it against the
-      # contract. No network; the live-room path is subms-ui's pnpm mcp:e2e.
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: deltalab contract
+      - name: Contract tests, both backends
         shell: bash
-        run: bash plugins/deltalab/contract/contract-test.sh
-      # Offline: both dg-url backends, the dg-debug usage paths, the MCP entry.
-      # Node (set up above) inflates the compressed links.
-      - name: deltagraph contract
-        shell: bash
-        run: bash plugins/deltagraph/contract/contract-test.sh
+        env:
+          RUNES_REQUIRE_PS: "1"
+        run: bash .github/scripts/contracts.sh
+
+  # The .sh backends are what Linux and macOS users run; Git Bash ships GNU tools and hides BSD gaps.
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Contract tests, .sh backends
+        run: bash .github/scripts/contracts.sh
+
+  plugin-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install the claude CLI
+        run: npm install -g @anthropic-ai/claude-code@2.1.300
+      - name: claude plugin validate
+        run: bash .github/scripts/plugin-validate.sh

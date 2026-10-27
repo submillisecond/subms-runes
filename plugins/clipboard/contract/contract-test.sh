@@ -1,16 +1,6 @@
 #!/usr/bin/env bash
-# contract-test - the executable spec for the clipboard plugin. Asserts that the
-# scripts STILL emit the documented shapes, so "is the spec accurate?" is a test
-# run, not a manual audit. Runs BOTH backends (.ps1 via powershell.exe, .sh in
-# place) against an ISOLATED temp store (XDG_DATA_HOME / LOCALAPPDATA redirected),
-# so your real clip history + snippets are untouched. Does NOT exercise the system
-# clipboard (no clipboard-io read/write, no `get`/recall) - those touch the live
-# clipboard and are out of scope for an automated test. Exits non-zero on drift.
-#
-# Checks: (1) canonical column counts; (2) the actual index row column count after
-# add/save matches the schema (script<->schema drift guard); (3) per-verb
-# KEY=value output contract on both backends; (4) every verb is documented in
-# CONTRACTS.md (doc<->script drift guard).
+# contract-test: run both backends against an isolated store and fail when output, schemas or CONTRACTS.md drift.
+# The live clipboard (clipboard-io, get) is out of scope.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SCRIPTS="$(cd "$HERE/../scripts" && pwd)"
@@ -74,7 +64,25 @@ backend() {
 echo "== 2/3a. .sh backend verb + column contract =="
 backend ".sh" sh "$XDG_DATA_HOME/runes/clipboard/history/index.tsv" "$XDG_DATA_HOME/runes/clipboard/snippets/index.tsv"
 echo "== 2/3b. .ps1 backend verb + column contract =="
-backend ".ps1" ps "$T/ps/runes/clipboard/history/index.tsv" "$T/ps/runes/clipboard/snippets/index.tsv"
+ps_backend && backend ".ps1" ps "$T/ps/runes/clipboard/history/index.tsv" "$T/ps/runes/clipboard/snippets/index.tsv"
+
+echo "== 3c. redaction removes every secret, both backends =="
+# Two kinds of secret in one text; the .ps1 once leaked the tail of the second. The AWS key is AWS's published example.
+SEC='key AKIAIOSFODNN7EXAMPLE and PASSWORD = "abcdefghijklmnop1234" end'
+redact_check() {
+  local L="$1" OUT="$2" BODY
+  BODY="$(printf '%s\n' "$OUT" | sed -n '/^-----BEGIN REDACTED-----$/,/^-----END REDACTED-----$/p')"
+  has "$L redact count" "$OUT" '^CLIP_SECRET_COUNT=2$'
+  has "$L redact aws tag" "$BODY" '\[REDACTED:aws-access-key\]'
+  has "$L redact assignment tag" "$BODY" '\[REDACTED:generic-secret-assignment\]'
+  has "$L redact keeps the text around it" "$BODY" '^key \[REDACTED:aws-access-key\] and \[REDACTED'
+  if printf '%s' "$BODY" | grep -qE 'AKIAIOSFODNN7EXAMPLE|abcdefghijklmnop|1234'; then bad "$L redact leaked part of a secret: $BODY"; else ok; fi
+  eq "$L redact body is 3 lines" "$(printf '%s\n' "$BODY" | wc -l | tr -d ' ')" "3"
+}
+redact_check ".sh" "$(bash "$SCRIPTS/secret-scan.sh" --text "$SEC" --redact)"
+if ps_backend; then
+  redact_check ".ps1" "$(powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$SCRIPTS/secret-scan.ps1" -Text "$SEC" -Redact | tr -d '\r')"
+fi
 
 echo "== 4. doc<->script drift guard (every verb documented in CONTRACTS.md) =="
 DOC="$HERE/CONTRACTS.md"

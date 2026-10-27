@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
-# phash - perceptual hashing (dHash) for imageverse (macOS/Linux backend; phash.ps1
-# is the verified Windows backend). SHA1 can't see through a WhatsApp re-encode; a
-# perceptual hash can - so this routes re-shares to an existing album and groups
-# within-dump near-dupes. dHash: 9x8 grayscale -> compare adjacent pixels -> 64-bit
-# (16 hex); similarity = Hamming distance. Needs ImageMagick (magick/convert).
-# VIDEOS: hashed as a frame-signature (N frames sampled -> dHash each -> concatenated,
-# --video-frames N, default 4); needs ffmpeg. Video sigs are a different length from
-# image hashes so the two never cross-match; match/group scale the threshold for them.
-#   hash  --list F | --tsv scan.tsv  [--out F]      -> "<dhash>\t<path>" lines
-#   match --query H.tsv --ref H.tsv  [--max-dist 10]-> MATCH/NOMATCH lines
-#   group --in H.tsv [--max-dist 6]                 -> GROUP\t<id>\t<n>\t<paths,>
+# phash: .sh port of phash.ps1 (dHash; videos hash as N frames, --video-frames 4). Needs ImageMagick, ffmpeg for video.
+# phash.sh hash --list f|--tsv f [--out f] | match --query f --ref f [--max-dist 10] | group --in f [--max-dist 6]
 set -uo pipefail
 
 mode="${1:-hash}"; shift || true

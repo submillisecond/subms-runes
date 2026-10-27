@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# cluster - group images into trips/events/sessions from the image-find TSV by
-# TIME gaps + GPS proximity (macOS/Linux backend; cluster.ps1 is verified). Needs
-# gawk (mktime) for the time math; on a mac install with `brew install gawk`.
-#   --tsv file         image-find --tsvfile output (file order == shots order)
-#   --gap-minutes N    NO-GPS (screenshots): session gap > N min -> new cluster (default 2)
-#   --geo-km K         GPS: place jump > K km -> new cluster (default 2)
-#   --trip-gap-hours H GPS + SAME place: time gap > H -> new cluster (default 8)
-# Output: CLUSTER_COUNT=N, then per cluster (newest first):
-#   CLUSTER \t id \t count \t start..end \t geo(lat,lon|-) \t reps=i,j,k \t index-ranges
+# cluster: .sh port of cluster.ps1 (trips and sessions from time gaps and GPS jumps). Needs gawk for mktime.
+# Flags and the CLUSTER line: ../contract/CONTRACTS.md 1.4, 2.3.
 set -uo pipefail
 
 TSV=""; GAP=2; GEOKM=2; TRIPGAP=8
@@ -47,9 +40,8 @@ printf '%s\n' "$sorted" | "$AWK" -F'\t' -v gap="$GAP" -v geokm="$GEOKM" -v tripg
           if(hav(lat[i-1],lon[i-1],lat[i],lon[i])>geokm) brk=1;
           else if(ep[i]>=0 && ep[i-1]>=0 && (ep[i]-ep[i-1])/3600 > tripgap) brk=1;
         } else if(curgeo){
-          # Ride-along: this record has no GPS (typically a VIDEO - phone clips omit
-          # GPS) but the running cluster is a GEO/trip cluster, so keep it within the
-          # trip gap instead of splitting a singleton. Only a day-sized gap ends it.
+          # A record with no GPS inside a GPS trip (usually a video) stays in the trip;
+          # only a day-sized gap ends it.
           if(ep[i]>=0 && ep[i-1]>=0){ if((ep[i]-ep[i-1])/3600 > tripgap) brk=1 }
           else if((ep[i]>=0) != (ep[i-1]>=0)) brk=1;
         } else {

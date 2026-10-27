@@ -1,24 +1,6 @@
 #!/usr/bin/env bash
-# image-find - the image-file finder for the images pack (macOS/Linux backend;
-# Windows backend is image-find.ps1). Locates image files in a folder by predicate
-# (recency / name / recurse), with a sortable date (EXIF DateTimeOriginal else
-# mtime) + optional hash, and Screenshots auto-detect. One tool for: recent
-# screenshots (img), whole-tree find + hashes (img-dedup), recursive enumeration
-# for re-organize (img-organize).
-#   --count N --minutes X --today --yesterday --since STR --until STR
-#   --within SPEC  calendar bucket (0=current,1=previous): t|today|0d, yesterday|1d, <N>h|d|w|m|y
-#   --name SUB --dir PATH --recurse --no-video --no-audio --hash --outfile F --tsvfile F
-#   --dir accepts a literal path OR the keyword `screenshots`/`downloads` (resolved to
-#   the OS folders, incl. the Windows drive under WSL). Omit --dir = screenshots.
-#   videos (mp4/mov/...) AND audio (mp3/m4a/wav/...) are matched BY DEFAULT so a
-#   re-organize sweeps clips + voice memos into the trip's album, not leaves them
-#   behind. --no-video / --no-audio opt out (e.g. an images-only scan).
-#   --tsvfile F  also persist the full TSV to F (for build-manifest --meta).
-# Prints IMG_DIR (each searched), IMG_COUNT, then TSV per file (newest first):
-#   <yyyy-MM-dd HH:MM:SS[.fff]> \t <size> \t <sha1-or-empty> \t <path> \t <lat> \t <lon> \t <camera>
-# date carries EXIF SubSecTimeOriginal (.fff) when present (burst ordering).
-# GPS/camera/subsec always read (one exiftool call/file, alongside the date - free;
-# blank without exiftool or on files with no EXIF). NOTE: the .ps1 is the verified backend.
+# image-find: .sh port of image-find.ps1. GPS, camera and sub-seconds need exiftool and are blank without it.
+# Flags and the TSV it prints: ../contract/CONTRACTS.md 1.3, 2.2. Lists only; never touches files.
 set -u
 
 count=0; minutes=0; today=0; yesterday=0; since=""; until_=""; within=""; name=""; dir=""; recurse=0; video=1; audio=1; hash=0; outfile=""; tsvfile=""
@@ -45,9 +27,7 @@ while [ $# -gt 0 ]; do
 done
 hashcache="${hashcache:-}"
 
-# --dir accepts the special KEYWORDS `screenshots` / `downloads` (resolved to the OS
-# folders, incl. the Windows drive when run under WSL) or a literal path; omitting
-# --dir defaults to `screenshots`.
+# --dir takes a path or screenshots|downloads (the Windows folders under WSL); default screenshots.
 os="$(uname -s)"
 key="${dir:-screenshots}"; keyl="$(printf '%s' "$key" | tr '[:upper:]' '[:lower:]')"
 cand=()
@@ -111,9 +91,8 @@ shift_back() {
     fi
 }
 if stat -c '%Y' . >/dev/null 2>&1; then mtime() { stat -c '%Y' "$1" 2>/dev/null; }; else mtime() { stat -f '%m' "$1" 2>/dev/null; }; fi
-# tier-0 cache signature: size_mtime_ctime_inode. inode is the file-IDENTITY term
-# (a different file at the same path gets a new inode), so "same path/size/mtime,
-# different file" still misses the cache. GNU %Z / BSD %c = ctime; %i = inode.
+# Cache signature: size_mtime_ctime_inode; a different file at the same path has a new inode.
+# GNU %Z / BSD %c = ctime, %i = inode.
 if stat -c '%s' . >/dev/null 2>&1; then file_sig() { stat -c '%s_%Y_%Z_%i' "$1" 2>/dev/null; }; else file_sig() { stat -f '%z_%m_%c_%i' "$1" 2>/dev/null; }; fi
 
 lo=0; hi=99999999999
@@ -183,14 +162,10 @@ echo "IMG_COUNT=$(printf '%s\n' "$sorted" | grep -c .)"
 [ -n "$outfile" ] && [ -z "$tsvfile" ] && tsvfile="$(dirname "$outfile")/scan.tsv"
 [ -n "$outfile" ] && { printf '%s\n' "$sorted" | grep . > "$outfile"; echo "IMG_OUTFILE=$outfile"; }
 
-# TSV per file. ONE exiftool call/file fetches date + sub-second + GPS + camera
-# together (free alongside the date); mtime fallback for the date. SubSecTimeOriginal
-# appended as `.fff` for burst ordering. --tsvfile persists this for build-manifest -Meta.
+# One exiftool call per file reads date, sub-seconds, GPS and camera; mtime is the date fallback.
 have_exif=0; command -v exiftool >/dev/null 2>&1 && have_exif=1
-# Date from FILENAME for EXIF-stripped files (WhatsApp re-encodes away EXIF+GPS;
-# screenshots/Signal keep the date only in the name). Used AFTER exiftool, BEFORE
-# mtime (mtime of a shared file is the save date, not capture). Echoes
-# "YYYY-MM-DD HH:MM:SS" or nothing. Date-only patterns get 00:00:00 so a day groups.
+# Date from the filename when EXIF is gone, tried before mtime (the save date). Echoes "YYYY-MM-DD HH:MM:SS" or nothing;
+# date-only names get 00:00:00 so a day's shares group.
 name_date() {
   b="$(basename "$1")"
   d="$(printf '%s' "$b" | sed -n -E 's/.*(20[0-9]{2})[-_]?([0-9]{2})[-_]?([0-9]{2})[-_ T]+([0-9]{2})[-_:.]?([0-9]{2})[-_:.]?([0-9]{2}).*/\1-\2-\3 \4:\5:\6/p' | head -n1)"
@@ -199,7 +174,7 @@ name_date() {
   [ -n "$d" ] && { printf '%s' "$d"; return; }
   printf '%s' "$b" | sed -n -E 's/.*(20[0-9]{2})([0-9]{2})([0-9]{2}).*/\1-\2-\3 00:00:00/p' | head -n1
 }
-# tier-0 cache (REBUILT this run, self-pruning): new entries go to $hcnew, then the
+# tier-0 cache (rebuilt this run, self-pruning): new entries go to $hcnew, then the
 # old file is replaced after emit_tsv. Lookup reads the OLD $hashcache by path+sig.
 hcnew=""; if [ -n "$hashcache" ] && [ "$hash" = 1 ]; then hcnew="$(mktemp)"; : > "$hcnew"; fi
 emit_tsv() {

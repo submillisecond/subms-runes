@@ -1,30 +1,5 @@
-<#
-  montage - build a single-sheet montage of an album/folder (or list) for eyeballing
-  what it contains at a glance. DEDUPES near-identical/burst shots (one cell per
-  distinct shot, perceptual hash), shuffles to RANDOM order (so similar shots are
-  scattered, not blocked), and crop-to-fills into gapless square tiles on ONE sheet
-  with a FIXED column count (default 8 - readable, not over-dense; -Cols to change).
-  The grid is trimmed to fill exactly, so there are NO blank cells. IMAGES ONLY -
-  videos are excluded (a single still is unreliable, e.g. black for night clips).
-  Self-contained output: one folder with the sheet + a `list.txt` (cell -> source).
-
-  Self-contained output: a single folder with the sheet(s) AND a `list.txt`
-  (cell index -> source file [xN]) INSIDE it - never an ad-hoc/parent file.
-
-    -Dir folder      album/folder to summarise (images only; videos ignored)
-    -List file       OR an explicit newline-separated path list
-    -OutDir dir      montage folder (default %TEMP%\runes\<plugin>\montages\<name>)
-    -Cols N          COLUMNS in the grid (default 8; lower = bigger cells, higher = denser)
-    -Cell N          max per-cell px (default 300; actual shrinks to fit width)
-    -Dist N          pHash Hamming distance for "same shot" dedup (default 10; higher
-                     collapses more aggressively, lower keeps more near-similar shots)
-    -Max N           cap to N distinct shots (0 = no cap); when capped, samples evenly
-    -Indexed         stamped + padded cells (for cell-by-cell reference) instead of dense
-    -Plugin name     namespacing (default imageverse)
-
-  Emits MONTAGE_* (sheet count, kept vs total, dup-collapsed) then the sheet paths.
-  Reuses phash.ps1 (dedup) + thumbs.ps1 (-Sheet tiling); needs ffmpeg for video frames.
-#>
+# montage: one contact sheet of an album or folder, near-duplicates collapsed, shuffled, no blank cells. Images only.
+# montage.ps1 -Dir d | -List f [-OutDir d] [-Cols 8] [-Cell 300] [-Dist 10] [-Max N] [-Indexed] [-Plugin p]
 param(
     [string]$Dir,
     [string]$List,
@@ -36,7 +11,7 @@ param(
     [switch]$Indexed,
     [string]$Plugin = 'imageverse'
 )
-# DENSE by default (zero gaps, no index badges - packs the most per sheet for
+# dense by default (zero gaps, no index badges - packs the most per sheet for
 # eyeballing); -Indexed gives stamped, padded cells for cell-by-cell classification.
 $ErrorActionPreference = 'Stop'
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -61,10 +36,7 @@ if (-not $OutDir) {
 $work = Join-Path $env:TEMP ("runes\$Plugin\_montwork_" + [Guid]::NewGuid().ToString('N').Substring(0, 8))
 New-Item -ItemType Directory -Force -Path $OutDir, $work | Out-Null
 
-# 1) DEDUP near-identical/burst shots (one cell per distinct shot via perceptual
-# hash), THEN shuffle to RANDOM order so distinct shots are spread, not blocked.
-# Bonus: an image that fails to decode gets no hash -> it's excluded, so there are
-# no blank cells from unreadable files.
+# Collapse near-duplicates by perceptual hash, then shuffle. Files that fail to decode get no hash and drop out.
 $reps = New-Object System.Collections.Generic.List[object]   # {path, count}
 if ($imgs.Count -gt 0) {
     $il = Join-Path $work 'img.txt'; $imgs | Set-Content $il -Encoding UTF8
@@ -81,7 +53,7 @@ if ($imgs.Count -gt 0) {
 }
 $imgRepCount = $reps.Count
 
-# 2) IMAGES ONLY: videos are intentionally excluded - a montage is for browsing
+# 2) images only: videos are intentionally excluded - a montage is for browsing
 # photos, and a single extracted still is unreliable (dark for night clips).
 
 # 3) optional cap: sample evenly across the distinct-shot reps so coverage stays broad
@@ -93,9 +65,7 @@ if ($Max -gt 0 -and $all.Count -gt $Max) {
     $all = $sampled.ToArray()
 }
 
-# 4) ONE sheet with a FIXED column count (default 8 for a readable cell size, not the
-# over-dense sqrt grid). The grid is trimmed to FILL EXACTLY (cols x full rows), so
-# there are NO blank trailing cells - the few remainder reps are dropped.
+# Fixed column count, trimmed to full rows so no cell is blank.
 $N = $all.Count
 $cols = [int][math]::Min([math]::Max(1, $Cols), [math]::Max(1, $N))
 $rows = [int][math]::Max(1, [math]::Floor($N / [double]$cols))

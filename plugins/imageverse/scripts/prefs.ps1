@@ -1,13 +1,5 @@
-<#
-  prefs - remember the organize scheme used for a given directory, so next time
-  img-organize can RECOMMEND it. Per-plugin store (a tab-separated table, no jq
-  dependency) at %LOCALAPPDATA%\runes\<plugin>\prefs.tsv, keyed by folder.
-
-    get -Dir <folder>                 print the remembered scheme, or PREFS_NONE
-    set -Dir <folder> -Albums a,b,c [-Op move|copy] [-Scheme albums]
-
-  get prints PREFS_DIR / PREFS_SCHEME / PREFS_OP / PREFS_ALBUMS / PREFS_UPDATED.
-#>
+# prefs: remember the organize scheme used per folder so img-organize can suggest it again.
+# prefs.ps1 get -Dir d | set -Dir d -Albums a,b [-Op move|copy] [-Scheme s]. Contract: ../contract/CONTRACTS.md 2.9.
 param(
     [Parameter(Position = 0)][string]$Action = 'get',
     [string]$Dir,

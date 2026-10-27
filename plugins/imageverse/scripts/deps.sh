@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# deps - preflight the external image tools the imageverse .sh backend needs, and
-# report any MISSING ones with the suggested install command for THIS platform + the
-# feature that degrades. Skills run this before image work and surface misses to the
-# user. (deps.ps1 is the Windows backend; on Windows thumbnails/tiling use
-# System.Drawing, so only ffmpeg is external there.)
+# deps: report missing image tools for the .sh backend, the install command for this platform, and what degrades.
+# Prints DEP <tool> ok|missing <purpose> lines, then DEPS_OK= or DEPS_MISSING= DEPS_FIX= DEPS_DEGRADED=.
 set -uo pipefail
 have(){ command -v "$1" >/dev/null 2>&1; }
 

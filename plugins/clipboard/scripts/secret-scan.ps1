@@ -1,24 +1,7 @@
-<#
-  secret-scan - detect (and optionally redact) credentials in text. Shared by the
-  clipboard runes so nothing sensitive is silently surfaced into the conversation
-  or written to the history store.
+# secret-scan: find and optionally redact credentials. Dot-source for Find-Secrets, or run -Path f | -Text s [-Redact].
+# No param() block: it would overwrite the caller's $Path and $Text on every dot-source.
 
-  Two ways to use it:
-    - DOT-SOURCE for the function: `. secret-scan.ps1` then `Find-Secrets $text`
-      returns @{ types = @(...); count = N; redacted = '<text with [REDACTED:type]>' }.
-    - CLI: `secret-scan.ps1 -Path f [-Redact]` or `-Text '...'`. Prints
-      CLIP_SECRETS=<comma types>, CLIP_SECRET_COUNT=N, and (with -Redact) the
-      redacted text between -----BEGIN REDACTED-----/-----END REDACTED----- markers.
-
-  Detection favours PRECISION (vendor-prefixed tokens, structural formats) over a
-  blunt entropy sweep, so ordinary code/prose does not trip it. A final
-  keyword+entropy pass catches generic `api_key = "..."` style assignments.
-#>
-# NB: no param() block on purpose - this script is dot-sourced for Find-Secrets,
-# and a param block would rebind (clobber) the caller's $Path/$Text on every
-# dot-source. CLI args are parsed from $args instead.
-
-# name -> regex. Order matters only for redaction overlap; types are de-duped.
+# name -> regex; a type is reported once however many times it matches.
 $script:SecretPatterns = @(
     @{ name = 'private-key'; re = '-----BEGIN (?:RSA |EC |DSA |OPENSSH |PGP |ENCRYPTED )?PRIVATE KEY-----' }
     @{ name = 'aws-access-key'; re = '\b(?:AKIA|ASIA|AGPA|AIDA|AROA|ANPA)[0-9A-Z]{16}\b' }
@@ -54,12 +37,12 @@ function Get-ShannonEntropy([string]$s) {
 function Find-Secrets([string]$text) {
     $types = New-Object System.Collections.Generic.List[string]
     $count = 0
-    $redacted = $text
+    $spans = New-Object System.Collections.Generic.List[object]
     if (-not $text) { return @{ types = @(); count = 0; redacted = '' } }
     foreach ($p in $script:SecretPatterns) {
         $ms = [regex]::Matches($text, $p.re)
         if ($ms.Count -gt 0) {
-            # The generic assignment rule only counts when the captured VALUE looks
+            # The generic assignment rule only counts when the captured value looks
             # high-entropy - a real secret, not `password = "changeme"`.
             $hits = @($ms)
             if ($p.name -eq 'generic-secret-assignment') {
@@ -68,10 +51,20 @@ function Find-Secrets([string]$text) {
             }
             if (-not $types.Contains($p.name)) { $types.Add($p.name) }
             $count += $hits.Count
-            foreach ($m in ($hits | Sort-Object { $_.Index } -Descending)) {
-                $redacted = $redacted.Substring(0, $m.Index) + "[REDACTED:$($p.name)]" + $redacted.Substring($m.Index + $m.Length)
-            }
+            foreach ($m in $hits) { $spans.Add([pscustomobject]@{ i = $m.Index; e = $m.Index + $m.Length; name = $p.name }) }
         }
+    }
+    # Spans index the original text: merge overlaps, then cut right to left so no cut shifts another.
+    $merged = New-Object System.Collections.Generic.List[object]
+    foreach ($s in ($spans | Sort-Object i, @{ Expression = 'e'; Descending = $true })) {
+        $last = if ($merged.Count) { $merged[$merged.Count - 1] } else { $null }
+        if ($last -and $s.i -lt $last.e) { if ($s.e -gt $last.e) { $last.e = $s.e } }
+        else { $merged.Add([pscustomobject]@{ i = $s.i; e = $s.e; name = $s.name }) }
+    }
+    $redacted = $text
+    for ($k = $merged.Count - 1; $k -ge 0; $k--) {
+        $s = $merged[$k]
+        $redacted = $redacted.Substring(0, $s.i) + "[REDACTED:$($s.name)]" + $redacted.Substring($s.e)
     }
     @{ types = $types.ToArray(); count = $count; redacted = $redacted }
 }

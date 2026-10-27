@@ -1,16 +1,5 @@
-<#
-  deps - preflight the external tools the imageverse image pipeline relies on, and
-  report any that are MISSING together with the suggested install command + which
-  FEATURE degrades without them. Skills run this before image work and surface misses
-  to the user (don't fail silently / don't let a feature mysteriously no-op).
-
-  Windows backend: image resize / thumbnails / montage tiling use .NET System.Drawing
-  (built in - always available), so the only external need is ffmpeg(+ffprobe) for
-  VIDEO contact sheets. (ImageMagick is only needed by the .sh backend.)
-
-  Prints one `DEP <tool> <ok|missing> <purpose>` line per tool, then either
-  `DEPS_OK=...` or `DEPS_MISSING=...` + `DEPS_FIX=<command>` + `DEPS_DEGRADED=...`.
-#>
+# deps: report missing external tools (ffmpeg and ffprobe here), the install command and what degrades without them.
+# Prints DEP <tool> ok|missing <purpose> lines, then DEPS_OK= or DEPS_MISSING= DEPS_FIX= DEPS_DEGRADED=.
 param([string]$Plugin = 'imageverse')
 # refresh PATH so a tool installed earlier this session (new user/Machine PATH) is seen
 try { $env:Path = [Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [Environment]::GetEnvironmentVariable('Path', 'User') } catch {}

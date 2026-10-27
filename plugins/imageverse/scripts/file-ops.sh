@@ -1,17 +1,6 @@
 #!/usr/bin/env bash
-# file-ops - apply a batch of file operations from a manifest, collision-safe.
-# macOS/Linux backend (mv/cp). The Windows backend is file-ops.ps1.
-#   --manifest file   tab-separated: op<TAB>src<TAB>dest   (op = move | copy)
-#   --apply           FORWARD migration (default is a DRY RUN)
-#   --restore         REVERSE/undo run: same moves, then prune folders this run
-#                     leaves EMPTY. Implies --prune. Used by `journal revert`.
-#   --prune           with --apply, remove SOURCE folders this run leaves empty
-#                     (re-organizing into a new scheme vacates old album dirs).
-#                     Truly-empty dirs only.
-#   --plugin name     calling plugin/pack; namespaces the journal dir (default misc)
-#   --journal file    override the auto reverse-manifest journal path
-# Both --apply and --restore write a fresh journal (apply is revertible, restore
-# is redoable). Prints PLAN/DONE + OPS_* summary. Never overwrites (appends (2),...).
+# file-ops: .sh port of file-ops.ps1 (apply a move/copy manifest without overwriting, write a revert journal).
+# Dry run unless --apply or --restore. Flags, manifest and journal: ../contract/CONTRACTS.md 1.6, 2.5.
 set -uo pipefail
 
 MANIFEST=""; APPLY=0; RESTORE=0; PRUNE=0; JOURNAL=""; PLUGIN="misc"
@@ -30,7 +19,7 @@ done
 RUN=0; { [ "$APPLY" = 1 ] || [ "$RESTORE" = 1 ]; } && RUN=1
 DOPRUNE=0; { [ "$RESTORE" = 1 ] || [ "$PRUNE" = 1 ]; } && DOPRUNE=1
 
-# Default the journal to a DURABLE, per-PLUGIN app-data location (never temp).
+# Default the journal to a durable, per-PLUGIN app-data location (never temp).
 if [ "$RUN" = 1 ] && [ -z "$JOURNAL" ]; then
   dbase="${XDG_DATA_HOME:-$HOME/.local/share}"
   [ "$(uname -s)" = "Darwin" ] && dbase="$HOME/Library/Application Support"
@@ -76,7 +65,7 @@ if [ "$RUN" = 1 ] && [ -n "$JOURNAL" ] && [ "$done_n" -gt 0 ]; then
   echo "OPS_JOURNAL=$JOURNAL"
 fi
 
-# Prune ONLY the source dirs this run left truly empty (--restore or --prune).
+# Prune only the source dirs this run left truly empty (--restore or --prune).
 pruned=0
 if [ "$DOPRUNE" = 1 ]; then
   while IFS= read -r sd; do

@@ -1,15 +1,6 @@
 #!/usr/bin/env bash
-# clipboard-io.sh - macOS/Linux clipboard I/O; mirror of clipboard-io.ps1.
-#   read           (default) capture the clipboard and print a CLIP_KIND summary;
-#                  payloads are written under ${TMPDIR:-/tmp}/runes/clipboard.
-#   write <path>   set the clipboard to the UTF-8 text in <path>.
-#
-# Tools used (install if missing):
-#   macOS : pbpaste / pbcopy (built in); pngpaste (brew) for clipboard images.
-#   Linux : Wayland -> wl-clipboard (wl-paste/wl-copy); X11 -> xclip (or xsel, text only).
-# NOTE: the Windows backend (.ps1) is the verified one; this script needs
-# verification on macOS/Linux. Clipboard FILE lists are supported on Linux only
-# (via text/uri-list); not on macOS (stated non-claim).
+# clipboard-io: .sh port of clipboard-io.ps1. macOS needs pbpaste/pbcopy (pngpaste for images);
+# Linux needs wl-clipboard or xclip. Copied file lists work on Linux only.
 set -u
 
 mode="${1:-read}"
@@ -42,7 +33,7 @@ fi
 if [ "$mode" = "write" ]; then
     path="${2:-}"
     if [ -z "$path" ] || [ ! -f "$path" ]; then echo "CLIP_WRITE=error: missing or unreadable path"; exit 1; fi
-    # An image file -> set the IMAGE clipboard (Wayland/X11; macOS pbcopy can't, so
+    # An image file -> set the image clipboard (Wayland/X11; macOS pbcopy can't, so
     # report a non-claim there). Otherwise text.
     case "$(printf '%s' "$path" | tr '[:upper:]' '[:lower:]')" in
       *.png|*.jpg|*.jpeg|*.bmp|*.gif|*.tiff)
@@ -91,7 +82,7 @@ fi
 if [ -n "$text_get" ]; then
     txt="$($text_get 2>/dev/null)"
     if [ -n "$(printf '%s' "$txt" | tr -d '[:space:]')" ]; then
-        # Text is STREAMED to stdout between markers (no file). UTF-8 native here.
+        # Text is streamed to stdout between markers (no file). UTF-8 native here.
         echo "CLIP_KIND=text"
         echo "CLIP_BYTES=$(printf '%s' "$txt" | wc -c | tr -d ' ')"
         echo "CLIP_LINES=$(printf '%s\n' "$txt" | wc -l | tr -d ' ')"

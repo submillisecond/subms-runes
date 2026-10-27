@@ -1,13 +1,5 @@
-<#
-  workspace - mint / clean a per-run temp workspace, so runes never hand-roll the
-  guid + mkdir + rm boilerplate inline. Unique per run (two terminals never
-  collide); namespaced by plugin under %TEMP%\runes\<plugin>\.
-
-    new   -Plugin images [-Skill img-organize]   mint a fresh unique dir, print WORKSPACE=<dir>
-    clean -Dir <dir>                              remove it (guarded: must be under %TEMP%\runes)
-
-  Typical: $ws = (workspace new -Plugin images -Skill img-organize) -replace 'WORKSPACE=',''
-#>
+# workspace: mint or remove a per-run temp dir under %TEMP%\runes\<plugin>\.
+# workspace.ps1 new -Plugin p [-Skill s] -> WORKSPACE=<dir> | clean -Dir d (refused outside %TEMP%\runes).
 param(
     [Parameter(Position = 0)][ValidateSet('new', 'clean')][string]$Action = 'new',
     [string]$Plugin = 'misc',

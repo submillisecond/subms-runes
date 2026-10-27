@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
-# Structural validation for the subms-runes marketplace, run in CI (ubuntu).
-# Bash + jq, no PowerShell dependency for the structure checks; .ps1 syntax is
-# parse-checked with pwsh when it is on PATH (preinstalled on GitHub ubuntu
-# runners) and skipped otherwise. The local `runes validate` folds the same
-# checks into runes.ps1 (subms-infra) - keep the two in step. Exits non-zero on
-# any failure. Usage: validate.sh [packs...]   (no packs = all)
+# Structure checks with bash + jq; .ps1 files are parse-checked when pwsh is present. Keep in step with `runes validate`
+# in subms-infra. Usage: validate.sh [packs...] (none = all).
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

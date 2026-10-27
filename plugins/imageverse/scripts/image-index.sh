@@ -1,31 +1,6 @@
 #!/usr/bin/env bash
-# image-index - the content-search cache for the imageverse pack (macOS/Linux
-# backend; Windows backend is image-index.ps1). A GLOBAL, content-addressed
-# (sha1-keyed) store of structured per-image records, so an image is vision-
-# captioned ONCE and later search/organise reads text not pixels. Path-
-# independent: moves/renames/copies reuse the caption; a deleted file just drops
-# out of the live scan and can never be returned (presence is the scan's job).
-#
-# Store: ${XDG_DATA_HOME:-$HOME/.local/share}/runes/imageverse/index/
-#   captions.tsv   one row per content hash (20-col schema, see COLS)
-#   .schema        integer; bump invalidates every row (re-vision)
-#
-# Verbs (mirror image-index.ps1 exactly):
-#   status [--tsv scan]            store dir, schema, count; with a live
-#                                  image-find scan, also warm/cold coverage
-#   plan   --tsv scan              cold delta: distinct hashes not yet captioned
-#   put    --batch rows [--scan s] upsert caption rows after the vision pass
-#   clear                          nuke the cache
-#   query / prune                  land in step 2 (see SPEC.md)
-#
-# --tsv/--scan take an image-find TSV: date \t size \t sha1 \t path \t lat \t
-# lon \t camera. Output is KEY=value lines then TSV rows, like the .ps1.
-#
-# dims + perceptual hash need ImageMagick (magick/convert); absent, they blank
-# (graceful degrade, same as the .ps1 when an image fails to open). The phash
-# VALUE differs from the .ps1 (different resampler) - intended: dHash is only
-# compared within one machine; the sha1 that drives warm/cold is identical
-# cross-platform. NOTE: the .ps1 is the verified backend.
+# image-index: .sh port of image-index.ps1. Verbs, store and schemas: ../contract/CONTRACTS.md 1.1, 1.2, 2.1.
+# dims and phash need ImageMagick; its phash differs from the .ps1's, which is fine because phash never leaves the machine.
 set -uo pipefail
 
 VERB="${1:-status}"; [ $# -gt 0 ] && shift
@@ -56,9 +31,7 @@ CAPTIONS="$BASE/captions.tsv"
 SCHEMA_FILE="$BASE/.schema"
 TAB="$(printf '\t')"
 
-# Column order is the on-disk contract (matches the .ps1 COLS).
-#   hash iv phash last_seen seen_path w h lat lon camera place_path activity
-#   category subcategory entities objects attributes text caption source
+# Column order is the on-disk contract (CONTRACTS.md 1.1, the .ps1 COLS).
 
 MAGICK="$(command -v magick || command -v convert || true)"
 
@@ -71,9 +44,8 @@ get_schema() { if [ -f "$SCHEMA_FILE" ]; then tr -dc '0-9' < "$SCHEMA_FILE"; els
 # Flatten tab/newline (would corrupt the TSV) and trim; squeeze runs to one space.
 san() { printf '%s' "${1:-}" | tr -s '\t\r\n' '   ' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'; }
 
-# Cached on-screen text can carry secrets (a screenshot of a .env). Redact before
-# it lands in a durable file. Explicit case classes (no /i flag) keep it portable
-# across GNU + BSD sed. Pattern order matches the .ps1 (api-key before kv-secret).
+# Redact secrets from cached screen text before it is written. Explicit case classes, not /i, so BSD sed works;
+# pattern order matches the .ps1.
 REDACT_TEXT=""; REDACT_N=0
 redact() {
     local t="${1:-}" n=0 spec ty re cnt
@@ -147,9 +119,7 @@ case "$(printf '%s' "$VERB" | tr '[:upper:]' '[:lower:]')" in
         else cnt=0; fi
         echo "INDEX_CAPTIONS=$cnt"
         if [ -n "$TSV" ] && [ -f "$TSV" ]; then
-            # Distinct content for BOTH warm and cold (matches the .ps1 status).
-            # Key on FILENAME, not NR==FNR: an absent captions file is passed as
-            # /dev/null (empty), and NR==FNR would then misread the scan as captions.
+            # Key on FILENAME, not NR==FNR: a missing captions file is passed as /dev/null and would shift NR.
             CAP="$(cap_src)"
             awk -F'\t' -v s="$SCHEMA" -v capf="$CAP" '
                 FILENAME==capf { if(NF>=2 && $2+0>=s) idx[$1]=1; next }
@@ -179,10 +149,8 @@ case "$(printf '%s' "$VERB" | tr '[:upper:]' '[:lower:]')" in
             [ -n "$cold" ] && printf '%s\n' "$cold" | while IFS= read -r l; do [ -n "$l" ] && printf 'INDEX_COLD\t%s\n' "$l"; done
             echo "INDEX_WARM=$warm"
         else
-            # Near-dup collapse (mirrors the .ps1): a cold image within HMAX of an
-            # already-captioned image OR an earlier cold rep is a FOLLOWER (inherits
-            # the rep's coarse caption via put --followers, never vision-read). Opens
-            # each cold file for its phash (local, zero tokens).
+            # A cold image within HMAX of a warm or earlier cold rep follows that rep (put --followers)
+            # and is never vision-read.
             anchors="$(mktemp)"   # "hash<TAB>phash" lines: warm rows first
             [ -f "$CAPTIONS" ] && awk -F'\t' -v s="$SCHEMA" 'NF>=20 && $2+0>=s && $3!=""{print $1"\t"$3}' "$CAPTIONS" > "$anchors"
             reps="$(mktemp)"; fols="$(mktemp)"
@@ -216,11 +184,8 @@ case "$(printf '%s' "$VERB" | tr '[:upper:]' '[:lower:]')" in
         now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
         newrows="$(mktemp)"; : > "$newrows"
         put=0; redtot=0; propagated=0
-        # Batch row: hash path category subcategory activity place_path entities
-        # objects attributes caption text (inline). Parse with cut, NOT `IFS=tab
-        # read`: tab is IFS-whitespace, so read folds the empty fields (e.g. a
-        # blank activity) and shifts every column. cut keeps empty fields; -f11-
-        # gives the text plus any stray tabs it contains.
+        # Batch row: 11 columns (CONTRACTS.md 1.2). cut, not IFS=tab read, which folds empty fields;
+        # -f11- keeps any stray tabs in the text.
         while IFS= read -r line || [ -n "$line" ]; do
             [ -n "$line" ] || continue
             bhash="$(printf '%s' "$line" | cut -f1)"
@@ -252,9 +217,7 @@ case "$(printf '%s' "$VERB" | tr '[:upper:]' '[:lower:]')" in
             put=$((put + 1))
         done < "$BATCH"
         unset line
-        # Near-dup followers (plan --neardup): inherit the rep's COARSE fields
-        # (place_path/activity/category/subcategory/objects + caption), NOT text,
-        # source=propagated:<rep>. Row: follower-hash, follower-path, rep-hash.
+        # Near-dup followers take the rep's coarse fields and caption, not its text; source=propagated:<rep>.
         if [ -n "$FOLLOWERS" ] && [ -f "$FOLLOWERS" ]; then
             replook="$(mktemp)"; cat "$newrows" > "$replook"
             [ -f "$CAPTIONS" ] && awk -F'\t' -v s="$SCHEMA" 'NF>=20 && $2+0>=s' "$CAPTIONS" >> "$replook"
@@ -282,7 +245,7 @@ case "$(printf '%s' "$VERB" | tr '[:upper:]' '[:lower:]')" in
             rm -f "$replook"
         fi
         # Merge: keep existing rows at/above schema (stale dropped), then new rows;
-        # awk keeps the LAST line per hash, so a re-put overwrites. Atomic swap.
+        # awk keeps the last line per hash, so a re-put overwrites. Atomic swap.
         tmp="$(mktemp)"
         { [ -f "$CAPTIONS" ] && awk -F'\t' -v s="$SCHEMA" 'NF>=20 && $2+0>=s' "$CAPTIONS"; cat "$newrows"; } \
             | awk -F'\t' '{ row[$1]=$0 } END { for(h in row) print row[h] }' > "$tmp"
@@ -402,9 +365,7 @@ case "$(printf '%s' "$VERB" | tr '[:upper:]' '[:lower:]')" in
             } else print "INDEX_COLD=0"
         }
         ' "$CAP" "$TSV"
-        # LRU touch: a search is a use, so bump last_seen for warm hashes in this
-        # scan, bounded to once/day (only rows whose stored date < today), so a
-        # search rewrites the cache at most once a day. Mirrors the .ps1.
+        # A search counts as use: bump last_seen for warm hashes, at most once a day.
         if [ -f "$CAPTIONS" ]; then
             today="$(date -u +%Y-%m-%d)"; now2="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
             sh="$(mktemp)"; awk -F'\t' '$3!=""{print $3}' "$TSV" | sort -u > "$sh"
@@ -432,9 +393,7 @@ case "$(printf '%s' "$VERB" | tr '[:upper:]' '[:lower:]')" in
         ' "$CAP" "$TSV"
         ;;
     prune)
-        # User action only: drop rows last seen before the cutoff. NOT presence-
-        # based (absence from one scan != gone). ISO 8601 sorts lexically, so a
-        # plain string compare against the cutoff is a chronological compare.
+        # Drop rows last seen before the cutoff, on request only. ISO dates compare correctly as strings.
         if [ ! -f "$CAPTIONS" ]; then echo "INDEX_PRUNED=0"; exit 0; fi
         if date -u -d '-1 days' >/dev/null 2>&1; then cutoff="$(date -u -d "-$DAYS days" +%Y-%m-%dT%H:%M:%SZ)"; else cutoff="$(date -u -v-"${DAYS}"d +%Y-%m-%dT%H:%M:%SZ)"; fi
         before="$(awk -F'\t' -v s="$SCHEMA" 'NF>=20 && $2+0>=s' "$CAPTIONS" | grep -c . || true)"

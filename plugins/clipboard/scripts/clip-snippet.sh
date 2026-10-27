@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# clip-snippet - named curated snippet library (mirror of clip-snippet.ps1; that is
-# the verified backend). Always available; secrets refused.
-# Store: ${XDG_DATA_HOME:-$HOME/.local/share}/runes/clipboard/snippets
-#   index.tsv  name \t iso-ts \t subtype \t bytes \t preview
-#   <name>.txt the payload
-# Verbs: save --name n --subtype t --path f | get --name n | list
-#        | search --query q | rm --name n | clear
+# clip-snippet: .sh port of clip-snippet.ps1 (named snippets, secrets refused).
+# Verbs, store layout and output: ../contract/CONTRACTS.md.
 set -u
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="${XDG_DATA_HOME:-$HOME/.local/share}/runes/clipboard/snippets"

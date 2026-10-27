@@ -2,7 +2,10 @@
   "mcpServers": {
     "deltagraph": {
       "type": "http",
-      "url": "https://deltagraph.submillisecond.com/mcp"
+      "url": "https://deltagraph.submillisecond.com/mcp",
+      "headers": {
+        "X-Runes-Pack": "deltagraph/0.2.0"
+      }
     }
   }
 }

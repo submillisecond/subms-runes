@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# workspace - mint / clean a per-run temp workspace (see workspace.ps1), so runes
-# never hand-roll the mktemp + rm boilerplate inline. Namespaced by plugin under
-# $TMPDIR/runes/<plugin>/; unique per run so two terminals never collide.
-#   new   --plugin images [--skill img-organize]   mint a fresh dir, print WORKSPACE=<dir>
-#   clean --dir <dir>                               remove it (guarded: under runes temp only)
+# workspace: .sh port of workspace.ps1 (mint or remove a per-run dir under $TMPDIR/runes/<plugin>/).
+# workspace.sh new --plugin p [--skill s] -> WORKSPACE=<dir> | clean --dir d (refused outside the runes temp).
 set -uo pipefail
 
 ACTION="${1:-new}"; shift || true

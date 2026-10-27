@@ -1,20 +1,5 @@
-<#
-  clip-snippet - a named, curated snippet library (distinct from clip-history's
-  automatic chronological log). You explicitly save reusable boilerplate by name -
-  license headers, config templates, command recipes, canned replies - and recall
-  it onto the clipboard later. Always available (no enable flag); secrets are refused.
-
-  Store: %LOCALAPPDATA%\runes\clipboard\snippets\
-    index.tsv         name \t iso-ts \t subtype \t bytes \t preview
-    <name>.txt        the snippet payload (name = sanitised key)
-
-  Verbs:
-    save -Name <n> -Subtype <t> -Path <payload>   create/UPDATE a named snippet
-    get  -Name <n>                                 print + re-copy to the clipboard
-    list                                           all snippets (name + preview)
-    search -Query <q>                              match name/preview/content
-    rm   -Name <n> | clear                         delete one / all
-#>
+# clip-snippet: snippets you save by name and paste back later. Secrets are refused.
+# Verbs, store layout and output: ../contract/CONTRACTS.md.
 param(
     [Parameter(Position = 0)][string]$Verb = 'list',
     [string]$Name,

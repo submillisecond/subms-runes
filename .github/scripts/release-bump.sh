@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
-# release-bump - CI release: bump each pack's MINOR version (plugin.json + every
-# skill's SKILL.md frontmatter, in lockstep), commit ([skip ci] to avoid a
-# re-trigger loop), tag <pack>--vX.Y.0, and push to main. Mirrors the local
-# `runes release`. Arg 1: space-separated packs (blank = all packs).
-# Required env: a checkout with push rights (actions/checkout default token).
+# Bump each pack's minor version (plugin.json + SKILL.md), commit with [skip ci], tag <pack>--vX.Y.0 and push.
+# Arg 1: packs, space-separated (blank = all). Mirrors the local `runes release`.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -25,6 +22,11 @@ for p in $PACKS; do
   if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then echo "RELEASE_ERROR: tag $tag already exists"; exit 1; fi
   sed -i -E "s/(\"version\"[[:space:]]*:[[:space:]]*\")[0-9]+\.[0-9]+\.[0-9]+(\")/\1$new\2/" "$pj"
   git add "$pj"
+  mj="plugins/$p/.mcp.json"
+  if grep -q '"X-Runes-Pack"' "$mj" 2>/dev/null; then
+    sed -i -E "s#(\"X-Runes-Pack\"[[:space:]]*:[[:space:]]*\"$p/)[0-9]+\.[0-9]+\.[0-9]+#\1$new#" "$mj"
+    git add "$mj"
+  fi
   for sf in plugins/"$p"/skills/*/SKILL.md; do
     [ -f "$sf" ] || continue
     sed -i -E "s/^(version:[[:space:]]*)[0-9]+\.[0-9]+\.[0-9]+[[:space:]]*$/\1$new/" "$sf"

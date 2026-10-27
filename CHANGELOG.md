@@ -8,6 +8,13 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Added
 
+- The `deltagraph` plugin sends `X-Runes-Pack: deltagraph/<version>` to the hosted server, which tells users of an outdated copy to run `/plugin marketplace update subms-runes`. The release script moves the header with the version and the contract test fails if they differ.
+- Every push to main runs the full check suite before `release` tags a pack; tags were cut after the structure check alone, even when a contract test failed.
+- Contract tests are found by glob (`.github/scripts/contracts.sh`), so a new pack's test runs with no CI edit. The deltagraph test ran nowhere for a day because the list was hand-kept.
+- The `.sh` backends run on Ubuntu and macOS. They had only ever run under Git Bash on Windows, which ships GNU tools and hides BSD gaps.
+- `claude plugin validate` runs on the marketplace and every pack, and an ASCII check covers scripts, contracts and manifests.
+- Nightly `live` workflow: `plugins/deltagraph/contract/live-test.sh` checks the hosted engine still serves every tool the pack names and renders the links `dg-url` builds.
+- README badges and a generated inventory of packs, runes, backends and tests (`.github/scripts/inventory.sh`); CI fails when it is stale or a rune is missing from the Packs table, which was missing 7 of 17.
 - `deltalab` pack v0.1.0 with one rune, `deltalab`: join a live deltalab document or board from a share link or code and work in it as a named robot participant. Its MCP server is bundled in the pack (`server/deltalab-mcp.mjs`, Node 22, nothing to install) and runs locally, because the link's fragment is the room key and the relay only ever sees ciphertext. Nine tools: join, status, read, write, suggest, board, inbox, reply, leave. A direct write is refused unless the agent may edit; in Review it suggests instead. The contract test starts the bundle and checks it against `CONTRACTS.md`.
 - `deltagraph` pack v0.2.0 registers the hosted deltagraph MCP server in
   `.mcp.json`, so installing the pack gives the ten engine-backed tools
@@ -63,3 +70,9 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
   reads badly, then link. The skill documents every script option, and the
   contract test fails when it does not; 0.1.0 described `&bg=` while neither
   script accepted it.
+- Script comments cut to at most two lines each (1,143 lines out, 376 in). Headers that restated a pack's verbs, store and output now point at `CONTRACTS.md`, which ADR-0001 makes the one source; scripts the contract does not cover keep a one-line usage.
+
+### Fixed
+
+- `secret-scan.ps1 -Redact` leaked part of a secret when text held two kinds: matches were found in the original text but cut from a copy earlier replacements had already resized, so later cuts landed at the wrong offset. Spans are now merged and cut right to left.
+- `secret-scan.sh --redact` used `sed -i -E ... gI`, which BSD sed reads as a backup suffix and an unknown flag, and `|| true` hid the failure, so on macOS the redacted copy kept its secrets. It now uses perl, and a failed rewrite blanks the copy.

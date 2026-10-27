@@ -1,27 +1,5 @@
-<#
-  clip-history - a durable, typed, searchable history of clipboard operations.
-  Privacy-first: OFF by default (opt in), secrets are never stored, entries live
-  under the per-user LOCALAPPDATA with owner-only ACLs, and caps bound the size.
-
-  Store layout: %LOCALAPPDATA%\runes\clipboard\history\
-    index.tsv          id \t iso-ts \t kind \t subtype \t bytes \t source \t preview
-    <id>.txt|.png|...  the entry payload (text inline; image/files copied/listed)
-    .enabled           presence = recording is on
-
-  Verbs:
-    enable | disable | status         toggle / report recording
-    add  -Kind text|image|files -Subtype <t> -Source <rune> -Path <payload>
-                                       record an entry (no-op if disabled / excluded
-                                       / secret-bearing / over cap)
-    list   [-Count N]                  newest-first index (default 20)
-    search -Query <q>                  match type/preview/content
-    get    -Id <id|#n>                 print payload + re-copy text to the clipboard
-    rm     -Id <id> | clear            delete one / all
-
-  Env: RUNES_CLIP_HISTORY=1 forces recording on; RUNES_HISTORY_EXCLUDE=<regex>
-  drops matching payloads; RUNES_HISTORY_MAX_ENTRIES (default 200),
-  RUNES_HISTORY_MAX_BYTES per entry (default 1048576).
-#>
+# clip-history: opt-in, searchable history of clipboard captures. Secrets are never stored.
+# Verbs, store layout, env vars and output: ../contract/CONTRACTS.md.
 param(
     [Parameter(Position = 0)][string]$Verb = 'status',
     [string]$Kind = 'text',

@@ -1,16 +1,6 @@
 #!/usr/bin/env bash
-# settings - persistent settings store for the imageverse plugin (macOS/Linux backend;
-# settings.ps1 is the verified Windows backend). Same command surface + identical
-# people/objects reference dirs; home/defaults live in a flat settings.conf (key=value)
-# so no jq is needed. Downstream skills read the `get`/`show` output, not the file,
-# so the ps1(json)/sh(conf) storage difference is invisible to them.
-#   show | get
-#   home --lat D --lon D [--town S] [--radius-km N]
-#   person add --name Alicia --images "a.jpg,b.jpg" | person list | person remove --name X | person rename --name X --to Y
-#   object add --label Rex --images "p.jpg" | object list | object remove --label X
-#   default --key scheme --value trip
-#   --plugin name   (default imageverse)
-# Reference images are COPIED in (originals untouched), deduped by content hash.
+# settings: .sh port of settings.ps1; home and defaults live in settings.conf (no jq), read only through get/show.
+# settings.sh [show] | get | home --lat --lon [--town] [--radius-km] | person add|list|remove|rename | object add|list|remove | default --key --value
 set -uo pipefail
 
 cmd="${1:-show}"; sub=""

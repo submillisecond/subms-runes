@@ -1,35 +1,5 @@
-<#
-  settings - the ONE persistent settings store for the imageverse plugin, shared by
-  every imageverse skill (img-organize, img-search, img, ...). Holds:
-    - HOME location (lat/lon/town/radius) - so a GPS cluster farther than radius from
-      home is a TRIP, nearer is everyday (replaces the "densest GPS = home" guess).
-    - PEOPLE - named reference images ("recognise this person as Alicia"); the vision
-      pass in organize/search is shown these to recognise the person in photos.
-    - OBJECTS/PETS - named reference images, same idea.
-    - DEFAULTS - free key/value (e.g. default scheme).
-  Recognition is reference-images-AS-CONTEXT: this store keeps labelled example images;
-  the classifier (the rune's vision read) uses them. No ML model/dependency here.
-
-  Durable, per-PLUGIN, OUTSIDE any temp: %LOCALAPPDATA%\runes\imageverse\settings\
-    settings.json            { home:{lat,lon,town,radiusKm}, defaults:{...} }
-    people\<Name>\           reference images (copied in) + meta.json {aliases:[]}
-    objects\<Label>\         reference images + meta.json
-
-  USAGE (Windows: powershell ... -File settings.ps1 <cmd> ...):
-    show                                  human-readable dump of everything (default)
-    get                                   machine-readable lines (for other skills)
-    home  -Lat <d> -Lon <d> [-Town s] [-RadiusKm n]    set home by coords
-    home  -Town "Greenhithe" [-RadiusKm n]             set home by town (caller resolves
-                                                        coords first via `geocode`, passes -Lat/-Lon too)
-    person add    -Name Alicia -Images "a.jpg,b.jpg"   copy refs into people\Alicia
-    person list | person remove -Name X | person rename -Name X -To Y
-    object add    -Label Rex   -Images "p.jpg"         copy refs into objects\Rex
-    object list | object remove -Label X
-    default -Key scheme -Value trip                    set a default kv
-    -Plugin name   namespaces the store (default 'imageverse')
-
-  Prints SETTINGS_* status lines. Reference images are COPIED (originals untouched).
-#>
+# settings: the imageverse settings store (home, people, objects, defaults) under %LOCALAPPDATA%\runes\imageverse\settings.
+# settings.ps1 [show] | get | home -Lat -Lon [-Town] [-RadiusKm] | person add|list|remove|rename | object add|list|remove | default -Key -Value
 param(
     [Parameter(Position = 0)][string]$Cmd = 'show',
     [Parameter(Position = 1)][string]$Sub,
@@ -125,9 +95,7 @@ switch ($Cmd.ToLower()) {
                 Write-Output ("SETTINGS_PERSON_ADD=$Name added=$n total=" + (Count-Refs $d))
             }
             'refs' {
-                # emit each reference image path so a skill can thumbnail them into the
-                # recognition context: `SETTINGS_REF<TAB><person><TAB><path>`. -Name X for
-                # one person, else every registered person.
+                # SETTINGS_REF<TAB><person><TAB><path> per reference image; -Name for one person.
                 $img = @('.jpg', '.jpeg', '.png', '.heic', '.heif', '.gif', '.bmp', '.tif', '.tiff', '.webp')
                 $targets = if ($Name) { @(Join-Path $peopleDir $Name) } else { @((Get-ChildItem -LiteralPath $peopleDir -Directory -ErrorAction SilentlyContinue).FullName) }
                 foreach ($d in $targets) {

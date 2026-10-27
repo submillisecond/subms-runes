@@ -1,35 +1,5 @@
-<#
-  thumbs - batch-downscale images to small thumbnails for cheap vision reads.
-  The img / img-organize runes classify by CONTENT; reading full-res ultrawide
-  screenshots is wasteful and trips the many-image request cap (2000px/side).
-  Thumbnail first, then batch-read the thumbnails.
-
-    -Path a,b,c     source image paths (repeatable)
-    -List file      OR a file of newline-separated source paths
-    -Max N          longest-side px (default 1600; aspect preserved, never upscales).
-                    1600 stays legible for dense screenshot text yet under the
-                    2000px/side many-image cap so thumbnails still batch.
-    -Sheet N        TRIAGE mode for large still dumps: instead of one thumbnail per
-                    image, tile N images per CONTACT SHEET (e.g. 25 -> a 5x5 grid),
-                    each cell stamped with its GLOBAL 1-based index (= line number in
-                    -List). Read ~ceil(total/N) sheets to bucket a big dump fast, then
-                    refine ambiguous cells at full size. Emits SHEET_COUNT then
-                    `<sheet>\t<startIdx>-<endIdx>` lines. (Off by default; 0.)
-    -SheetCell N    per-cell longest-side px in -Sheet mode (default 360; 5 cols * 360
-                    ~ 1800px, under the 2000px many-image cap).
-    -VideoFrames N  for VIDEO inputs (mp4/mov/...): sample N frames evenly across the
-                    clip and tile them into ONE contact-sheet thumbnail (default 12),
-                    so a clip is classified from its content like a still. Needs
-                    ffmpeg (+ffprobe) on PATH; without it, videos are skipped (a
-                    THUMB_SKIP_VIDEO line is emitted) and the rune assigns them by
-                    their time/geo cluster instead.
-    -Plugin name    calling plugin/pack; namespaces the default temp dir (default 'misc')
-    -OutDir dir     output dir (default %TEMP%\runes\<plugin>\thumbs)
-
-  Prints THUMB_DIR, THUMB_COUNT (incl. video contact sheets), THUMB_VIDEOS, then
-  one `<thumb>\t<source>` line per image (index-prefixed names keep order + avoid
-  basename collisions). A video with no ffmpeg emits `THUMB_SKIP_VIDEO\t<source>`.
-#>
+# thumbs: downscale images, and tile videos into contact sheets, for vision reads under the 2000px many-image cap.
+# thumbs.ps1 -Path a,b | -List f [-Max 1600] [-Sheet N] [-SheetCell 360] [-VideoFrames 12] [-Plugin p] [-OutDir d]
 param(
     [string[]]$Path,
     [string]$List,
@@ -54,9 +24,7 @@ Add-Type -AssemblyName System.Drawing | Out-Null
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 Write-Output ('THUMB_DIR=' + $OutDir)
 
-# Pick the square crop window centred on the BRIGHTEST region (not the geometric
-# centre) so a fill-crop of a night/illumination photo keeps the lit subject instead
-# of cropping to black sky. Returns @(srcX, srcY, side). Uses a tiny luminance map.
+# Crop around the brightest region, not the centre, so night shots keep the lit subject.
 function Get-BrightCrop($img) {
     $W = $img.Width; $H = $img.Height; $side = [math]::Min($W, $H)
     $sl = 48.0 / [double][math]::Max($W, $H); if ($sl -gt 1) { $sl = 1 }
@@ -85,15 +53,13 @@ function Get-BrightCrop($img) {
     }
 }
 
-# TRIAGE: tile many stills into index-stamped contact sheets (one read buckets N
-# images). Each cell carries its GLOBAL 1-based index (= -List line) so a cell maps
-# UNAMBIGUOUSLY back to its file. Off unless -Sheet > 0.
+# Triage sheets: each cell is stamped with its 1-based -List index so it maps back to its file.
 if ($Sheet -gt 0) {
     $imgExtsLocal = @('.jpg', '.jpeg', '.png', '.heic', '.heif', '.gif', '.bmp', '.tif', '.tiff', '.webp')
     $cols = if ($Cols -gt 0) { $Cols } else { [int][math]::Ceiling([math]::Sqrt([double]$Sheet)) }
     $rows = [int][math]::Ceiling($Sheet / [double]$cols)
     # -Dense: zero gaps + no index badges -> packs far more per sheet for pure
-    # eyeballing (you reference by grid POSITION, not a stamped number).
+    # eyeballing (you reference by grid position, not a stamped number).
     $pad = if ($Dense) { 0 } else { 4 }
     $cell = $SheetCell
     $gw = $cols * $cell + ($cols + 1) * $pad
@@ -111,9 +77,7 @@ if ($Sheet -gt 0) {
         for ($j = $base; $j -le $last; $j++) {
             $k = $j - $base; $idx = $j + 1
             $s = $srcs[$j]
-            # NB: [int](a/b) in PowerShell ROUNDS (banker's), it does NOT truncate -
-            # [int](5/8)=1, not 0 - so use [math]::Floor for the row, else cells stomp
-            # each other and leave blanks. (Same applies anywhere a grid row is derived.)
+            # [int](a/b) rounds (banker's) in PowerShell; Floor the row or cells overwrite each other.
             $r = [int][math]::Floor($k / $cols); $c = $k % $cols
             $x = $pad + $c * ($cell + $pad); $y = $pad + $r * ($cell + $pad)
             if (-not (Test-Path -LiteralPath $s)) { continue }
@@ -121,10 +85,8 @@ if ($Sheet -gt 0) {
             try {
                 $ms2 = New-Object IO.MemoryStream(, [IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $s).Path))
                 $src = [Drawing.Image]::FromStream($ms2)
-                # Downscale huge phone photos (20MP+) to a bounded working bitmap FIRST
-                # (cheap Bilinear), then draw the SMALL copy into the cell. Drawing giant
-                # sources repeatedly makes GDI+ SILENTLY stop drawing them after many
-                # iterations (blank cells, no exception) - bounding the size avoids it.
+                # Shrink huge photos to a working bitmap first: GDI+ silently stops drawing
+                # large sources after many iterations, leaving blank cells.
                 $img = $src; $tmpW = $null
                 $cap = [math]::Max(1000, $cell * 3); $msd = [math]::Max($src.Width, $src.Height)
                 if ($msd -gt $cap) {
@@ -134,13 +96,13 @@ if ($Sheet -gt 0) {
                     $wg.DrawImage($src, 0, 0, $ww, $wh); $wg.Dispose(); $img = $tmpW
                 }
                 if ($Dense) {
-                    # COVER + center-crop: fill the whole square cell, gapless.
+                    # cover + center-crop: fill the whole square cell, gapless.
                     $side = [math]::Min($img.Width, $img.Height)
                     $sx = [int](($img.Width - $side) / 2); $sy = [int](($img.Height - $side) / 2)
                     $g.DrawImage($img, (New-Object Drawing.Rectangle($x, $y, $cell, $cell)), [int]$sx, [int]$sy, [int]$side, [int]$side, [Drawing.GraphicsUnit]::Pixel)
                 }
                 else {
-                    # CONTAIN (no crop) - whole image visible, for cell-by-cell classification.
+                    # contain (no crop) - whole image visible, for cell-by-cell classification.
                     $scale = $cell / [math]::Max($img.Width, $img.Height); if ($scale -gt 1) { $scale = 1 }
                     $w = [int]($img.Width * $scale); $h = [int]($img.Height * $scale)
                     $g.DrawImage($img, ($x + [int](($cell - $w) / 2)), ($y + [int](($cell - $h) / 2)), $w, $h)
@@ -174,12 +136,8 @@ $audioExts = @('.mp3', '.m4a', '.wav', '.aac', '.ogg', '.oga', '.opus', '.flac',
 $ffmpeg = (Get-Command ffmpeg -ErrorAction SilentlyContinue)
 $ffprobe = (Get-Command ffprobe -ErrorAction SilentlyContinue)
 
-# Build a CONTACT SHEET for a video: sample $Frames frames evenly across the whole
-# clip (so the grid represents the entire video, not just the opening title card)
-# and tile them into ONE bitmap the model reads like any still. Returns a Bitmap
-# (full-res grid; the caller downscales + index-stamps it via the shared path) or
-# $null when ffmpeg can't decode it. Falls back to ffmpeg's own thumbnail+tile
-# single pass when ffprobe (duration) is unavailable.
+# Video contact sheet: frames sampled across the whole clip, tiled into one Bitmap; $null if ffmpeg cannot decode.
+# Without ffprobe it falls back to ffmpeg's thumbnail+tile filter.
 function New-VideoContactSheet {
     param($VideoPath, [int]$Frames, [int]$Cols, $WorkRoot)
     $tmp = Join-Path $WorkRoot ('_vf_' + [Guid]::NewGuid().ToString('N').Substring(0, 8))
@@ -270,9 +228,7 @@ foreach ($s in $srcs) {
         $g = [Drawing.Graphics]::FromImage($bmp)
         $g.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
         $g.DrawImage($img, 0, 0, $w, $h)
-        # STAMP the index badge (top-left): the model maps each thumbnail to its
-        # source by the VISIBLE number, not by read order - kills the off-by-one
-        # mislabel when many thumbnails are read in one message.
+        # Stamp the index top-left so thumbnails map to sources by the visible number, not read order.
         $label = '{0:D3}' -f $i
         $fs2 = [single]([math]::Max(16, [math]::Round($h * 0.05)))
         $font = New-Object Drawing.Font('Consolas', $fs2, [Drawing.FontStyle]::Bold)

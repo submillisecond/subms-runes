@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# journal - browse + revert the file-ops run history. macOS/Linux backend
-# (see journal.ps1). Every apply writes a durable reverse-manifest journal to the
-# runes app-data dir, per plugin: <data>/runes/<plugin>/journals/. This scans all.
-#   list            (default) journals newest-first: [plugin] name, when, # moves, albums
-#   show <name>     print a journal's contents
-#   revert <name>   undo that run (re-applies the reverse manifest via file-ops)
-# <name> matches the journal file name (or full path).
+# journal: .sh port of journal.ps1 (list, show and revert file-ops journals across every plugin's journal dir).
+# journal.sh [list] | show <name> | revert <name>. Contract: ../contract/CONTRACTS.md 2.10.
 set -uo pipefail
 
 ACTION="${1:-list}"; NAME="${2:-}"

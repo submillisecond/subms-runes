@@ -30,6 +30,12 @@ server (section 2) or `dg-debug` (section 4).
 |---|---|---|
 | `deltagraph` | Streamable HTTP, stateless, no auth | `https://deltagraph.submillisecond.com/mcp` |
 
+Every request carries `X-Runes-Pack: deltagraph/<version>`, the version in
+`plugin.json`. When it is older than the server's minimum, the server adds an
+upgrade line to the `initialize` instructions and to every tool result, telling
+the user to run `/plugin marketplace update subms-runes`. `release-bump.sh`
+moves the header with the version.
+
 The tool, prompt and resource lists are the server's, read live from
 `tools/list`; the pack does not pin them. At 0.2.0 they are tools
 `deltagraph_check`, `deltagraph_debug`, `deltagraph_url`, `deltagraph_svg`,

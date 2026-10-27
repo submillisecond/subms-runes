@@ -1,31 +1,5 @@
-<#
-  image-index - the content-search cache for the imageverse pack. A GLOBAL,
-  content-addressed (sha1-keyed) store of structured per-image records, so a
-  given image is vision-captioned ONCE and every later search/organise reads
-  text instead of re-reading pixels. Path-independent: moves/renames/copies
-  reuse the caption; a deleted file simply drops out of the live scan and can
-  never be returned (presence is the scan's job, never the index's).
-
-  Store: %LOCALAPPDATA%\runes\imageverse\index\ (owner-only ACL)
-    captions.tsv   one row per content hash (schema below)
-    .schema        integer; bump invalidates every row (re-vision)
-
-  Verbs:
-    status [-Tsv <scan>]              store location, schema, count; with a live
-                                      image-find scan, also warm/cold coverage
-    plan   -Tsv <scan>                cold delta: distinct hashes not yet
-                                      captioned -> a thumbnail worklist (no vision)
-    put    -Batch <rows> [-Scan s]    upsert caption rows after the skill's vision
-                                      pass; pulls lat/lon/camera from -Scan, dims
-                                      + phash from the file, redacts secrets
-    clear                             nuke the cache
-
-  query / prune land in step 2 (see SPEC.md).
-
-  -Tsv / -Scan take an image-find TSV: <date> \t <size> \t <sha1> \t <path> \t
-  <lat> \t <lon> \t <camera>. Output is KEY=value lines then TSV rows, like
-  image-find / cluster.
-#>
+# image-index: content-addressed caption cache, so each image is vision-read once and later searches read text.
+# Verbs, store and schemas: ../contract/CONTRACTS.md 1.1, 1.2, 2.1.
 param(
     [Parameter(Position = 0)][string]$Verb = 'status',
     [string]$Tsv,
@@ -228,11 +202,8 @@ switch ($Verb.ToLower()) {
             Write-Output ("INDEX_WARM=" + $warm)
         }
         else {
-            # Near-dup collapse: a cold image whose dHash is within HammingMax of an
-            # already-captioned (warm) image OR an earlier cold rep is a FOLLOWER -
-            # it inherits the rep's coarse caption (see put -Followers) and is NEVER
-            # vision-read. Only true reps land in INDEX_COLD. Local-only (opens each
-            # cold file for its phash; zero tokens). Reps are anchors: (rep-hash, phash).
+            # A cold image within HammingMax of a warm or earlier cold rep inherits that caption and is
+            # never vision-read; only reps reach INDEX_COLD.
             $anchors = New-Object System.Collections.Generic.List[object]
             foreach ($w in $idx.Values) { if ($w.phash) { $anchors.Add([pscustomobject]@{ hash = $w.hash; phash = $w.phash }) } }
             $reps = @{}; $followList = New-Object System.Collections.Generic.List[object]
@@ -264,9 +235,7 @@ switch ($Verb.ToLower()) {
         $meta = @{}
         if ($Scan) { foreach ($s in (Read-Scan $Scan)) { if (-not $meta.ContainsKey($s.hash)) { $meta[$s.hash] = $s } } }
         $now = Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ'
-        # Batch row: hash, path, category, subcategory, activity, place_path,
-        # entities, objects, attributes, caption, text (inline, single line).
-        # A stray tab inside the text just merges into it (cols 11.. are re-joined).
+        # Batch row: 11 columns (CONTRACTS.md 1.2). A stray tab in the text merges back into it.
         $put = 0; $redacted = 0
         foreach ($line in Get-Content $Batch) {
             if (-not $line.Trim()) { continue }
@@ -300,10 +269,7 @@ switch ($Verb.ToLower()) {
             $idx[$hash] = $rec   # last-write-wins per hash
             $put++
         }
-        # Near-dup followers (from plan -NearDup): each inherits its rep's COARSE
-        # fields (category/subcategory/objects/activity/place_path) + caption, but
-        # NOT text (look-alikes differ exactly in their text) and is marked
-        # source=propagated:<rep>. Row: follower-hash, follower-path, rep-hash.
+        # Near-dup followers take the rep's coarse fields and caption, not its text; source=propagated:<rep>.
         $propagated = 0
         if ($Followers -and (Test-Path $Followers)) {
             foreach ($line in Get-Content $Followers) {
@@ -442,10 +408,7 @@ switch ($Verb.ToLower()) {
             foreach ($h in $coldRep.Keys) { Write-Output ("INDEX_COLD`t$h`t" + $coldRep[$h]) }
         }
         else { Write-Output 'INDEX_COLD=0' }
-        # LRU touch: a search IS a use, so bump last_seen for warm hashes present
-        # in this scan - keeps frequently-searched-but-rarely-recaptioned images
-        # from aging out. Bounded to once/day (only when the stored date < today)
-        # so a search does not rewrite the cache more than once a day.
+        # A search counts as use: bump last_seen for warm hashes, at most once a day.
         $today = (Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')
         $now2 = Get-Date -Format 'yyyy-MM-ddTHH:mm:ssZ'
         $touched = 0

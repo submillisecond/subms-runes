@@ -1,15 +1,5 @@
-<#
-  journal - browse + revert the file-ops run history. Every img-organize /
-  img-save apply writes a durable reverse-manifest journal to the runes app-data
-  dir; this lists them so you can pick one to undo.
-
-    list            (default) journals newest-first: name, when, # moves, albums
-    show <name>     print a journal's contents
-    revert <name>   undo that run (re-applies the reverse manifest via file-ops)
-
-  <name> matches the journal's file name (or full path). Reverting itself writes
-  a fresh journal, so a revert can be re-reverted (redo).
-#>
+# journal: list, show and revert file-ops journals. A revert writes its own journal, so it can be redone.
+# journal.ps1 [list] | show <name> | revert <name>. Contract: ../contract/CONTRACTS.md 2.10.
 param(
     [Parameter(Position = 0)][string]$Action = 'list',
     [Parameter(Position = 1)][string]$Name

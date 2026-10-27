@@ -1,22 +1,6 @@
 #!/usr/bin/env bash
-# dg-url - build a submillisecond.com/deltagraph URL from a diagram source file.
-# POSIX port of dg-url.ps1 (the .ps1 is the verified backend); the plain form
-# must stay byte-identical across the two - the pack's contract-test asserts it.
-#
-#   dg-url.sh <file|-> [--title T] [--theme light|dark] [--bg transparent|black|white|auto|<hex>]
-#             [--dir LR|TD] [--debug] [--edit] [--compress] [--base URL]
-#
-# Output (KEY=value, one per line; see ../contract/CONTRACTS.md):
-#   URL=<the link>
-#   LENGTH=<characters in the link>
-#
-# The plain form percent-encodes the source with the RFC 3986 unreserved set
-# kept (A-Z a-z 0-9 - _ . ~) and EVERYTHING else escaped, including `&` - a raw
-# `&` in the fragment ends the dsl value and truncates the diagram with no
-# error. --compress writes the viewer's `#d1=` form: raw DEFLATE (gzip's
-# stream with its 10-byte header and 8-byte trailer cut off), base64url,
-# unpadded. Its bytes may differ from the .ps1's; it decodes to the same source.
-# No validation happens here; dg-debug runs the source through the engine.
+# dg-url: print a deltagraph viewer link (URL=, LENGTH=) for a diagram source. Contract: ../contract/CONTRACTS.md.
+# dg-url.sh <file|-> [--title T] [--theme light|dark] [--bg transparent|black|white|auto|<hex>] [--dir LR|TD] [--debug] [--edit] [--compress] [--base URL]
 set -eu
 
 BASE="https://www.submillisecond.com/deltagraph"
@@ -31,7 +15,7 @@ while [ $# -gt 0 ]; do
     --debug) DEBUG=1; shift ;;
     --edit)  EDIT=1; shift ;;
     --compress) COMPRESS=1; shift ;;
-    -h|--help) sed -n '2,19p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,3p' "$0"; exit 0 ;;
     -) FILE="-"; shift ;;
     -*) echo "ERROR=unknown flag $1" >&2; exit 2 ;;
     *) FILE="$1"; shift ;;
@@ -44,7 +28,7 @@ if [ "$FILE" = "-" ]; then SRC="$(cat)"; else SRC="$(cat "$FILE")"; fi
 # blank lines too, the way the viewer trims.
 SRC="$(printf '%s' "$SRC" | tr -d '\r' | sed -e '/./,$!d')"
 
-# Percent-encode by walking the UTF-8 BYTES, so a multi-byte character becomes
+# Percent-encode by walking the UTF-8 bytes, so a multi-byte character becomes
 # %XX%XX and both backends agree byte for byte.
 enc() {
   printf '%s' "$1" | od -An -v -tu1 | tr -s ' ' '\n' | while IFS= read -r b; do

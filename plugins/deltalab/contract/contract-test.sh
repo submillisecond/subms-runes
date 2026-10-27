@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# contract-test - the executable spec for the deltalab pack. Starts the bundled
-# MCP server over stdio and asserts: the handshake, the tool list and each
-# tool's required arguments match CONTRACTS.md, refusals are tool errors with
-# guidance (not protocol errors), the server's version is the pack's, the
-# bundle is ASCII and says where it was built. No network: nothing here joins
-# a room. The live room path is subms-ui's `pnpm mcp:e2e`. Exits non-zero on
-# drift.
+# contract-test: start the bundled MCP server over stdio and check the handshake, tools, refusals, version and bundle.
+# Offline; the live room path is subms-ui's pnpm mcp:e2e.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 PACK="$(cd "$HERE/.." && pwd)"

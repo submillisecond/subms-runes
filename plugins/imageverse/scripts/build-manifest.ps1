@@ -1,29 +1,5 @@
-<#
-  build-manifest - turn a CLASSIFICATION into a file-ops manifest.
-  The rune's only judgement call is "which album does each image belong to";
-  everything mechanical (date parsing, per-album sequence numbers, dest paths,
-  collision-safe names) is deterministic and lives here - do NOT hand-roll it.
-
-  Input CLASSIFICATION file: tab-separated `<album><TAB><source>`, one line per
-  image (blank lines and # comments ignored). <source> may be a FULL PATH or just
-  a FILENAME - with -Shots, bare filenames are resolved to full paths via the
-  shots list (so the classification file stays short / on-screen).
-    -Class file|dir  the classification: a single .tsv, OR a DIRECTORY of batch
-                     *.tsv files (name-sorted, concatenated) - so per-batch writes
-                     need no hand-rolled `cat`
-    -Shots file      the image-find -OutFile full-path list; resolves bare filenames + index ranges
-    -Meta file       the image-find -TsvFile TSV; uses the true EXIF capture time
-                     (incl. sub-second) for naming/ordering instead of filename/mtime
-    -Base dir        dest base (default: the parent folder of the first source)
-    -Op move|copy    operation (default move)
-    -Plugin name     calling plugin/pack; namespaces the default temp (default 'misc')
-    -Manifest file   output manifest path (default %TEMP%\runes\<plugin>\manifest.tsv)
-
-  Names dest `<album>-<YYYY-MM-DD>-<HHMMSS>.ext` from the capture timestamp in the
-  filename (e.g. `Screenshot 2026-06-14 155916.png`), else from file mtime. Two
-  images at the SAME second get a `-2`, `-3` suffix. Prints MANIFEST_FILE +
-  MANIFEST_COUNT then the manifest. Feed the result to file-ops.
-#>
+# build-manifest: turn an <album><TAB><source> classification into a file-ops manifest with dated, collision-safe names.
+# Flags, the dest-name rule and output: ../contract/CONTRACTS.md 1.5, 2.4.
 param(
     [string]$Class,
     [string]$Shots,
@@ -45,9 +21,7 @@ if ($Shots -and (Test-Path $Shots)) {
     foreach ($t in $shotsArr) { $byName[[IO.Path]::GetFileName($t)] = $t }
 }
 
-# Optional EXIF metadata (image-find -TsvFile): path -> {date, time, subsec} from
-# the true capture timestamp incl. sub-second. Preferred over filename/mtime so
-# bursts order/name by real time and photos without a date-in-name get their EXIF date.
+# EXIF capture time from -Meta beats filename and mtime, so bursts order by real time.
 $byMeta = @{}
 if ($Meta -and (Test-Path $Meta)) {
     foreach ($line in Get-Content $Meta) {
@@ -71,17 +45,13 @@ function Expand-Spec($spec) {
     $out
 }
 
-# -Class may be a single file OR a DIRECTORY of batch *.tsv files (the
-# compaction-safe per-batch classification) - read all of them, name-sorted, so
-# there is no hand-rolled `cat batch*.tsv` step.
+# -Class may be a directory of batch .tsv files, read in name order.
 $batchInfo = ''
 if (Test-Path -LiteralPath $Class -PathType Container) {
     $bf = @(Get-ChildItem -LiteralPath $Class -Filter *.tsv | Sort-Object Name)
     $rows = $bf | ForEach-Object { Get-Content $_.FullName }
     if ($bf.Count -gt 0) {
-        # Classification wall-clock = thumbnails-done -> now (this manifest build).
-        # That captures the whole vision phase, unlike a batch-write span which is
-        # ~0 when the model reads everything then writes the batches at the end.
+        # Timed from thumbnails-done to now, which covers the whole vision phase.
         $start = $bf[0].LastWriteTime
         $thumbs = Join-Path (Split-Path -Parent $Class) 'thumbs'
         if (Test-Path $thumbs) {
@@ -99,7 +69,7 @@ foreach ($r in $rows) {
     $p = $r -split "`t"
     if ($p.Count -lt 2) { continue }
     $album = $p[0].Trim(); $val = $p[1].Trim()
-    # GROUPED form: one line per album, second field is an INDEX SPEC (ranges into
+    # grouped form: one line per album, second field is an index SPEC (ranges into
     # the shots list) - the compact classification. Else per-image filename/path.
     if ($shotsArr.Count -gt 0 -and $val -match '^[\d,\s\-]+$') {
         foreach ($idx in (Expand-Spec $val)) {
@@ -132,13 +102,11 @@ $seen = @{}
 $lines = New-Object System.Collections.Generic.List[string]
 foreach ($e in ($entries | Sort-Object album, date, time, subsec, src)) {
     $ext = [IO.Path]::GetExtension($e.src); if (-not $ext) { $ext = '.png' }
-    # The album may be a NESTED path (e.g. "2026/05/stochbook" for a yyyy/mm/album
-    # schema) - normalise separators, use the LEAF segment for the file name.
+    # The album may be a nested path (e.g. "2026/05/stochbook" for a yyyy/mm/album
+    # schema) - normalise separators, use the leaf segment for the file name.
     $albumPath = $e.album -replace '[\\/]+', [IO.Path]::DirectorySeparatorChar
     $leaf = ($e.album -split '[\\/]+')[-1]
-    # The FOLDER keeps any chronological "MM. " month prefix (so albums sort by
-    # month); the FILE name drops it - the date in the name already orders files,
-    # so "06. Paris-2026-06-12-..." becomes "Paris-2026-06-12-...".
+    # The folder keeps its "MM. " month prefix so albums sort; the file name drops it.
     $fileLeaf = $leaf -replace '^(0[1-9]|1[0-2])\.\s+', ''
     if (-not $fileLeaf) { $fileLeaf = $leaf }
     # Sub-second (from EXIF) gives bursts unique, true-ordered names; else the -N
@@ -154,9 +122,7 @@ Write-Output ('MANIFEST_FILE=' + $Manifest)
 Write-Output ('MANIFEST_COUNT=' + $lines.Count)
 if ($batchInfo) { Write-Output $batchInfo }
 
-# Coverage check against the shots list: catch images the classification DROPPED
-# (assigned to no album) or DOUBLE-assigned. The safety net for any format, and
-# the main guard for the compact index form. Surface, never silently proceed.
+# Report images the classification dropped or assigned twice; never proceed silently.
 if ($shotsArr.Count -gt 0) {
     $counts = @{}
     foreach ($pr in $pairs) { $counts[$pr.src] = ([int]$counts[$pr.src]) + 1 }

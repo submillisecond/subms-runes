@@ -1,11 +1,6 @@
 #!/usr/bin/env bash
-# clip-history - durable typed clipboard history (mirror of clip-history.ps1; that
-# is the verified backend). OFF by default, secrets never stored, owner-only dir.
-# Store: ${XDG_DATA_HOME:-$HOME/.local/share}/runes/clipboard/history
-#   index.tsv  id \t iso-ts \t kind \t subtype \t bytes \t source \t preview
-#   <id>.txt|.png|.files.txt   the payload
-# Verbs: enable|disable|status | add ... | list [--count N] | search --query q
-#        | get --id <id|#n> | rm --id <id> | clear
+# clip-history: .sh port of clip-history.ps1 (opt-in history, secrets never stored).
+# Verbs, store layout and output: ../contract/CONTRACTS.md.
 set -u
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="${XDG_DATA_HOME:-$HOME/.local/share}/runes/clipboard/history"

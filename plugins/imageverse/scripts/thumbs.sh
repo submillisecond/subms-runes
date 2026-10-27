@@ -1,21 +1,6 @@
 #!/usr/bin/env bash
-# thumbs - batch-downscale images to thumbnails for cheap vision reads.
-# macOS/Linux backend (sips built into macOS, else ImageMagick). The Windows
-# backend is thumbs.ps1 (System.Drawing) - Windows has no guaranteed shell.
-#   --path p          source image (repeatable)
-#   --list file       OR a file of newline-separated source paths
-#   --max N           longest-side px (default 1600: legible for screenshot text,
-#                     still under the 2000px/side many-image cap so thumbs batch)
-#   --sheet N         TRIAGE: tile N images per contact sheet (grid). --sheet-cell px,
-#                     --cols N (explicit columns), --dense (gapless crop-fill, no index).
-#   --video-frames N  for VIDEO inputs: sample N frames evenly across the clip and
-#                     tile them into ONE contact-sheet thumbnail (default 12) so a
-#                     clip classifies like a still. Needs ffmpeg (+ffprobe) and
-#                     ImageMagick; without them videos are skipped (THUMB_SKIP_VIDEO).
-#   --plugin name     calling plugin/pack; namespaces the default temp (default misc)
-#   --out dir         output dir (default $TMPDIR/runes/<plugin>/thumbs)
-# Prints THUMB_DIR, THUMB_COUNT, THUMB_VIDEOS, then `<thumb>\t<source>` lines.
-# A video with no ffmpeg/ImageMagick emits `THUMB_SKIP_VIDEO\t<source>`.
+# thumbs: .sh port of thumbs.ps1 (sips on macOS, else ImageMagick; videos need ffmpeg and ImageMagick).
+# thumbs.sh --path p | --list f [--max 1600] [--sheet N [--sheet-cell px] [--cols N] [--dense]] [--video-frames 12] [--plugin p] [--out d]
 set -uo pipefail
 
 MAX=1600; VFRAMES=12; SHEET=0; SHEETCELL=360; COLS=0; DENSE=0; OUT=""; PLUGIN="misc"; SRCS=()
@@ -43,9 +28,8 @@ SIPS="$(command -v sips || true)"
 if [ -z "$MAGICK" ] && [ -z "$SIPS" ]; then
   echo "THUMB_COUNT=0"; echo "THUMB_NOTE=need sips (macOS) or ImageMagick (brew/apt install imagemagick)"; exit 1
 fi
-# Video contact sheets need a decoder (ffmpeg) + a tiler (ImageMagick montage:
-# `magick montage` on IM7, the `montage` binary on IM6). ffprobe gives duration for
-# even sampling; without it we fall back to ffmpeg's own thumbnail+tile pass.
+# Video sheets need ffmpeg plus ImageMagick montage (magick montage on IM7, montage on IM6).
+# Without ffprobe for the duration, fall back to ffmpeg's thumbnail+tile filter.
 FFMPEG="$(command -v ffmpeg || true)"; FFPROBE="$(command -v ffprobe || true)"
 IM7=0; case "$(basename "${MAGICK:-x}")" in magick) IM7=1;; esac
 MONTAGE="$(command -v montage || true)"
@@ -56,8 +40,8 @@ is_audio() { case "$(printf '%s' "${1##*.}" | tr '[:upper:]' '[:lower:]')" in mp
 
 echo "THUMB_DIR=$OUT"
 
-# TRIAGE: tile many stills into index-stamped contact sheets (--sheet N). Each cell
-# carries its GLOBAL 1-based index (= --list line) so it maps back unambiguously.
+# triage: tile many stills into index-stamped contact sheets (--sheet N). Each cell
+# carries its global 1-based index (= --list line) so it maps back unambiguously.
 if [ "$SHEET" -gt 0 ]; then
   { [ -n "$MAGICK" ] && [ "$have_montage" = 1 ]; } || { echo "THUMB_NOTE=need ImageMagick for --sheet"; exit 1; }
   s_img_re='\.(jpg|jpeg|png|heic|heif|gif|bmp|tif|tiff|webp)$'
@@ -74,7 +58,7 @@ if [ "$SHEET" -gt 0 ]; then
       s="${SRCS[$j]}"; idx=$((j + 1)); cf="$tmpd/$(printf '%05d' "$idx").png"
       if [ -f "$s" ] && printf '%s' "$s" | grep -qiE "$s_img_re"; then
         if [ "$DENSE" = 1 ]; then
-          # COVER + center-crop (gapless square tile), no index badge
+          # cover + center-crop (gapless square tile), no index badge
           "$MAGICK" "$s" -resize "${SHEETCELL}x${SHEETCELL}^" -gravity center -extent "${SHEETCELL}x${SHEETCELL}" "$cf" 2>/dev/null || true
         else
           "$MAGICK" "$s" -resize "${SHEETCELL}x${SHEETCELL}" -background '#141414' -gravity center -extent "${SHEETCELL}x${SHEETCELL}" \
@@ -133,7 +117,7 @@ for s in "${SRCS[@]}"; do
   fi
   if [ -n "$MAGICK" ]; then
     # Stamp the index badge top-left so the model maps each thumbnail to its source
-    # by the VISIBLE number, not read order (kills the bulk-read off-by-one mislabel).
+    # by the visible number, not read order (kills the bulk-read off-by-one mislabel).
     "$MAGICK" "$s" -resize "${MAX}x${MAX}>" \
       -gravity NorthWest -fill yellow -undercolor '#000000c0' -pointsize 30 -annotate +2+2 " $idx " \
       "$dest" 2>/dev/null && { lines+=("$dest"$'\t'"$s"); n=$((n + 1)); }

@@ -1,28 +1,5 @@
-# dg-url - build a submillisecond.com/deltagraph URL from a diagram source file.
-# The verified backend; dg-url.sh is the POSIX port and must print the same bytes
-# for the plain form (the pack's contract-test asserts it).
-#
-#   dg-url.ps1 <file|-> [-Title T] [-Theme light|dark] [-Bg transparent|black|white|auto|<hex>]
-#              [-Dir LR|TD] [-ShowDebug] [-Edit] [-Compress] [-Base URL]
-#
-# Output (KEY=value, one per line; see ../contract/CONTRACTS.md):
-#   URL=<the link>
-#   LENGTH=<characters in the link>
-#
-# The plain form percent-encodes the source by hand over its UTF-8 bytes,
-# keeping only the RFC 3986 unreserved set (A-Z a-z 0-9 - _ . ~). Not
-# [uri]::EscapeDataString: its treatment of ! * ' ( ) differs between .NET
-# Framework and .NET Core, and the two backends have to agree byte for byte.
-# `&` is always escaped - a raw one in the fragment ends the dsl value and
-# truncates the diagram silently.
-#
-# -Compress writes the viewer's `#d1=` form instead: raw DEFLATE, base64url,
-# unpadded. Shorter on anything past a few lines. Two deflaters need not emit
-# the same bytes, so the contract for this form is that it decodes to the
-# source, not that both backends print the same string.
-#
-# No validation here: the engine lives in subms-ui. dg-debug runs the source
-# through it.
+# dg-url: print a deltagraph viewer link (URL=, LENGTH=) for a diagram source. Contract: ../contract/CONTRACTS.md.
+# dg-url.ps1 <file|-> [-Title T] [-Theme light|dark] [-Bg transparent|black|white|auto|<hex>] [-Dir LR|TD] [-ShowDebug] [-Edit] [-Compress] [-Base URL]
 [CmdletBinding()]
 param(
   [Parameter(Position = 0)] [string] $File,

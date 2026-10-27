@@ -1,35 +1,5 @@
-<#
-  file-ops - apply a batch of file operations from a manifest, collision-safe,
-  with a revert JOURNAL. The img-organize / img-save / img-dedup runes build a
-  PLAN (the manifest IS the dry-run preview) and apply it here instead of
-  hand-rolling Move/Copy loops.
-
-  Manifest lines are tab-separated; blank lines and # comments are ignored:
-     move <TAB> <src> <TAB> <dest>
-     copy <TAB> <src> <TAB> <dest>
-
-  MODES (default is a DRY RUN - prints PLAN lines, performs nothing):
-    -Apply     perform the FORWARD migration (e.g. files -> album subfolders).
-    -Restore   perform a REVERSE/undo run: same moves, but ALSO prune folders
-               left empty by the moves (so reverting an organize cleans up the
-               now-empty album dirs). Used by `journal revert`.
-  Both -Apply and -Restore write a fresh durable journal, so an apply is
-  revertible and a restore is re-doable (re-run the next journal). Never
-  overwrites: an existing dest gets ' (2)', ' (3)', ...
-
-  The journal is the REVERSE manifest (each `move <src> <dest>` -> `move <dest>
-  <src>`), written to the per-plugin app-data dir
-  (`%LOCALAPPDATA%\runes\<plugin>\journals\`), NOT the temp workspace.
-
-    -Manifest file   the operations manifest
-    -Apply           forward migration (omit both -Apply/-Restore for a dry run)
-    -Restore         reverse/undo run (implies -Prune)
-    -Prune           after moving, remove any SOURCE folder this run leaves empty
-                     (use with -Apply when RE-ORGANIZING into a new scheme, which
-                     vacates the old album folders). Truly-empty dirs only.
-    -Plugin name     calling plugin/pack (namespaces the journal dir; default 'misc')
-    -Journal file    override the auto app-data journal path
-#>
+# file-ops: apply a move/copy manifest without overwriting, and write a revert journal. Dry run unless -Apply or -Restore.
+# Flags, manifest and journal format: ../contract/CONTRACTS.md 1.6, 2.5.
 param(
     [string]$Manifest,
     [switch]$Apply,
@@ -43,7 +13,7 @@ if (-not $Manifest -or -not (Test-Path $Manifest)) { Write-Output 'OPS_ERROR=mis
 $run = $Apply -or $Restore
 $doPrune = $Restore -or $Prune
 
-# Default the journal to a DURABLE, per-PLUGIN app-data location (never temp).
+# Default the journal to a durable, per-PLUGIN app-data location (never temp).
 if ($run -and -not $Journal) {
     $dataBase = if ($env:LOCALAPPDATA) { $env:LOCALAPPDATA }
     elseif ($env:APPDATA) { $env:APPDATA }
@@ -57,7 +27,7 @@ $rows = Get-Content $Manifest | Where-Object { $_.Trim() -and -not $_.TrimStart(
 $done = 0; $skip = 0; $errs = 0
 $rev = New-Object System.Collections.Generic.List[string]
 $rev.Add('# runes journal (reverse manifest) - undo/redo this run with: journal revert "<this file name>"')
-# Snapshot which dest dirs ALREADY EXIST before we create any, for new-vs-existing
+# Snapshot which dest dirs already exist before we create any, for new-vs-existing
 # reporting. Track source dirs too so -Restore can prune the ones it empties.
 $dirState = [ordered]@{}
 $srcDirs = [ordered]@{}
@@ -107,8 +77,8 @@ if ($doPrune) {
         }
     }
 }
-# Per-destination-dir summary: NEW vs EXISTING album folder + files added this run
-# + TOTAL files now (incl. pre-existing) + subfolder count.
+# Per-destination-dir summary: NEW vs existing album folder + files added this run
+# + total files now (incl. pre-existing) + subfolder count.
 $added = @{}
 foreach ($r in $rows) { $p = $r -split "`t"; if ($p.Count -ge 3) { $d = Split-Path -Parent ($p[2].Trim()); if ($d) { $added[$d] = ([int]$added[$d]) + 1 } } }
 $newDirs = 0; $exDirs = 0

@@ -1,20 +1,6 @@
 #!/usr/bin/env bash
-# contract-lib - shared scaffolding for the per-pack contract-test.sh executable
-# specs (`plugins/<pack>/contract/contract-test.sh`). SOURCED, never run.
-#
-# This is REPO-LEVEL TEST tooling only. Plugin RUNTIME scripts cannot share code -
-# plugin isolation copies each pack's own scripts under ${CLAUDE_PLUGIN_ROOT} - so
-# this never ships inside a plugin; it stays in subms-runes (NOT subms-infra: the
-# contract tests run in this repo's CI and must not depend on the private operator
-# repo). It provides: assertion helpers + counters, an isolated temp store (so real
-# caches are untouched), the generic SKILL<->.columns drift guard, and the finish.
-#
-# Usage from a pack's contract-test.sh:
-#   HERE="$(cd "$(dirname "$0")" && pwd)"
-#   . "$HERE/../../../lib/contract-lib.sh"
-#   contract_isolate          # sets $T, exports XDG_DATA_HOME + LOCALAPPDATA
-#   ... eq/has/skill_schema_guard ...
-#   contract_result           # prints RESULT, cleans $T, exits non-zero on any FAIL
+# contract-lib: assertions, an isolated store and the SKILL schema guard for contract-test.sh. Sourced, never run.
+# Test tooling only: plugins cannot share runtime code, so nothing here ships in a pack.
 
 PASS=0; FAIL=0
 TAB="$(printf '\t')"
@@ -23,9 +9,7 @@ bad() { FAIL=$((FAIL + 1)); echo "FAIL: $*"; }
 eq()  { if [ "$2" = "$3" ]; then ok; else bad "$1: expected [$3] got [$2]"; fi; }
 has() { if printf '%s' "$2" | grep -qE "$3"; then ok; else bad "$1: missing /$3/"; fi; }
 
-# Mint an isolated store and redirect the data-dir env vars so the live caches are
-# untouched: XDG_DATA_HOME for the .sh backend, LOCALAPPDATA (a WINDOWS path via
-# cygpath when present) for the .ps1 backend. Sets $T to the temp root.
+# Point XDG_DATA_HOME (.sh) and LOCALAPPDATA (.ps1, a Windows path) at a temp root, $T, so real data is untouched.
 contract_isolate() {
   T="$(mktemp -d)"
   export XDG_DATA_HOME="$T/sh"
@@ -33,11 +17,17 @@ contract_isolate() {
   if command -v cygpath >/dev/null 2>&1; then export LOCALAPPDATA="$(cygpath -w "$T/ps")"; else export LOCALAPPDATA="$T/ps"; fi
 }
 
-# skill_schema_guard <label> <grep -F marker> <.columns file> <skills dir>
-# A SKILL.md that quotes an inline `<a>\t<b>\t...` schema must have the field count
-# its .columns file declares. Field count = (number of '>\t<' separators) + 1.
-# Fails loudly if the marker matches NO SKILL.md (a reworded restatement that would
-# otherwise silently disable the guard).
+# True when the .ps1 half can run; Linux and macOS test the .sh half alone.
+# RUNES_REQUIRE_PS=1 (Windows CI) makes a missing powershell.exe fail instead of skip.
+ps_backend() {
+  command -v powershell.exe >/dev/null 2>&1 && return 0
+  if [ "${RUNES_REQUIRE_PS:-0}" = 1 ]; then bad "powershell.exe is required (RUNES_REQUIRE_PS=1) and is not on PATH"
+  else echo "  (powershell.exe not present: .ps1 backend skipped)"; fi
+  return 1
+}
+
+# skill_schema_guard <label> <marker> <.columns> <skills dir>: a schema a SKILL.md restates must have the .columns
+# field count. Fails when no SKILL.md matches the marker, so a reworded restatement cannot switch the guard off.
 skill_schema_guard() {
   local label="$1" marker="$2" cols="$3" skills="$4" expect f line n found=0
   expect="$(grep -c . "$cols")"

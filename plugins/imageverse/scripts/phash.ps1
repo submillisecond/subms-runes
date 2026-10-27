@@ -1,27 +1,5 @@
-<#
-  phash - PERCEPTUAL hashing (dHash) for the imageverse plugin. SHA1 sees a
-  WhatsApp re-encode as a different file; a perceptual hash does not - so this is how
-  we (a) ROUTE a re-shared image to the album its original already lives in, and
-  (b) GROUP near-duplicate shares within a dump so they classify once.
-
-  dHash: image -> 9x8 grayscale -> compare adjacent pixels -> 64-bit hash (16 hex).
-  Similarity = Hamming distance (bits differing). Re-encodes typically stay <= ~6;
-  default match threshold is 10.
-
-  MODES (Windows: powershell ... -File phash.ps1 <mode> ...):
-    hash  -List <paths-file> | -Tsv <scan.tsv>   -OutFile <out.tsv>
-          compute dHash per file -> `<dhash>\t<path>` lines (+ to -OutFile).
-    match -Query <hash.tsv> -Ref <hash.tsv> [-MaxDist 10]
-          for each query, nearest ref within MaxDist ->
-          `MATCH\t<queryPath>\t<refPath>\t<dist>`  or  `NOMATCH\t<queryPath>`.
-          (Route a dump: Query=dump hashes, Ref=already-organized library hashes;
-          the ref path's PARENT folder is the album to route into.)
-    group -In <hash.tsv> [-MaxDist 6]
-          collapse near-duplicates within one set ->
-          `GROUP\t<id>\t<count>\t<comma-separated paths>` (singletons included).
-
-  Emits PHASH_* status lines. Read-only; never moves/modifies images.
-#>
+# phash: perceptual (dHash) hashes, to route re-shared images to their album and to group near-duplicates.
+# phash.ps1 hash -List f|-Tsv f -OutFile f | match -Query f -Ref f [-MaxDist 10] | group -In f [-MaxDist 6]
 param(
     [Parameter(Position = 0)][string]$Mode = 'hash',
     [string]$List,
@@ -41,7 +19,7 @@ $vext = @('.mp4', '.mov', '.m4v', '.avi', '.mkv', '.webm', '.3gp', '.3g2', '.wmv
 
 $nib = @(0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4)  # popcount of a nibble 0..15
 function Hex-Hamming($a, $b) {
-    # Different lengths = different KINDS of hash (16-hex image dHash vs an N*16-hex
+    # Different lengths = different kinds of hash (16-hex image dHash vs an N*16-hex
     # video frame-signature) - return -1 (incomparable) so videos never match images.
     if ($a.Length -ne $b.Length) { return -1 }
     $d = 0
@@ -74,10 +52,8 @@ function Get-DHash($path) {
     catch { return $null }
 }
 function Get-VideoSig($path, $frames) {
-    # A video's perceptual hash = dHash of N frames sampled evenly across the clip,
-    # concatenated (frames * 16 hex). Robust to re-encode/resize (WhatsApp re-shares),
-    # and a DIFFERENT length from an image hash so the two never cross-match. Needs
-    # ffmpeg; ffprobe gives duration for even sampling (else fixed frame steps).
+    # A video hash is the dHash of N evenly spaced frames concatenated, so it never matches an image hash.
+    # Needs ffmpeg; ffprobe gives the duration.
     if (-not $script:FFMPEG) { return $null }
     $tmp = Join-Path $env:TEMP ("phv_" + [Guid]::NewGuid().ToString('N').Substring(0, 8))
     New-Item -ItemType Directory -Force -Path $tmp | Out-Null

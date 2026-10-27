@@ -1,13 +1,5 @@
-<#
-  clipboard-io - shared clipboard I/O for the clipboard pack's runes.
-    read           (default) capture the clipboard (files / image / text) and
-                   print a CLIP_KIND summary. TEXT is streamed to stdout between
-                   -----BEGIN/END CLIP TEXT----- markers (no file). Only an IMAGE
-                   is written to a file (%TEMP%\runes\clipboard\), since the Read
-                   tool needs a path; FILES report their original paths.
-    write -Path f  set the clipboard to the UTF-8 text in file f.
-  STA is required: powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File clipboard-io.ps1 <mode> [-Path f]
-#>
+# clipboard-io: read the clipboard (text to stdout, an image to a temp file, files as paths) or write text to it.
+# Needs STA: powershell.exe -NoProfile -ExecutionPolicy Bypass -STA -File clipboard-io.ps1 read|write [-Path f]
 param(
     [Parameter(Position = 0)]
     [ValidateSet('read', 'write')]
@@ -23,7 +15,7 @@ $dir = Join-Path $env:TEMP 'runes\clipboard'
 
 if ($Mode -eq 'write') {
     if (-not $Path -or -not (Test-Path $Path)) { Write-Output 'CLIP_WRITE=error: missing or unreadable -Path'; exit 1 }
-    # An image file -> put the IMAGE on the clipboard (needs STA). Otherwise text.
+    # An image file -> put the image on the clipboard (needs STA). Otherwise text.
     if ([IO.Path]::GetExtension($Path).ToLower() -in '.png', '.jpg', '.jpeg', '.bmp', '.gif', '.tiff') {
         Add-Type -AssemblyName System.Windows.Forms, System.Drawing | Out-Null
         $bytes = [IO.File]::ReadAllBytes($Path)
@@ -52,14 +44,12 @@ if ($files) {
     return
 }
 
-# 2) An image (screenshot / copied picture) - save as PNG. Only IMAGES need a file:
+# 2) An image (screenshot / copied picture) - save as PNG. Only images need a file:
 # the Read tool renders an image from a path, it cannot take inline bytes.
 $img = Get-Clipboard -Format Image
 if ($img) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
-    # Prune stale bridge files (>24h) so this TEMP dir does not grow without bound.
-    # Only the ephemeral capture/ocr/copy temps live here - saved clips (Downloads),
-    # snippets + history (LOCALAPPDATA) are elsewhere and untouched.
+    # Drop temp captures older than 24h. Saved clips, snippets and history live elsewhere.
     Get-ChildItem $dir -File -ErrorAction SilentlyContinue |
         Where-Object { $_.LastWriteTime -lt (Get-Date).AddHours(-24) } |
         Remove-Item -Force -ErrorAction SilentlyContinue
@@ -71,7 +61,7 @@ if ($img) {
     return
 }
 
-# 3) Text (plain, or rich text flattened to plain) - STREAMED to stdout, no file.
+# 3) Text (plain, or rich text flattened to plain) - streamed to stdout, no file.
 # The full content lives between the BEGIN/END markers; the caller reads it inline.
 $text = Get-Clipboard -Raw
 if ($text -and $text.Trim().Length -gt 0) {

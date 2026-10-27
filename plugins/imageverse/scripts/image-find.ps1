@@ -1,42 +1,5 @@
-<#
-  image-find - the image-file finder for the images pack. Locates image files in
-  a folder by predicate (recency / name / recurse), with a sortable date (EXIF
-  DateTimeOriginal else file mtime) and optional content hash, and Screenshots
-  auto-detect. One tool for all three uses: "recent screenshots" (img), whole-tree
-  find + hashes (img-dedup), and recursive enumeration for re-organize (img-organize).
-
-  Selection (combine freely; with NO filter + no -Dir, returns the single most recent):
-    -Count N      last N (after the other filters)
-    -Minutes X    modified within the last X minutes
-    -Today / -Yesterday
-    -Since "..." / -Until "..."   date-time bounds (any parseable form)
-    -Within spec  calendar bucket (0=current,1=previous): t|today|0d, yesterday|1d, <N>h|d|w|m|y
-    -Name glob    filename contains this
-    -Dir path     where to scan: a literal path, OR the keyword `screenshots` /
-                  `downloads` (resolved to the OS folders). Omit = `screenshots`.
-    -Recurse      include subfolders (needed when RE-ORGANIZING a structured folder)
-    -NoVideo      EXCLUDE video files. Videos (mp4/mov/...) are matched BY DEFAULT -
-                  a photo library holds clips too, and leaving them behind is the
-                  bug this fixes. Pass -NoVideo for an images-only scan. Videos carry
-                  no GDI+ EXIF here, so they get the file-time date and blank
-                  GPS/camera (like screenshots) - they still cluster by time and are
-                  thumbnailed as contact sheets by `thumbs`.
-    -NoAudio      EXCLUDE audio files. Audio (mp3/m4a/wav/...) is also matched BY
-                  DEFAULT (voice memos in a camera roll). Audio has NO frames, so it
-                  is never thumbnailed/content-classified - it is grouped purely by
-                  time/cluster and moved (extension kept) like any file.
-    -Hash         also emit a SHA1 per file (for dedup)
-    -OutFile f    also write just the absolute paths (one per line) to f, so
-                  `thumbs -List f` consumes them directly (one shell, one path)
-    -TsvFile f    also write the full TSV (below) to f, so `build-manifest -Meta f`
-                  can name/order by the true EXIF capture time incl. sub-second
-  Prints IMG_DIR (each searched), IMG_COUNT, then one TSV line per file (newest
-  first):  <yyyy-MM-dd HH:mm:ss[.fff]> \t <size> \t <sha1-or-empty> \t <path> \t
-  <lat> \t <lon> \t <camera>.  The date carries EXIF SubSecTimeOriginal (`.fff`)
-  when present (burst ordering). GPS/camera/subsec are ALWAYS read (free - the file
-  is already open for the EXIF date); blank when absent (e.g. screenshots).
-  Lists only; never moves or modifies files.
-#>
+# image-find: list images (and videos and audio unless -NoVideo/-NoAudio) by recency, name or folder, with EXIF date, GPS and hash.
+# Flags and the TSV it prints: ../contract/CONTRACTS.md 1.3, 2.2. Lists only; never touches files.
 param(
     [int]$Count = 0,
     [int]$Minutes = 0,
@@ -77,7 +40,7 @@ function Get-DownloadDirs {
     $c
 }
 
-# -Dir accepts the special KEYWORDS `screenshots` / `downloads` (resolved to the OS
+# -Dir accepts the special keywords `screenshots` / `downloads` (resolved to the OS
 # folders) or a literal path; omitting -Dir defaults to `screenshots`.
 $dirs = New-Object System.Collections.Generic.List[string]
 $key = if ($Dir) { $Dir.Trim() } else { 'screenshots' }
@@ -94,19 +57,14 @@ if ($dirs.Count -eq 0) {
 }
 
 $exts = @('.jpg', '.jpeg', '.png', '.heic', '.heif', '.gif', '.bmp', '.tif', '.tiff', '.webp')
-# Video + audio files live alongside photos in a camera roll (clips, voice memos),
-# so BOTH are matched BY DEFAULT - a re-organize must sweep them into the trip's
-# album, not leave them behind; -NoVideo / -NoAudio opt out. Kept SEPARATE from
-# $exts so we can report how many of each matched (IMG_VIDEOS / IMG_AUDIO). Audio
-# has no frames, so it is never thumbnailed - it is grouped purely by time/cluster.
+# Videos and audio are matched by default so a re-organize moves them with the trip.
+# They are counted separately (IMG_VIDEOS, IMG_AUDIO); audio is never thumbnailed.
 $vexts = @('.mp4', '.mov', '.m4v', '.avi', '.mkv', '.webm', '.3gp', '.3g2', '.wmv', '.mpg', '.mpeg', '.mts', '.m2ts')
 $aexts = @('.mp3', '.m4a', '.wav', '.aac', '.ogg', '.oga', '.opus', '.flac', '.wma', '.amr', '.aiff', '.aif')
 $match = $exts
 if (-not $NoVideo) { $match += $vexts }
 if (-not $NoAudio) { $match += $aexts }
-# `_duplicates` is the archive for perceptual-duplicate re-shares (see img-organize's
-# dedup step) - it gets SPECIAL HANDLING: never scanned, so it is not re-organized,
-# not re-flagged, and not used as a routing reference. Always excluded, even with -Recurse.
+# _duplicates holds archived re-shares and is never scanned, even with -Recurse.
 $files = foreach ($d in $dirs) {
     Get-ChildItem -Path $d -File -Recurse:$Recurse -ErrorAction SilentlyContinue |
         Where-Object { $match -contains $_.Extension.ToLower() -and $_.FullName -notmatch '[\\/]_duplicates[\\/]' }
@@ -150,9 +108,7 @@ if (-not $anyFilter) { $Count = 1 }
 if ($Count -gt 0) { $files = $files | Select-Object -First $Count }
 $files = @($files)
 
-# Guard: a tab or newline in a path would corrupt the TSV (field/line splitting)
-# and silently misfile / break a revert downstream. Skip + warn rather than emit a
-# poisoned record. (Impossible on Windows - illegal in NTFS names - but defensive.)
+# A tab or newline in a path would corrupt the TSV; skip the file and warn.
 $skipped = @($files | Where-Object { $_.FullName -match "[`t`r`n]" })
 if ($skipped.Count -gt 0) {
     $files = @($files | Where-Object { $_.FullName -notmatch "[`t`r`n]" })
@@ -160,9 +116,7 @@ if ($skipped.Count -gt 0) {
     foreach ($s in $skipped) { Write-Output ('IMG_SKIPPED_PATH=' + ($s.FullName -replace "[`t`r`n]", '?')) }
 }
 
-# EXIF reader: DateTimeOriginal + GPS lat/lon + camera, all from ONE open (the
-# file is opened anyway for the date, so GPS/camera are essentially free). GPS is
-# the strongest album signal for photo libraries (trip / location).
+# One open reads the EXIF date, GPS and camera. GPS is the strongest album signal.
 function Read-Exif($path) {
     $r = @{ date = $null; subsec = ''; lat = ''; lon = ''; cam = '' }
     try {
@@ -199,11 +153,8 @@ function Read-Exif($path) {
     $r
 }
 
-# Date from FILENAME, for files whose EXIF was stripped (WhatsApp re-encodes and
-# drops EXIF + GPS; screenshots/Signal carry the date only in the name). Tried
-# AFTER EXIF, BEFORE mtime - mtime on a shared/downloaded file is the SAVE date, not
-# capture. Patterns: Android/screenshot `YYYYMMDD_HHMMSS`, WhatsApp `IMG-YYYYMMDD-WA`
-# (date-only), ISO `YYYY-MM-DD`. Date-only gets 00:00:00 so a day's shares group.
+# Date from the filename when EXIF is gone (WhatsApp, Signal, screenshots), tried before mtime,
+# which is the save date. Date-only names get 00:00:00 so a day's shares group.
 function Get-NameDate($name) {
     if ($name -match '(20\d{2})[-_]?(\d{2})[-_]?(\d{2})[-_ T]+(\d{2})[-_:.]?(\d{2})[-_:.]?(\d{2})') {
         try { return [datetime]::new([int]$Matches[1], [int]$Matches[2], [int]$Matches[3], [int]$Matches[4], [int]$Matches[5], [int]$Matches[6]) } catch {}
@@ -225,20 +176,14 @@ if (-not $NoVideo) {
 if (-not $NoAudio) {
     Write-Output ('IMG_AUDIO=' + @($files | Where-Object { $aexts -contains $_.Extension.ToLower() }).Count)
 }
-# When a caller asks for the paths file, always emit the sibling scan.tsv too
-# (the EXIF/GPS data is computed regardless) so the cluster step never finds it
-# missing - the canonical workspace path is <outfile-dir>\scan.tsv.
+# With -OutFile, always write scan.tsv beside it so the cluster step can rely on it.
 if ($OutFile -and -not $TsvFile) { $TsvFile = Join-Path (Split-Path -Parent $OutFile) 'scan.tsv' }
 if ($OutFile) {
     @($files | ForEach-Object { $_.FullName }) | Set-Content -Path $OutFile -Encoding UTF8
     Write-Output ('IMG_OUTFILE=' + $OutFile)
 }
-# Optional tier-0 hash cache: avoid re-reading a file's bytes to rehash it when
-# nothing about it changed. Keyed by path; signature = size + mtime + ctime ticks.
-# ctime (creation time) is the file-IDENTITY proxy: a DIFFERENT file replacing a
-# path gets a new creation time, so "same path, same size+mtime, different file"
-# still misses the cache and forces a rehash (no FileId P/Invoke needed). The hash
-# stays the authority - this only skips recomputation, never decides content.
+# Hash cache keyed by path and signed by size + mtime + ctime; a different file at the same path has a new ctime.
+# It only skips rehashing. The hash still decides content.
 $hcOld = @{}; $hcNew = @{}
 if ($HashCache -and (Test-Path $HashCache)) {
     foreach ($l in Get-Content $HashCache) {
@@ -246,9 +191,7 @@ if ($HashCache -and (Test-Path $HashCache)) {
     }
 }
 
-# TSV: <date[.subsec]> <size> <sha1-or-empty> <path> <lat> <lon> <camera>.
-# The date carries EXIF sub-second (e.g. 2026-05-03 19:16:21.042) when present, so
-# build-manifest can order/name bursts by true capture time (-Meta consumes this).
+# TSV: date[.subsec] size sha1 path lat lon camera. Sub-seconds let build-manifest order bursts.
 $tsv = New-Object System.Collections.Generic.List[string]
 $dsExif = 0; $dsName = 0; $dsMtime = 0
 foreach ($f in $files) {
@@ -282,10 +225,7 @@ if ($TsvFile) {
     $tsv | Set-Content -Path $TsvFile -Encoding UTF8
     Write-Output ('IMG_TSVFILE=' + $TsvFile)
 }
-# Persist the tier-0 cache, REBUILT from this scan's files (self-pruning: entries
-# for files no longer scanned drop out). Intended for full -Recurse indexing
-# scans; a filtered scan simply shrinks the cache, which only costs recomputation
-# next time. path <TAB> sig <TAB> sha1.
+# Rewrite the cache from this scan so files no longer scanned drop out. Line: path <TAB> sig <TAB> sha1.
 if ($HashCache -and $Hash) {
     $hcLines = $hcNew.GetEnumerator() | ForEach-Object { $_.Key + "`t" + $_.Value.sig + "`t" + $_.Value.sha1 }
     $hcLines | Set-Content -Path $HashCache -Encoding UTF8

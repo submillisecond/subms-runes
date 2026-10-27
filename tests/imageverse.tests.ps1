@@ -1,16 +1,11 @@
-<#
-  Functional tests for the imageverse backend scripts. Runs each script as a child
-  process against synthetic fixtures and asserts its OUTPUT CONTRACT - the kind of
-  regression (empty scan.tsv, miscounted clusters, dropped coverage) that a
-  structural lint can't see. Runs under pwsh on Linux CI and powershell/pwsh locally.
-  Exit code 0 = all pass; non-zero = a failure (CI gate).
-#>
+# Functional tests for the imageverse scripts against synthetic fixtures: the regressions a structural lint misses,
+# such as an empty scan.tsv or miscounted clusters. Runs under pwsh on Linux CI.
 . (Join-Path $PSScriptRoot '..\lib\test\suite-lib.ps1')
 Set-SuiteScripts (Join-Path $PSScriptRoot '..\plugins\imageverse\scripts')
 
 Write-Host "imageverse functional tests"
 
-# 1. image-find: -OutFile must ALSO auto-write scan.tsv, with one line per image,
+# 1. image-find: -OutFile must also auto-write scan.tsv, with one line per image,
 #    even for no-EXIF screenshots (the -f-drops-empty-args regression).
 try {
     $t = NewTemp; $pics = Join-Path $t 'pics'; New-Item -ItemType Directory -Force $pics | Out-Null
@@ -72,7 +67,7 @@ try {
 }
 catch { $script:fail++; Write-Host "  FAIL build-manifest threw: $_" -ForegroundColor Red }
 
-# 5. build-manifest: coverage MUST catch a dropped image (the safety net).
+# 5. build-manifest: coverage must catch a dropped image (the safety net).
 try {
     $t = NewTemp; $src = Join-Path $t 'src'; $cls = Join-Path $t 'cls'
     New-Item -ItemType Directory -Force $src, $cls | Out-Null

@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
-# dg-debug - run a diagram source through the real engine and print why it does
-# not render, or why it reads badly, and what to change. POSIX port of
-# dg-debug.ps1.
-#
-#   dg-debug.sh <file|-> [--json] [--review out.svg] [--no-optimise] [--tries N] [--host URL]
-#
-# Posts the source to the hosted worker's /debug route, so it needs the
-# network and curl; dg-url is the offline path. Output, exit codes and the
-# report's shape are in ../contract/CONTRACTS.md.
+# dg-debug: post a diagram to the worker's /debug and print why it fails or reads badly. Contract: ../contract/CONTRACTS.md.
+# dg-debug.sh <file|-> [--json] [--review out.svg] [--no-optimise] [--tries N] [--host URL]
 set -eu
 
 HOST_URL="https://deltagraph.submillisecond.com"
@@ -19,7 +12,7 @@ while [ $# -gt 0 ]; do
     --no-optimise) Q="$Q&optimise=false"; shift ;;
     --tries) Q="$Q&tries=${2:-}"; shift 2 ;;
     --host) HOST_URL="${2:-}"; shift 2 ;;
-    -h|--help) sed -n '2,10p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,3p' "$0"; exit 0 ;;
     -) FILE="-"; shift ;;
     -*) echo "ERROR=unknown flag $1" >&2; exit 2 ;;
     *) FILE="$1"; shift ;;

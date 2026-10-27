@@ -1,12 +1,5 @@
-<#
-  selftest - fast regression + parity checks for the imageverse scripts. Run after
-  editing any script. Checks:
-    1) PARITY  - every .ps1 has a .sh sibling and vice versa.
-    2) PARSE   - every .ps1 parses (catches syntax slips).
-    3) GRID    - thumbs -Sheet renders with NO blank cells (guards the [int]-rounding
-                 class of bug that left empty tiles), using generated solid-colour images.
-  Prints per-check lines then SELFTEST_PASS / SELFTEST_FAIL=<n>. (selftest.sh mirrors.)
-#>
+# selftest: .ps1/.sh parity, parse, and thumbs -Sheet grid checks. Run after editing any script.
+# Prints SELFTEST_PASS or SELFTEST_FAIL=<n>.
 $ErrorActionPreference = 'Stop'
 $dir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $fail = New-Object System.Collections.Generic.List[string]

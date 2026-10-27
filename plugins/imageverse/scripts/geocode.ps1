@@ -1,24 +1,5 @@
-<#
-  geocode - bridge between place names and coordinates via OpenStreetMap
-  Nominatim. Two modes:
-
-    REVERSE  -Lat <deg> -Lon <deg>     coordinate -> place name
-    FORWARD  -Query "<place>"          place name -> coordinate + bbox + radius
-
-  NETWORK + PRIVACY: this calls a third-party API (nominatim.openstreetmap.org).
-  REVERSE sends a lat/lon; FORWARD sends only a place NAME (no user coordinates).
-  img-organize calls REVERSE only on cluster CENTROIDS after the user confirms;
-  img-search calls FORWARD to resolve "near <place>" into a -Geo filter. Never
-  per-photo, never without opt-in.
-
-  REVERSE prints GEOCODE_PLACE=<city/town>, <country> (or GEOCODE_NONE).
-  FORWARD prints GEOCODE_LATLON=<lat>,<lon>, GEOCODE_BBOX=<south>,<west>,<north>,<east>,
-  and GEOCODE_RADIUS_KM=<km> (center -> NE corner; a sensible "near here" radius
-  that scales with the place), or GEOCODE_NONE.
-
-  Nominatim usage policy: <=1 req/s, a real User-Agent (set below). For heavy use
-  run your own instance and point -BaseUrl at it.
-#>
+# geocode: place name <-> coordinates via OpenStreetMap Nominatim. Sends data to a third party, so callers ask first.
+# Modes and output: ../contract/CONTRACTS.md 1.7, 2.7. At most 1 request/s; -BaseUrl for your own instance.
 param(
     [double]$Lat,
     [double]$Lon,

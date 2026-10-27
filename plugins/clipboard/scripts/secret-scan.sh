@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
-# secret-scan - detect (and optionally redact) credentials in text. Mirror of
-# secret-scan.ps1 (that is the verified backend). Source it for find_secrets(), or
-# run as CLI: secret-scan.sh --path f [--redact]  /  --text '...'.
-# Prints CLIP_SECRETS=<comma types>, CLIP_SECRET_COUNT=N, and with --redact the
-# redacted text between -----BEGIN/END REDACTED----- markers.
+# secret-scan: .sh port of secret-scan.ps1. Source for find_secrets, or run --path f | --text s [--redact].
 set -u
 
 # name<TAB>grep-flags<TAB>ERE. Precise vendor formats first; a keyword rule last.
@@ -39,12 +35,13 @@ find_secrets() {
     if [ "${n:-0}" -gt 0 ]; then
       types="${types:+$types,}$name"
       count=$((count + n))
-      # redact: replace each match with a tag (sed; '|' delimiter avoids '/' clashes)
-      local sed_re; sed_re="$(printf '%s' "$re" | sed 's/[|]/\\|/g')"
-      if printf '%s' "$flags" | grep -q i; then
-        sed -i -E "s|$sed_re|[REDACTED:$name]|gI" "$redfile" 2>/dev/null || true
+      # perl, not sed -i: BSD sed takes -E as the backup suffix and has no I flag.
+      # A failed rewrite blanks the copy so no secret survives it.
+      local ci=""; printf '%s' "$flags" | grep -q i && ci='(?i)'
+      if RE="$ci$re" TAG="[REDACTED:$name]" perl -pe 's/$ENV{RE}/$ENV{TAG}/g' "$redfile" > "$redfile.t" 2>/dev/null; then
+        mv "$redfile.t" "$redfile"
       else
-        sed -i -E "s|$sed_re|[REDACTED:$name]|g" "$redfile" 2>/dev/null || true
+        rm -f "$redfile.t"; printf '[REDACTED:redaction-failed]\n' > "$redfile"
       fi
     fi
   done < <(_secret_patterns)
@@ -70,6 +67,7 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
   if [ "$REDACT" = "1" ]; then
     echo "-----BEGIN REDACTED-----"
     cat "$FS_REDACTED"
+    [ -n "$(tail -c 1 "$FS_REDACTED")" ] && echo
     echo "-----END REDACTED-----"
   fi
 fi

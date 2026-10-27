@@ -1,12 +1,6 @@
 #!/usr/bin/env bash
-# selftest - fast regression + parity checks for the imageverse scripts (macOS/Linux;
-# selftest.ps1 is the Windows backend). Checks:
-#   1) PARITY - every .sh has a .ps1 sibling and vice versa.
-#   2) PARSE  - every .sh passes `bash -n`.
-#   3) GRID   - thumbs.sh --sheet renders with NO blank cells (guards the row-math
-#               regression), using generated solid-colour images (needs ImageMagick;
-#               skipped with a note if absent).
-# Prints per-check lines then SELFTEST_PASS / SELFTEST_FAIL=<n>.
+# selftest: .sh/.ps1 parity, bash -n, and thumbs.sh --sheet grid checks (grid needs ImageMagick, else skipped).
+# Prints SELFTEST_PASS or SELFTEST_FAIL=<n>.
 set -uo pipefail
 sd="$(cd "$(dirname "$0")" && pwd)"
 fails=0; note(){ echo "FAIL $*"; fails=$((fails+1)); }

@@ -1,12 +1,5 @@
-# dg-debug - run a diagram source through the real engine and print why it does
-# not render, or why it reads badly, and what to change. The verified backend;
-# dg-debug.sh is the POSIX port.
-#
-#   dg-debug.ps1 <file|-> [-Json] [-Review out.svg] [-NoOptimise] [-Tries N] [-HostUrl URL]
-#
-# Posts the source to the hosted worker's /debug route, so it needs the
-# network; dg-url is the offline path. Output, exit codes and the report's
-# shape are in ../contract/CONTRACTS.md.
+# dg-debug: post a diagram to the worker's /debug and print why it fails or reads badly. Contract: ../contract/CONTRACTS.md.
+# dg-debug.ps1 <file|-> [-Json] [-Review out.svg] [-NoOptimise] [-Tries N] [-HostUrl URL]
 [CmdletBinding()]
 param(
   [Parameter(Position = 0)] [string] $File,

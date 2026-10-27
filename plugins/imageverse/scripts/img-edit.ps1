@@ -1,33 +1,5 @@
-<#
-  img-edit - apply deterministic edits to an image and write a NEW image.
-  Zero-dependency Windows backend over System.Drawing (GDI+).
-
-  The original is never modified (the input is read fully into memory first, so
-  even -Out == -In is a safe overwrite, not a self-lock). All COORDINATE ops
-  (-Redact / -Box / -Text / -Crop) use ORIGINAL-image pixel space - the same
-  pixels the Read tool shows the model - and are applied BEFORE the geometric
-  ops. Fixed order: redact -> box -> text -> crop -> resize/scale -> rotate ->
-  flip -> grayscale -> save.
-
-  Params (only -In/-Out are needed; the *able ones repeat):
-    -In   path         source image (png/jpg/jpeg/bmp/gif/tiff)
-    -Out  path         destination; format from extension (png/jpg/jpeg/bmp/gif/tif/tiff;
-                       an unsupported extension is a hard error, not a silent PNG)
-    -Redact "X,Y,W,H"  fill a rectangle (default black); repeatable
-    -Box    "X,Y,W,H[,#RRGGBB[,T]]"  outline a rectangle (T = thickness px); repeatable
-    -Text   "X,Y,SIZE,#RRGGBB,the text"  draw text (text may contain commas); repeatable
-    -Crop   "X,Y,W,H"  crop to this rectangle (clamped to bounds)
-    -Resize "WxH"      resize; put 0/auto on one side to keep aspect (e.g. 800x0).
-                       Shrink-only: a target larger than the source is clamped (never upscales)
-    -Scale  f          scale by factor (0.5 = half); ignored when -Resize is given.
-                       Clamped to 1.0 effective (never upscales)
-    -Rotate deg        rotate clockwise; 90/180/270 are lossless RotateFlip
-    -Flip   h|v        mirror horizontally or vertically
-    -Grayscale         desaturate (luma ColorMatrix)
-    -RedactColor #RRGGBB  fill colour for -Redact (default #000000)
-    -Quality N         JPEG quality 1-100 (default 90)
-  Prints EDIT_OUT / EDIT_FROM / EDIT_SIZE / EDIT_OPS / EDIT_BYTES, or EDIT_ERROR.
-#>
+# img-edit: deterministic edits written to a new image. Coordinates are in original-image pixels; ops run in the order
+# redact, box, text, crop, resize/scale, rotate, flip, grayscale. Flags and output: ../skills/img-edit/SPEC.md.
 param(
     [string]$In,
     [string]$Out,
@@ -50,9 +22,7 @@ try {
     if (-not $Out) { Write-Output 'EDIT_ERROR=missing -Out'; exit 1 }
     Add-Type -AssemblyName System.Drawing | Out-Null
 
-    # GDI+ Image.FromFile keeps the file locked for the object's lifetime, which
-    # blocks an in-place overwrite. Read the bytes first, then detach into a
-    # standalone Bitmap so the source handle is released immediately.
+    # Image.FromFile locks the file until disposed; copy into a detached Bitmap so -Out may equal -In.
     $bytes = [System.IO.File]::ReadAllBytes((Resolve-Path -LiteralPath $In))
     $ms = New-Object System.IO.MemoryStream(, $bytes)
     $loaded = [System.Drawing.Image]::FromStream($ms)
@@ -136,10 +106,7 @@ try {
     elseif ($Scale -gt 0) {
         $newW = [int][math]::Round($img.Width * $Scale); $newH = [int][math]::Round($img.Height * $Scale)
     }
-    # Never upscale (mirrors thumbs' shrink-only contract). Clamp each axis to the
-    # source dimension so a target larger than the original just leaves it as-is;
-    # for aspect-preserving requests, scale BOTH axes by the binding (smaller) ratio
-    # so the image is not distorted by clamping one side independently.
+    # Never upscale: clamp to the source size, scaling both axes by the smaller ratio to keep the aspect.
     if ($newW -gt 0 -and $newH -gt 0) {
         $sw = if ($newW -gt $img.Width) { $img.Width / $newW } else { 1.0 }
         $sh = if ($newH -gt $img.Height) { $img.Height / $newH } else { 1.0 }
@@ -209,9 +176,7 @@ try {
     $outDir = [System.IO.Path]::GetDirectoryName($full)
     if ($outDir -and -not (Test-Path $outDir)) { New-Item -ItemType Directory -Force -Path $outDir | Out-Null }
     $ext = [System.IO.Path]::GetExtension($full).ToLower().TrimStart('.')
-    # Reject an unknown output extension loudly instead of silently writing PNG
-    # bytes under a misleading name. GDI+ has no built-in WebP encoder, so it is
-    # not in this backend's supported set (the .sh ImageMagick path does support it).
+    # Unknown extensions fail rather than write PNG bytes under the wrong name. GDI+ has no WebP encoder.
     $supportedExt = @('png', 'jpg', 'jpeg', 'bmp', 'gif', 'tif', 'tiff')
     if ($ext -notin $supportedExt) {
         Write-Output "EDIT_ERROR=unsupported output extension '$ext' (supported: png, jpg, jpeg, bmp, gif, tif, tiff)"
