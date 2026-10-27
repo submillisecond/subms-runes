@@ -11,7 +11,7 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 - The `deltagraph` plugin sends `X-Runes-Pack: deltagraph/<version>` to the hosted server, which tells users of an outdated copy to run `/plugin marketplace update subms-runes`. The release script moves the header with the version and the contract test fails if they differ.
 - Every push to main runs the full check suite before `release` tags a pack; tags were cut after the structure check alone, even when a contract test failed.
 - Contract tests are found by glob (`.github/scripts/contracts.sh`), so a new pack's test runs with no CI edit. The deltagraph test ran nowhere for a day because the list was hand-kept.
-- The `.sh` backends run on Ubuntu and macOS. They had only ever run under Git Bash on Windows, which ships GNU tools and hides BSD gaps.
+- The `.sh` backends run on Ubuntu; they had only ever run under Git Bash on Windows. macOS is not in CI: its first runs passed, then a GitHub macOS runner shortage held a release for 15 minutes and blocked tagging.
 - `claude plugin validate` runs on the marketplace and every pack, and an ASCII check covers scripts, contracts and manifests.
 - Nightly `live` workflow: `plugins/deltagraph/contract/live-test.sh` checks the hosted engine still serves every tool the pack names and renders the links `dg-url` builds.
 - README badges and a generated inventory of packs, runes, backends and tests (`.github/scripts/inventory.sh`); CI fails when it is stale or a rune is missing from the Packs table, which was missing 7 of 17.

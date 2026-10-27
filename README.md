@@ -121,7 +121,7 @@ add a rune or a pack.
 | Workflow | When | Runs |
 |---|---|---|
 | `release` | every push to main | all of `validate`, then tags each pack at its `plugin.json` version |
-| `validate` | pull requests | structure, ASCII, inventory; PowerShell functional tests; contract tests with both backends on Windows and the `.sh` backends on Ubuntu and macOS; `claude plugin validate` |
+| `validate` | pull requests | structure, ASCII, inventory; PowerShell functional tests; contract tests with both backends on Windows and the `.sh` backends on Ubuntu; `claude plugin validate` |
 | `live` | nightly | packs that call a hosted service check it still serves what their skills name |
 
 Run any of it locally: `bash .github/scripts/contracts.sh` (add `--live` for the hosted checks), `bash .github/scripts/inventory.sh`.

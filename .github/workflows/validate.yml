@@ -58,13 +58,9 @@ jobs:
           RUNES_REQUIRE_PS: "1"
         run: bash .github/scripts/contracts.sh
 
-  # The .sh backends are what Linux and macOS users run; Git Bash ships GNU tools and hides BSD gaps.
+  # The .sh backends on Linux. macOS (BSD sed/date/stat) is not covered: its runner queue blocked releases.
   portable:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
