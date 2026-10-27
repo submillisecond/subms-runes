@@ -65,3 +65,16 @@ jobs:
       - name: clipboard contract
         shell: bash
         run: bash plugins/clipboard/contract/contract-test.sh
+      # Starts the bundled MCP server over stdio and checks it against the
+      # contract. No network; the live-room path is subms-ui's pnpm mcp:e2e.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: deltalab contract
+        shell: bash
+        run: bash plugins/deltalab/contract/contract-test.sh
+      # Offline: both dg-url backends, the dg-debug usage paths, the MCP entry.
+      # Node (set up above) inflates the compressed links.
+      - name: deltagraph contract
+        shell: bash
+        run: bash plugins/deltagraph/contract/contract-test.sh

@@ -8,6 +8,25 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Added
 
+- `deltalab` pack v0.1.0 with one rune, `deltalab`: join a live deltalab document or board from a share link or code and work in it as a named robot participant. Its MCP server is bundled in the pack (`server/deltalab-mcp.mjs`, Node 22, nothing to install) and runs locally, because the link's fragment is the room key and the relay only ever sees ciphertext. Nine tools: join, status, read, write, suggest, board, inbox, reply, leave. A direct write is refused unless the agent may edit; in Review it suggests instead. The contract test starts the bundle and checks it against `CONTRACTS.md`.
+- `deltagraph` pack v0.2.0 registers the hosted deltagraph MCP server in
+  `.mcp.json`, so installing the pack gives the ten engine-backed tools
+  (check, debug, url, svg, png, edit, diff, merge, from_code, spec) and the
+  `draw`, `evolve` and `tidy` prompts with no `claude mcp add` step.
+- `dg-debug.{ps1,sh}`: posts a source to the hosted `/debug` route and prints
+  why it does not render or reads badly; exit 1 when it does not render,
+  `--review` writes the diagram with its problems marked.
+- `dg-url` takes `bg` (transparent, black, white, auto or a hex colour) and
+  `compress`, which writes the shorter `#d1=` form the viewer reads.
+- `deltagraph` pack v0.1.0 with one rune, `dg`: draw any diagram as a
+  `submillisecond.com/deltagraph#dsl=` URL instead of a mermaid fence. The
+  `scripts/dg-url.{ps1,sh}` encoder is hand-rolled over UTF-8 bytes so both
+  backends print identical bytes (`[uri]::EscapeDataString` and `jq @uri`
+  disagree on `! * ' ( )` across runtimes); the contract test asserts the
+  parity, the round-trip decode, option order and the error paths. The grammar
+  is NOT in the pack: it is generated from the engine in `subms-ui` and
+  served at `/deltagraph/spec.md`, which the rune fetches when it needs more
+  than the essentials it carries.
 - `subms-runes` marketplace scaffolding: 3-tier layout (marketplace -> pack ->
   rune), `.github/scripts/validate.sh` CI structural checks (bash + jq), and
   `validate` / `release` CI workflows. The operator dispatcher (`runes` - deploy
@@ -37,3 +56,10 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
   SKILLs select the backend by OS; `.github/scripts/validate.sh` adds `bash -n` of
   the shell scripts. Windows remains the verified path; the shell backends need
   verification on macOS/Linux.
+
+### Changed
+
+- The `dg` rune's loop is now check, look at the PNG, debug when it fails or
+  reads badly, then link. The skill documents every script option, and the
+  contract test fails when it does not; 0.1.0 described `&bg=` while neither
+  script accepted it.

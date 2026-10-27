@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "deltalab": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/server/deltalab-mcp.mjs"]
+    }
+  }
+}

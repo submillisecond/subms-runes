@@ -24,6 +24,8 @@ Skills are grouped into packs so you install only what you use - a flat pile of
 | | `img-save` | Copy a selected set of images to a folder (bug-report bundle / share set). |
 | | `img-organize` | Restructure (year/month, albums) / rename / archive / delete images in a folder, in place (dry-run + confirm; `--copy`). |
 | | `img-dedup` | Find exact-duplicate images and remove/archive the extras, keeping one (dry-run + confirm). |
+| `deltagraph` | `dg` | Draw any diagram as a `submillisecond.com/deltagraph` URL instead of a mermaid fence - the source rides in the URL fragment and the viewer lays it out. Installs the hosted deltagraph MCP server (check, debug, png, url, edit, diff, merge and more), so a diagram is checked and looked at before it is handed over, and a broken or tangled one is debugged to the line and rule. Without MCP, `dg-url` encodes a source file offline and `dg-debug` reaches the debugger over HTTP; the generated spec at `/deltagraph/spec.md` is the grammar. |
+| `deltalab` | `deltalab` | Join a live deltalab document or board from a share link and work in it beside the people there: read, write a section, suggest changes in Review, stickies / votes / comments / the diagram on a board, and reply to what people write to the agent. A local MCP server; the share key never leaves the machine. |
 
 ## Platforms
 

@@ -2,19 +2,42 @@
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "subms-runes",
   "description": "Runes - useful Claude Code skill packs. Each plugin is a themed pack; each skill is a rune you cast.",
-  "owner": { "name": "Kieran Smith", "email": "oss@submillisecond.com" },
+  "owner": {
+    "name": "Kieran Smith",
+    "email": "oss@submillisecond.com"
+  },
   "plugins": [
     {
       "name": "clipboard",
       "source": "./plugins/clipboard",
       "description": "Clipboard runes: clip (ask about what you copied), clip-copy (Claude output -> clipboard), clip-ocr (image text -> clipboard), clip-edit (reformat/redact/convert and put it back), clip-save (save to disk), clip-history (typed, searchable recall), clip-snippet (named text/image library). Secret-aware: credentials flagged, never stored.",
-      "author": { "name": "Kieran Smith" }
+      "author": {
+        "name": "Kieran Smith"
+      }
     },
     {
       "name": "imageverse",
       "source": "./plugins/imageverse",
       "description": "imageverse - image runes: img (questions about recent screenshots or any folder), img-edit (crop / resize / redact / annotate / rotate / convert into a new image), img-save (copy a selection out), img-organize (restructure / rename / archive / delete in place), img-dedup (remove exact-duplicate images).",
-      "author": { "name": "Kieran Smith" }
+      "author": {
+        "name": "Kieran Smith"
+      }
+    },
+    {
+      "name": "deltagraph",
+      "source": "./plugins/deltagraph",
+      "description": "deltagraph rune: dg (draw any diagram as a submillisecond.com/deltagraph URL instead of a mermaid fence; the source travels in the URL fragment and the viewer lays it out). Installs the hosted deltagraph MCP server, so every diagram is checked through the real engine, looked at as a PNG, and debugged when it fails or reads badly: each dropped line named with the rule it broke, the layout scored, and a better direction or declaration order found when one exists. Without MCP, a zero-dep dg-url script builds the link offline and dg-debug reaches the same debugger over plain HTTP, on Windows and POSIX.",
+      "author": {
+        "name": "Kieran Smith"
+      }
+    },
+    {
+      "name": "deltalab",
+      "source": "./plugins/deltalab",
+      "description": "deltalab rune: deltalab (join a live deltalab document or board from a share link and work in it beside the people already there, as a named robot participant). A local MCP server in one bundled file (Node 22, no install) reads and writes the shared markdown, suggests changes when the owner has the document in Review, adds stickies, votes, comments and reshapes a board's diagram, and answers what people write to the agent. The share key stays on this machine; the relay only sees ciphertext.",
+      "author": {
+        "name": "Kieran Smith"
+      }
     }
   ]
 }
