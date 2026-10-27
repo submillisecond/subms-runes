@@ -8,6 +8,7 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Added
 
+- `deltagraph` 1.0.0: the scripts, their output and the MCP tool names the skill relies on are now a stable contract, held by the offline contract test on every push and the live test every night. `plugin.json` carries `privacyPolicyUrl` (https://www.submillisecond.com/deltagraph/privacy). The other packs stay 0.x until their macOS and Linux backends are verified.
 - The `deltagraph` plugin sends `X-Runes-Pack: deltagraph/<version>` to the hosted server, which tells users of an outdated copy to run `/plugin marketplace update subms-runes`. The release script moves the header with the version and the contract test fails if they differ.
 - Every push to main runs the full check suite before `release` tags a pack; tags were cut after the structure check alone, even when a contract test failed.
 - Contract tests are found by glob (`.github/scripts/contracts.sh`), so a new pack's test runs with no CI edit. The deltagraph test ran nowhere for a day because the list was hand-kept.

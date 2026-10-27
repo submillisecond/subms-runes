@@ -1,10 +1,10 @@
 ---
 name: dg
 description: This skill should be used whenever a diagram is wanted or would help - "draw this", "diagram", "flowchart", "sequence diagram", "architecture diagram", "state machine", "ERD", "mind map", "timeline", "kanban", "show me how X flows", "/dg", or any moment you would otherwise write a mermaid fence - and whenever a deltagraph link does not render, renders wrong, or reads badly ("why is this diagram broken", "tidy this diagram", "the arrows are a mess", "debug this deltagraph"). Produces a submillisecond.com/deltagraph URL that renders the diagram laid out and routed, checked through the real engine via the bundled deltagraph MCP server, and debugs a failing or tangled one down to the line and rule. Carries the per-kind table, the native DSL essentials, the hard rules and the substitutes for mermaid kinds the engine does not draw; fetches the generated spec for anything beyond that.
-version: 0.2.0
+version: 1.0.0
 ---
 
-# dg - draw a diagram as a URL, not a mermaid fence
+# dg - draw a diagram as a deltagraph URL instead of a mermaid fence
 
 A deltagraph link IS the diagram: the source rides in the URL fragment and the
 viewer at `https://www.submillisecond.com/deltagraph` lays it out, routes it and
@@ -113,7 +113,7 @@ Each is a silent failure in the viewer, and each is one `deltagraph_debug`
 names by line. One arrow per line. No raw `|` in a label. A node's shape on
 first use, bare after. One `subgraph` per node. No closing delimiter inside a
 shape. At most one `:::pulse`. Only the six edge classes colour a path.
-Architecture-grade, not a flat row of boxes: zones, matching shapes, classed
+Draw it architecture-grade, with zones, matching shapes, classed
 edges, one pulse.
 
 ## Gotchas

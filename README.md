@@ -28,7 +28,7 @@ Generated from `plugins/` by `.github/scripts/inventory.sh`; CI fails when it is
 | Pack | Version | Runes | Runs on | Tests |
 |---|---|---|---|---|
 | `clipboard` | 0.1.0 | `/clip` `/clip-copy` `/clip-edit` `/clip-history` `/clip-ocr` `/clip-save` `/clip-snippet` | Windows (4 .ps1), macOS + Linux (4 .sh) | contract, functional |
-| `deltagraph` | 0.2.0 | `/dg` | Windows (2 .ps1), macOS + Linux (2 .sh), hosted MCP | contract, live nightly |
+| `deltagraph` | 1.0.0 | `/dg` | Windows (2 .ps1), macOS + Linux (2 .sh), hosted MCP | contract, live nightly |
 | `deltalab` | 0.1.0 | `/deltalab` | local MCP (Node 22) | contract |
 | `imageverse` | 0.1.0 | `/img` `/img-dedup` `/img-edit` `/img-montage` `/img-organize` `/img-save` `/img-search` `/img-settings` | Windows (17 .ps1), macOS + Linux (17 .sh) | contract, functional |
 <!-- inventory:end -->

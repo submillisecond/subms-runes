@@ -1,6 +1,7 @@
 {
   "name": "deltagraph",
   "description": "deltagraph rune for Claude Code: dg (draw any diagram as a submillisecond.com/deltagraph URL instead of a mermaid fence - the source travels in the URL fragment, the viewer lays it out and routes it). Installs the hosted deltagraph MCP server (check, debug, url, svg, png, edit, diff, merge, from_code, spec; prompts draw, evolve, tidy), so every diagram is validated through the real engine and looked at before it is handed over. Without MCP, a zero-dep dg-url script encodes a source file into the plain or compressed link offline, and dg-debug reaches the same debugger over plain HTTP, on Windows and POSIX.",
-  "version": "0.2.0",
+  "version": "1.0.0",
+  "privacyPolicyUrl": "https://www.submillisecond.com/deltagraph/privacy",
   "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" }
 }

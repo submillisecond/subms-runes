@@ -37,7 +37,7 @@ the user to run `/plugin marketplace update subms-runes`. `release-bump.sh`
 moves the header with the version.
 
 The tool, prompt and resource lists are the server's, read live from
-`tools/list`; the pack does not pin them. At 0.2.0 they are tools
+`tools/list`; the pack does not pin them. At 1.0.0 they are tools
 `deltagraph_check`, `deltagraph_debug`, `deltagraph_url`, `deltagraph_svg`,
 `deltagraph_png`, `deltagraph_edit`, `deltagraph_diff`, `deltagraph_merge`,
 `deltagraph_from_code`, `deltagraph_spec`; prompts `draw`, `evolve`, `tidy`.

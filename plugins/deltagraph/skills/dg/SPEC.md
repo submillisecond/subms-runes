@@ -81,7 +81,7 @@ and `jq @uri` disagree on `! * ' ( )` across runtimes.
 
 ## Status
 
-SHIPPED 0.2.0, verified-on-windows (ps1) and verified-on-git-bash (sh). The
+SHIPPED 1.0.0, verified-on-windows (ps1) and verified-on-git-bash (sh). The
 MCP entry targets the production worker; `dg-debug` was verified against the
 worker handler run locally, ahead of the `/debug` route's deploy.
 
