@@ -8,6 +8,11 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Added
 
+- `deltalab` names a share that is full (200 people, close 4010) in `deltalab_status`.
+- `deltalab` 0.2.0: `deltalab_board` gains `move` (ref, x, y) and `resize` (ref, w, h), and `sticky` takes `x`/`y`. A sticky with no placement now lands in two columns right of the board's content; below it, the notes ended up under the diagram the next time it grew.
+- `deltalab_join` takes a code in either field and refuses a document key (`f_...`) by name, saying to ask for the code or the full link. A session lost three round trips to a pasted document key.
+- The `deltalab` skill joins on whatever the user pasted ("join deltalab <code>", a bare code) and asks only when the tool refuses, tells the user at once when the agent is waiting in the lobby, and has a "Laying out a board" section: the engine stacks subgraphs in bands, side-by-side sections are `@(x,y)` positions, `relayout` drops them, equal-width bands are spread arithmetic, and a render is checked before a layout is called done. A worked section covers iterating a diagram live with the room: join by code, first draft as top-down bands, own the DSL file (the board copy flattens `<br/>`), one edit per request, positions once layout matters, user names replace generic ones, stickies beside.
+- The `dg` skill documents `direction: auto`, which asks the engine to keep whichever direction scores better.
 - `deltagraph` 1.0.0: the scripts, their output and the MCP tool names the skill relies on are now a stable contract, held by the offline contract test on every push and the live test every night. `plugin.json` carries `privacyPolicyUrl` (https://www.submillisecond.com/deltagraph/privacy). The other packs stay 0.x until their macOS and Linux backends are verified.
 - The `deltagraph` plugin sends `X-Runes-Pack: deltagraph/<version>` to the hosted server, which tells users of an outdated copy to run `/plugin marketplace update subms-runes`. The release script moves the header with the version and the contract test fails if they differ.
 - Every push to main runs the full check suite before `release` tags a pack; tags were cut after the structure check alone, even when a contract test failed.

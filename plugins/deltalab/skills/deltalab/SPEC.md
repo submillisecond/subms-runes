@@ -17,6 +17,15 @@ environment are in `../../contract/CONTRACTS.md`; this file does not repeat them
   conversation is a loop of inbox and reply with no polling sleep.
 - A room the relay closed stays listed with its reason, so the rune can tell
   the user why the agent is out (removed, share ended, rate limited).
+- `deltalab_join` accepts a code in either field, names a document key as
+  not a share, and sends codes to the production relay. The rune therefore
+  joins on whatever the user pasted and only asks when the tool refuses.
+- `set_diagram` keeps `@(x,y)` node positions and `relayout` drops them; the
+  engine stacks subgraphs in bands. Side-by-side sections and equal-width
+  bands are positions the rune writes, not layout options.
+- `move` and `resize` act on any element; `set_diagram` re-sizes diagram nodes
+  from their labels, so `resize` sticks only for stickies, frames and other
+  non-diagram elements. A sticky with no placement lands right of the content.
 
 ## Verification
 

@@ -1,7 +1,7 @@
 {
   "name": "deltalab",
   "description": "deltalab rune for Claude Code: join a live deltalab document or board from a share link and work in it beside the people already there. The agent shows up as a robot avatar with its cursor and who runs it, reads and writes the shared markdown, suggests changes for the owner to accept when the document is in Review, adds stickies, votes, comments and reshapes the diagram on a board, and answers what people write to it. A local MCP server (one bundled file, Node 22, no install): the share key stays on this machine and the relay only ever sees ciphertext.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" },
   "homepage": "https://deltalab.submillisecond.com",
   "repository": "https://github.com/submillisecond/subms-runes",

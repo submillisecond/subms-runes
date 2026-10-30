@@ -59,7 +59,8 @@ native DSL. Otherwise the mermaid header for the kind: `flowchart TD`,
 
 Native DSL essentials:
 
-- First line `direction: left_right` or `top_down`; `theme: light` optional;
+- First line `direction: left_right`, `top_down`, or `auto` to let the engine
+  keep whichever direction scores better; `theme: light` optional;
   a line starting `#` is a comment.
 - Nodes: `id[box]` `id(round)` `id{decision}` `id[[queue]]` `id((source))`
   `id{{engine}}` `id[(store)]` `id/actor/` `id<<aws:lambda|Label>>`.

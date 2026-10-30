@@ -219,7 +219,7 @@ var BITS31 = 2147483647;
 var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER;
 var MIN_SAFE_INTEGER = Number.MIN_SAFE_INTEGER;
 var LOWEST_INT32 = 1 << 31;
-var isInteger = Number.isInteger || ((num) => typeof num === "number" && isFinite(num) && floor(num) === num);
+var isInteger = Number.isInteger || ((num2) => typeof num2 === "number" && isFinite(num2) && floor(num2) === num2);
 var isNaN2 = Number.isNaN;
 var parseInt2 = Number.parseInt;
 
@@ -288,33 +288,33 @@ var verifyLen = (encoder, len) => {
     encoder.cpos = 0;
   }
 };
-var write = (encoder, num) => {
+var write = (encoder, num2) => {
   const bufferLen = encoder.cbuf.length;
   if (encoder.cpos === bufferLen) {
     encoder.bufs.push(encoder.cbuf);
     encoder.cbuf = new Uint8Array(bufferLen * 2);
     encoder.cpos = 0;
   }
-  encoder.cbuf[encoder.cpos++] = num;
+  encoder.cbuf[encoder.cpos++] = num2;
 };
 var writeUint8 = write;
-var writeVarUint = (encoder, num) => {
-  while (num > BITS7) {
-    write(encoder, BIT8 | BITS7 & num);
-    num = floor(num / 128);
+var writeVarUint = (encoder, num2) => {
+  while (num2 > BITS7) {
+    write(encoder, BIT8 | BITS7 & num2);
+    num2 = floor(num2 / 128);
   }
-  write(encoder, BITS7 & num);
+  write(encoder, BITS7 & num2);
 };
-var writeVarInt = (encoder, num) => {
-  const isNegative = isNegativeZero(num);
+var writeVarInt = (encoder, num2) => {
+  const isNegative = isNegativeZero(num2);
   if (isNegative) {
-    num = -num;
+    num2 = -num2;
   }
-  write(encoder, (num > BITS6 ? BIT8 : 0) | (isNegative ? BIT7 : 0) | BITS6 & num);
-  num = floor(num / 64);
-  while (num > 0) {
-    write(encoder, (num > BITS7 ? BIT8 : 0) | BITS7 & num);
-    num = floor(num / 128);
+  write(encoder, (num2 > BITS6 ? BIT8 : 0) | (isNegative ? BIT7 : 0) | BITS6 & num2);
+  num2 = floor(num2 / 64);
+  while (num2 > 0) {
+    write(encoder, (num2 > BITS7 ? BIT8 : 0) | BITS7 & num2);
+    num2 = floor(num2 / 128);
   }
 };
 var _strBuffer = new Uint8Array(3e4);
@@ -368,16 +368,16 @@ var writeOnDataView = (encoder, len) => {
   encoder.cpos += len;
   return dview;
 };
-var writeFloat32 = (encoder, num) => writeOnDataView(encoder, 4).setFloat32(0, num, false);
-var writeFloat64 = (encoder, num) => writeOnDataView(encoder, 8).setFloat64(0, num, false);
-var writeBigInt64 = (encoder, num) => (
+var writeFloat32 = (encoder, num2) => writeOnDataView(encoder, 4).setFloat32(0, num2, false);
+var writeFloat64 = (encoder, num2) => writeOnDataView(encoder, 8).setFloat64(0, num2, false);
+var writeBigInt64 = (encoder, num2) => (
   /** @type {any} */
-  writeOnDataView(encoder, 8).setBigInt64(0, num, false)
+  writeOnDataView(encoder, 8).setBigInt64(0, num2, false)
 );
 var floatTestBed = new DataView(new ArrayBuffer(4));
-var isFloat32 = (num) => {
-  floatTestBed.setFloat32(0, num);
-  return floatTestBed.getFloat32(0) === num;
+var isFloat32 = (num2) => {
+  floatTestBed.setFloat32(0, num2);
+  return floatTestBed.getFloat32(0) === num2;
 };
 var writeAny = (encoder, data) => {
   switch (typeof data) {
@@ -591,17 +591,17 @@ var readUint8Array = (decoder, len) => {
 var readVarUint8Array = (decoder) => readUint8Array(decoder, readVarUint(decoder));
 var readUint8 = (decoder) => decoder.arr[decoder.pos++];
 var readVarUint = (decoder) => {
-  let num = 0;
+  let num2 = 0;
   let mult = 1;
   const len = decoder.arr.length;
   while (decoder.pos < len) {
     const r2 = decoder.arr[decoder.pos++];
-    num = num + (r2 & BITS7) * mult;
+    num2 = num2 + (r2 & BITS7) * mult;
     mult *= 128;
     if (r2 < BIT8) {
-      return num;
+      return num2;
     }
-    if (num > MAX_SAFE_INTEGER) {
+    if (num2 > MAX_SAFE_INTEGER) {
       throw errorIntegerOutOfRange;
     }
   }
@@ -609,21 +609,21 @@ var readVarUint = (decoder) => {
 };
 var readVarInt = (decoder) => {
   let r2 = decoder.arr[decoder.pos++];
-  let num = r2 & BITS6;
+  let num2 = r2 & BITS6;
   let mult = 64;
   const sign2 = (r2 & BIT7) > 0 ? -1 : 1;
   if ((r2 & BIT8) === 0) {
-    return sign2 * num;
+    return sign2 * num2;
   }
   const len = decoder.arr.length;
   while (decoder.pos < len) {
     r2 = decoder.arr[decoder.pos++];
-    num = num + (r2 & BITS7) * mult;
+    num2 = num2 + (r2 & BITS7) * mult;
     mult *= 128;
     if (r2 < BIT8) {
-      return sign2 * num;
+      return sign2 * num2;
     }
-    if (num > MAX_SAFE_INTEGER) {
+    if (num2 > MAX_SAFE_INTEGER) {
       throw errorIntegerOutOfRange;
     }
   }
@@ -8554,9 +8554,9 @@ async function verifyCapability(sc, ownerPublicKeyB64, docId, now = Date.now()) 
   if (!sc?.cap || sc.cap.docId !== docId) return false;
   if (sc.cap.exp != null && now > sc.cap.exp) return false;
   if (sc.via) {
-    if (sc.cap.permission === "own") return false;
+    if (sc.cap.permission === "own" /* Own */) return false;
     const d = sc.via;
-    if (!d?.cap || d.cap.docId !== docId || d.cap.permission !== "own") return false;
+    if (!d?.cap || d.cap.docId !== docId || d.cap.permission !== "own" /* Own */) return false;
     if (d.cap.exp != null && now > d.cap.exp) return false;
     const rootPub = await importPublicKey(ownerPublicKeyB64);
     if (!await verify(rootPub, d.sig, capBytes(d.cap))) return false;
@@ -8583,7 +8583,7 @@ async function authorizeUpdate(env, ownerPublicKeyB64, docId, now = Date.now()) 
   if (!env || env.docId !== docId) return null;
   const subject = env.cap?.cap?.subject;
   if (subject !== WILDCARD_SUBJECT && subject !== env.author) return null;
-  if (env.cap.cap.permission !== "edit" && env.cap.cap.permission !== "suggest") return null;
+  if (env.cap.cap.permission !== "edit" /* Edit */ && env.cap.cap.permission !== "suggest" /* Suggest */) return null;
   if (!await verifyCapability(env.cap, ownerPublicKeyB64, docId, now)) return null;
   const authorPub = await importPublicKey(env.author);
   if (!await verify(authorPub, env.sig, updateBytes(env.docId, env.update))) return null;
@@ -8727,12 +8727,12 @@ function bridgeAuthorizedSync(appDoc, wire, ctx, onReject) {
   let modes = [];
   const isOwnerKey = (k) => k === ctx.ownerPublicKey;
   const currentMode = () => modes.length ? modes[modes.length - 1].mode : "edit" /* Edit */;
-  const reviewing = (author, capPermission) => capPermission === "edit" && !isOwnerKey(author) && currentMode() === "review" /* Review */;
+  const reviewing = (author, capPermission) => capPermission === "edit" /* Edit */ && !isOwnerKey(author) && currentMode() === "review" /* Review */;
   const onLocal = (update, origin) => {
     if (origin === ORIGIN) return;
     if (!ctx.myCapability) return;
     if (revoked.has(pairKey(ctx.myPublicKey, ctx.myCapability.sig))) return;
-    if ((ctx.myCapability.cap.permission === "suggest" || reviewing(ctx.myPublicKey, ctx.myCapability.cap.permission)) && !touchesOnlySuggestions(appDoc, update)) return;
+    if ((ctx.myCapability.cap.permission === "suggest" /* Suggest */ || reviewing(ctx.myPublicKey, ctx.myCapability.cap.permission)) && !touchesOnlySuggestions(appDoc, update)) return;
     void (async () => {
       const payload = ctx.roomKey ? await sealUpdate2(ctx.roomKey, update, aad) : update;
       const env = await sealUpdate(
@@ -8760,7 +8760,7 @@ function bridgeAuthorizedSync(appDoc, wire, ctx, onReject) {
         onReject?.(env);
         continue;
       }
-      if (env.cap.cap.permission === "suggest" && !touchesOnlySuggestions(appDoc, update)) {
+      if (env.cap.cap.permission === "suggest" /* Suggest */ && !touchesOnlySuggestions(appDoc, update)) {
         onReject?.(env);
         continue;
       }
@@ -8774,7 +8774,7 @@ function bridgeAuthorizedSync(appDoc, wire, ctx, onReject) {
         onReject?.(env);
         continue;
       }
-      if (env.cap.cap.permission === "edit" && !isOwnerKey(env.author) && modeAt(modes, pairKey(env.author, env.cap.sig), position.get(env.sig)) === "review" /* Review */ && !touchesOnlySuggestions(appDoc, update)) {
+      if (env.cap.cap.permission === "edit" /* Edit */ && !isOwnerKey(env.author) && modeAt(modes, pairKey(env.author, env.cap.sig), position.get(env.sig)) === "review" /* Review */ && !touchesOnlySuggestions(appDoc, update)) {
         onReject?.(env);
         continue;
       }
@@ -8973,7 +8973,8 @@ var LOBBY_REFUSAL = {
   4003: "That request could not be made. Reload and try again.",
   4004: "The owner has ended this share.",
   4008: "The owner did not let you in.",
-  4009: "Too many people are waiting to join. Try again in a moment."
+  4009: "Too many people are waiting to join. Try again in a moment.",
+  4010: "This share is full: it holds 200 people."
 };
 
 // editor/collab/access/answerSeal.ts
@@ -9183,9 +9184,8 @@ var DIRECTION_ALIASES = {
   right_left: DgLayoutDirection.RightLeft,
   "right-left": DgLayoutDirection.RightLeft
 };
-function toDgLayoutDirection(v) {
-  if (typeof v !== "string") return DgLayoutDirection.Auto;
-  return DIRECTION_ALIASES[v.trim().toLowerCase()] ?? DgLayoutDirection.Auto;
+function dgKnownDirection(v) {
+  return DIRECTION_ALIASES[v.trim().toLowerCase()];
 }
 function dgLayoutAxis(d) {
   return d === DgLayoutDirection.LeftRight || d === DgLayoutDirection.RightLeft ? "LR" : "TB";
@@ -9252,6 +9252,11 @@ var DgElementType = {
    *  run's text), `data.error`. The kernel is the notebook package's Pyodide
    *  runtime; the SVG shows the code and the last output. */
   Notebook: "notebook",
+  // A small project: a file tree, an editor and a run bar in one frame.
+  Workspace: "workspace",
+  // A live poll and a shared countdown: facilitation blocks.
+  Poll: "poll",
+  Timer: "timer",
   /** A subgraph container: a labelled zone grouping related nodes (mermaid
    *  `subgraph` blocks and DSL `subgraph`/`group` blocks render as these).
    *  Derived + fitted to its members after layout - it doesn't own or arrange
@@ -9276,7 +9281,63 @@ var DgErCardinality = {
   OneOrMany: "one_or_many"
 };
 var ER_CARDINALITIES = new Set(Object.values(DgErCardinality));
-var DgArch = { Database: "database", Stream: "stream", Hexagon: "hexagon", Actor: "actor", Search: "search", Triangle: "triangle", Parallelogram: "parallelogram", Cylinder: "cylinder", Cloud: "cloud", Server: "server", Cache: "cache", Gateway: "gateway", LoadBalancer: "loadbalancer" };
+var DgArch = {
+  Database: "database",
+  Stream: "stream",
+  Hexagon: "hexagon",
+  Actor: "actor",
+  Search: "search",
+  Triangle: "triangle",
+  Parallelogram: "parallelogram",
+  Cylinder: "cylinder",
+  Cloud: "cloud",
+  Server: "server",
+  Cache: "cache",
+  Gateway: "gateway",
+  LoadBalancer: "loadbalancer",
+  Pentagon: "pentagon",
+  Octagon: "octagon",
+  Star: "star",
+  ArrowBlock: "arrow-block",
+  Chevron: "chevron",
+  Callout: "callout",
+  Document: "document",
+  ManualInput: "manual-input",
+  Client: "client",
+  Mobile: "mobile",
+  Api: "api",
+  Function: "function",
+  Scheduler: "scheduler",
+  Users: "users",
+  Firewall: "firewall",
+  Bucket: "bucket",
+  Cluster: "cluster",
+  Topic: "topic",
+  Cdn: "cdn",
+  Dns: "dns",
+  Proxy: "proxy",
+  RateLimiter: "rate-limiter",
+  Auth: "auth",
+  Secrets: "secrets",
+  Pod: "pod",
+  Worker: "worker",
+  Monitoring: "monitoring",
+  Logs: "logs",
+  Warehouse: "warehouse",
+  Notify: "notify",
+  Payment: "payment",
+  Model: "ml-model",
+  Webhook: "webhook",
+  FeatureFlags: "feature-flags",
+  Trapezoid: "trapezoid",
+  Cross: "cross",
+  Cube: "cube",
+  Heart: "heart",
+  Delay: "delay",
+  Tag: "tag",
+  Subroutine: "subroutine",
+  OffPage: "off-page"
+};
 function dgCreateEmptyBoard(theme = DgTheme.Dark) {
   return {
     format: DG_FORMAT,
@@ -9362,7 +9423,7 @@ function makeElement(type, x, y, w, h, zs, by) {
     // Dashed by default, and it stays dashed: the outline is what shows through
     // in an export where the live page cannot.
     case DgElementType.Embed:
-      return { ...base, style: { ...style, strokeColor: DG_COLORS.connectorStroke, strokeStyle: DgStrokeStyle.Dashed } };
+      return { ...base, style: { ...style, strokeColor: DG_COLORS.connectorStroke, strokeStyle: DgStrokeStyle.Solid, strokeWidth: 1 } };
     case DgElementType.Code:
       return { ...base, data: { code: "", lang: "typescript" }, style: { ...style, strokeColor: DG_COLORS.connectorStroke } };
     case DgElementType.Video:
@@ -9371,6 +9432,12 @@ function makeElement(type, x, y, w, h, zs, by) {
       return { ...base, data: { cols: 4, rows: 5, cells: {} }, style: { ...style, strokeColor: DG_COLORS.connectorStroke } };
     case DgElementType.Notebook:
       return { ...base, data: { code: "", lang: "python" }, style: { ...style, strokeColor: DG_COLORS.connectorStroke } };
+    case DgElementType.Workspace:
+      return { ...base, data: { files: [], active: "" }, style: { ...style, strokeColor: DG_COLORS.connectorStroke } };
+    case DgElementType.Poll:
+      return { ...base, data: { question: "", options: [], state: "draft", votes: {} }, style: { ...style, strokeColor: DG_COLORS.connectorStroke } };
+    case DgElementType.Timer:
+      return { ...base, data: { label: "", durationMs: 3e5 }, style: { ...style, strokeColor: DG_COLORS.connectorStroke } };
     case DgElementType.Arrow:
       return { ...base, points: [[0, 0], [w, h]], endArrowhead: DgArrowhead.Triangle, style: { strokeColor: DG_COLORS.connectorStroke, strokeWidth: 2 } };
     case DgElementType.Line:
@@ -9477,6 +9544,915 @@ function dgDiagramOwnedIds(doc) {
     }
   }
   return owned;
+}
+
+// ../../packages/deltagraph/src/board/routingQuality.ts
+var clock = () => {
+  try {
+    if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
+    if (typeof Date !== "undefined") return Date.now();
+  } catch {
+  }
+  return 0;
+};
+var SHAPES = /* @__PURE__ */ new Set([
+  DgElementType.Rectangle,
+  DgElementType.Ellipse,
+  DgElementType.Diamond
+]);
+var EDGES = /* @__PURE__ */ new Set([DgElementType.Arrow, DgElementType.Line]);
+var r = (n) => Math.round(n);
+function nodeBox(e) {
+  return {
+    id: e.id,
+    slug: e.data?.dsl ?? e.id,
+    label: (e.text ?? "").trim(),
+    x1: Math.min(e.x, e.x + e.w),
+    y1: Math.min(e.y, e.y + e.h),
+    x2: Math.max(e.x, e.x + e.w),
+    y2: Math.max(e.y, e.y + e.h)
+  };
+}
+function edgePolyline(e) {
+  return (e.points ?? []).map(([px, py]) => [e.x + px, e.y + py]);
+}
+function densify(pts, step) {
+  const out = [];
+  for (let i = 1; i < pts.length; i++) {
+    const [ax, ay] = pts[i - 1];
+    const [bx, by] = pts[i];
+    const len = Math.hypot(bx - ax, by - ay);
+    const k = Math.max(1, Math.round(len / step));
+    for (let j = i === 1 ? 0 : 1; j <= k; j++) out.push([ax + (bx - ax) * j / k, ay + (by - ay) * j / k]);
+  }
+  return out;
+}
+var SIDE_NAME = { W: "west", E: "east", N: "north", S: "south" };
+function faceOf(x, y, n, graze, inset) {
+  if (Math.abs(x - n.x1) < graze && y > n.y1 + inset && y < n.y2 - inset) return "W";
+  if (Math.abs(x - n.x2) < graze && y > n.y1 + inset && y < n.y2 - inset) return "E";
+  if (Math.abs(y - n.y1) < graze && x > n.x1 + inset && x < n.x2 - inset) return "N";
+  if (Math.abs(y - n.y2) < graze && x > n.x1 + inset && x < n.x2 - inset) return "S";
+  return "";
+}
+function maxFaceRun(samples, n, graze, inset) {
+  let cur = "";
+  let run = 0;
+  let mx = 0;
+  let side = "";
+  let at = null;
+  let start = null;
+  for (const [x, y] of samples) {
+    const f = faceOf(x, y, n, graze, inset);
+    if (f && f === cur) {
+      run++;
+    } else {
+      cur = f;
+      run = f ? 1 : 0;
+      start = f ? [x, y] : null;
+    }
+    if (run > mx) {
+      mx = run;
+      side = cur;
+      at = start && [r((start[0] + x) / 2), r((start[1] + y) / 2)];
+    }
+  }
+  return { runPx: mx, side, at };
+}
+function segCrossesCentre(a, b, n) {
+  const cx = (n.x1 + n.x2) / 2;
+  const cy = (n.y1 + n.y2) / 2;
+  const horizontal = Math.abs(b[1] - a[1]) < Math.abs(b[0] - a[0]);
+  if (horizontal) {
+    if (a[1] <= n.y1 || a[1] >= n.y2) return false;
+    return Math.min(a[0], b[0]) < cx && Math.max(a[0], b[0]) > cx;
+  }
+  if (a[0] <= n.x1 || a[0] >= n.x2) return false;
+  return Math.min(a[1], b[1]) < cy && Math.max(a[1], b[1]) > cy;
+}
+function segCrossesBox(a, b, n, inset) {
+  const x0 = n.x1 + inset;
+  const y0 = n.y1 + inset;
+  const x1 = n.x2 - inset;
+  const y1 = n.y2 - inset;
+  if (x1 <= x0 || y1 <= y0) return false;
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const p = [-dx, dx, -dy, dy];
+  const q = [a[0] - x0, x1 - a[0], a[1] - y0, y1 - a[1]];
+  let t0 = 0;
+  let t1 = 1;
+  for (let i = 0; i < 4; i++) {
+    if (p[i] === 0) {
+      if (q[i] < 0) return false;
+    } else {
+      const t = q[i] / p[i];
+      if (p[i] < 0) {
+        if (t > t1) return false;
+        if (t > t0) t0 = t;
+      } else {
+        if (t < t0) return false;
+        if (t < t1) t1 = t;
+      }
+    }
+  }
+  return t0 < t1 - 1e-9;
+}
+function dgAnalyzeRouting(doc, opts = {}) {
+  const graze = opts.graze ?? 3;
+  const rideMin = opts.rideMin ?? 16;
+  const clipInset = opts.clipInset ?? 6;
+  const step = opts.step ?? 4;
+  const checkDiagonal = opts.checkDiagonal ?? true;
+  const detourRatio = opts.detourRatio ?? 2;
+  const nodes = doc.elements.filter((e) => SHAPES.has(e.type) && !e.hidden).map(nodeBox);
+  const edges = doc.elements.filter((e) => EDGES.has(e.type) && !e.hidden).map((e) => ({ id: e.id, label: (e.text ?? "").trim() || e.id, pts: edgePolyline(e) }));
+  const violations = [];
+  const contains = (n, [x, y], pad) => x >= n.x1 - pad && x <= n.x2 + pad && y >= n.y1 - pad && y <= n.y2 + pad;
+  for (const e of edges) {
+    if (e.pts.length < 2) continue;
+    const p0 = e.pts[0];
+    const pN = e.pts[e.pts.length - 1];
+    const fromNode = nodes.find((n) => contains(n, p0, 4));
+    const toNode = nodes.find((n) => contains(n, pN, 4));
+    e.from = fromNode?.slug;
+    e.to = toNode?.slug;
+    const endpointIds = new Set([fromNode?.id, toNode?.id].filter(Boolean));
+    if (e.pts.length > 1) {
+      let travelled = 0;
+      for (let i = 1; i < e.pts.length; i++) {
+        travelled += Math.abs(e.pts[i][0] - e.pts[i - 1][0]) + Math.abs(e.pts[i][1] - e.pts[i - 1][1]);
+      }
+      const [sx, sy] = e.pts[0];
+      const [ex, ey] = e.pts[e.pts.length - 1];
+      const direct = Math.abs(ex - sx) + Math.abs(ey - sy);
+      if (direct > 120 && travelled > direct * detourRatio) {
+        violations.push({
+          kind: "detour",
+          edgeId: e.id,
+          edge: e.label,
+          detail: `travels ${r(travelled)}px for a ${r(direct)}px span (${(travelled / direct).toFixed(1)}x)`
+        });
+      }
+    }
+    if (checkDiagonal) {
+      for (let i = 1; i < e.pts.length; i++) {
+        const [ax, ay] = e.pts[i - 1];
+        const [bx, by] = e.pts[i];
+        if (Math.abs(bx - ax) > 1.5 && Math.abs(by - ay) > 1.5) {
+          violations.push({
+            kind: "diagonal",
+            edgeId: e.id,
+            edge: e.label,
+            detail: `segment ${i} isn't axis-aligned ((${r(ax)},${r(ay)})\u2192(${r(bx)},${r(by)}))`
+          });
+          break;
+        }
+      }
+    }
+    const samples = densify(e.pts, step);
+    for (const n of nodes) {
+      const { runPx: runSamples, side, at } = maxFaceRun(samples, n, graze, 4);
+      const px = (runSamples - 1) * step;
+      if (px >= rideMin) {
+        if (endpointIds.has(n.id)) {
+          violations.push({
+            kind: "port-hug",
+            edgeId: e.id,
+            edge: e.label,
+            node: n.slug,
+            detail: `rides its own ${SIDE_NAME[side]} edge ~${r(px)}px near ${JSON.stringify(at)} before leaving \u2014 should step off perpendicular`
+          });
+        } else {
+          violations.push({
+            kind: "foreign-ride",
+            edgeId: e.id,
+            edge: e.label,
+            node: n.slug,
+            detail: `rides the ${SIDE_NAME[side]} edge of a node it doesn't touch ~${r(px)}px near ${JSON.stringify(at)}`
+          });
+        }
+      }
+    }
+    const last2 = e.pts.length - 1;
+    for (const n of nodes) {
+      const isSource = n.id === fromNode?.id;
+      const isTarget = n.id === toNode?.id;
+      for (let i = 1; i <= last2; i++) {
+        const terminal = isSource && i === 1 || isTarget && i === last2;
+        const hit = terminal ? segCrossesCentre(e.pts[i - 1], e.pts[i], n) : segCrossesBox(e.pts[i - 1], e.pts[i], n, clipInset);
+        if (!hit) continue;
+        violations.push({
+          kind: "node-clip",
+          edgeId: e.id,
+          edge: e.label,
+          node: n.slug,
+          detail: terminal ? `approaches its own ${isSource ? "source" : "target"} from the far side, crossing the body to reach the port` : `segment ${i} passes through the node body`
+        });
+        break;
+      }
+    }
+  }
+  return { nodes, edges, violations };
+}
+var dgNowMs = clock;
+function dgBuildDiagnostics(doc, phase, debug, now = clock) {
+  const a0 = now();
+  const report = dgAnalyzeRouting(doc);
+  const analyzeMs = now() - a0;
+  const byKind = {};
+  for (const v of report.violations) byKind[v.kind] = (byKind[v.kind] ?? 0) + 1;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of report.nodes) {
+    if (n.x1 < x0) x0 = n.x1;
+    if (n.y1 < y0) y0 = n.y1;
+    if (n.x2 > x1) x1 = n.x2;
+    if (n.y2 > y1) y1 = n.y2;
+  }
+  for (const e of report.edges) for (const [px, py] of e.pts) {
+    if (px < x0) x0 = px;
+    if (py < y0) y0 = py;
+    if (px > x1) x1 = px;
+    if (py > y1) y1 = py;
+  }
+  const bbox = Number.isFinite(x0) ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : { x: 0, y: 0, w: 0, h: 0 };
+  return {
+    nodes: report.nodes.length,
+    edges: report.edges.length,
+    zones: doc.elements.filter((e) => e.type === DgElementType.Zone && !e.hidden).length,
+    bbox,
+    routing: {
+      clean: report.violations.length === 0,
+      total: report.violations.length,
+      byKind,
+      violations: report.violations.map((v) => ({ kind: v.kind, edgeId: v.edgeId, edge: v.edge, node: v.node, detail: v.detail }))
+    },
+    timings: {
+      layoutMs: Math.round(phase.layoutMs * 100) / 100,
+      refineMs: Math.round(phase.refineMs * 100) / 100,
+      analyzeMs: Math.round(analyzeMs * 100) / 100,
+      totalMs: Math.round((phase.buildMs + analyzeMs) * 100) / 100
+    },
+    ...debug ? { debug } : {}
+  };
+}
+
+// ../../packages/deltagraph/src/board/connectorRouting.ts
+function pushClearOfForeignNodes(route, obstacles, allBoxes = obstacles) {
+  const n = route.length;
+  if (n < 4) return route;
+  const GRAZE = 24;
+  const CLEAR = 64;
+  const pts = route.map((p) => [p[0], p[1]]);
+  const SNAP = 9;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = pts[i - 1], b = pts[i];
+    const dx = Math.abs(b[0] - a[0]), dy = Math.abs(b[1] - a[1]);
+    if (dx >= dy && dy > 0 && dy <= SNAP) b[1] = a[1];
+    else if (dy > dx && dx > 0 && dx <= SNAP) b[0] = a[0];
+  }
+  const isV = (a, b) => Math.abs(a[0] - b[0]) < 1.5 && Math.abs(a[1] - b[1]) > 3;
+  const isH = (a, b) => Math.abs(a[1] - b[1]) < 1.5 && Math.abs(a[0] - b[0]) > 3;
+  const clipCount = (horizontal, cross, lo, hi) => {
+    let c = 0;
+    for (const o of obstacles) {
+      if (horizontal) {
+        if (lo < o.x + o.w - 1 && hi > o.x + 1 && cross > o.y + 1 && cross < o.y + o.h - 1) c++;
+      } else if (lo < o.y + o.h - 1 && hi > o.y + 1 && cross > o.x + 1 && cross < o.x + o.w - 1) c++;
+    }
+    return c;
+  };
+  const laneOff = (edge, dir, lo, hi, pushX) => {
+    let bound = dir < 0 ? -Infinity : Infinity;
+    for (const o of allBoxes) {
+      const oLo = pushX ? o.x : o.y;
+      const oHi = oLo + (pushX ? o.w : o.h);
+      const ocLo = pushX ? o.y : o.x;
+      const ocHi = ocLo + (pushX ? o.h : o.w);
+      if (ocHi <= lo + 1 || ocLo >= hi - 1) continue;
+      if (dir < 0 && oHi <= edge + 0.5) bound = Math.max(bound, oHi);
+      else if (dir > 0 && oLo >= edge - 0.5) bound = Math.min(bound, oLo);
+    }
+    const want = edge + dir * CLEAR;
+    if (!Number.isFinite(bound)) return want;
+    const MIN = 12;
+    const gap = Math.abs(bound - edge);
+    if (gap < MIN * 2) return (edge + bound) / 2;
+    return dir < 0 ? Math.max(want, Math.min(edge - MIN, bound + MIN)) : Math.min(want, Math.max(edge + MIN, bound - MIN));
+  };
+  for (let i = 1; i <= n - 3; i++) {
+    const a = pts[i], b = pts[i + 1];
+    if (isV(a, b)) {
+      const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+      let nx = a[0];
+      for (const o of obstacles) {
+        if (!(y0 < o.y + o.h - 2 && y1 > o.y + 2)) continue;
+        const cx = o.x + o.w / 2;
+        if (a[0] <= cx) {
+          if (o.x - a[0] < GRAZE) nx = Math.min(nx, laneOff(o.x, -1, y0, y1, true));
+        } else {
+          if (a[0] - (o.x + o.w) < GRAZE) nx = Math.max(nx, laneOff(o.x + o.w, 1, y0, y1, true));
+        }
+      }
+      if (nx !== a[0] && clipCount(false, nx, y0, y1) <= clipCount(false, a[0], y0, y1)) {
+        a[0] = nx;
+        b[0] = nx;
+      }
+    } else if (isH(a, b)) {
+      const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
+      let ny = a[1];
+      for (const o of obstacles) {
+        if (!(x0 < o.x + o.w - 2 && x1 > o.x + 2)) continue;
+        const cy = o.y + o.h / 2;
+        if (a[1] <= cy) {
+          if (o.y - a[1] < GRAZE) ny = Math.min(ny, laneOff(o.y, -1, x0, x1, false));
+        } else {
+          if (a[1] - (o.y + o.h) < GRAZE) ny = Math.max(ny, laneOff(o.y + o.h, 1, x0, x1, false));
+        }
+      }
+      if (ny !== a[1] && clipCount(true, ny, x0, x1) <= clipCount(true, a[1], x0, x1)) {
+        a[1] = ny;
+        b[1] = ny;
+      }
+    }
+  }
+  return pts;
+}
+function detourAroundForeignZones(route, zones, nodeBoxes = []) {
+  const n = route.length;
+  if (n < 4 || zones.length === 0) return route;
+  const CLEAR = 24;
+  const pts = route.map((p) => [p[0], p[1]]);
+  const OVERSHOOT = 0.5;
+  const spanX = [Math.min(route[0][0], route[n - 1][0]), Math.max(route[0][0], route[n - 1][0])];
+  const spanY = [Math.min(route[0][1], route[n - 1][1]), Math.max(route[0][1], route[n - 1][1])];
+  const overshoot = (v, span) => v < span[0] - 1 || v > span[1] + 1 ? OVERSHOOT : 0;
+  const clips = (horizontal, cross, lo, hi) => {
+    let c = 0;
+    for (const o of nodeBoxes) {
+      if (horizontal) {
+        if (lo < o.x + o.w - 1 && hi > o.x + 1 && cross > o.y + 1 && cross < o.y + o.h - 1) c++;
+      } else if (lo < o.y + o.h - 1 && hi > o.y + 1 && cross > o.x + 1 && cross < o.x + o.w - 1) c++;
+    }
+    return c;
+  };
+  for (let i = 1; i <= n - 3; i++) {
+    const a = pts[i], b = pts[i + 1];
+    if (Math.abs(a[1] - b[1]) < 1.5 && Math.abs(a[0] - b[0]) > 3) {
+      const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
+      const corridor = zones.filter((z) => x0 < z.x + z.w && x1 > z.x);
+      const grazes = corridor.some((z) => a[1] > z.y - 2 && a[1] < z.y + z.h + 2);
+      if (grazes && corridor.length) {
+        const up = Math.min(...corridor.map((z) => z.y)) - CLEAR;
+        const down = Math.max(...corridor.map((z) => z.y + z.h)) + CLEAR;
+        const pref = a[1] - up < (down - a[1]) * 0.75 ? up : down;
+        const pv = pts[i - 1], nv = pts[i + 2];
+        const costAt = (ny2) => {
+          let c = clips(true, ny2, x0, x1) + overshoot(ny2, spanY);
+          if (pv) c += clips(false, a[0], Math.min(pv[1], ny2), Math.max(pv[1], ny2));
+          if (nv) c += clips(false, b[0], Math.min(ny2, nv[1]), Math.max(ny2, nv[1]));
+          return c;
+        };
+        const cu = costAt(up), cd = costAt(down);
+        const ny = cu < cd ? up : cd < cu ? down : pref;
+        if (costAt(ny) <= costAt(a[1])) {
+          a[1] = ny;
+          b[1] = ny;
+        }
+      }
+    } else if (Math.abs(a[0] - b[0]) < 1.5 && Math.abs(a[1] - b[1]) > 3) {
+      const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+      const corridor = zones.filter((z) => y0 < z.y + z.h && y1 > z.y);
+      const grazes = corridor.some((z) => a[0] > z.x - 2 && a[0] < z.x + z.w + 2);
+      if (grazes && corridor.length) {
+        const left = Math.min(...corridor.map((z) => z.x)) - CLEAR;
+        const right = Math.max(...corridor.map((z) => z.x + z.w)) + CLEAR;
+        const pref = a[0] - left < (right - a[0]) * 0.75 ? left : right;
+        const pv = pts[i - 1], nv = pts[i + 2];
+        const costAt = (nx2) => {
+          let c = clips(false, nx2, y0, y1) + overshoot(nx2, spanX);
+          if (pv) c += clips(true, a[1], Math.min(pv[0], nx2), Math.max(pv[0], nx2));
+          if (nv) c += clips(true, b[1], Math.min(nx2, nv[0]), Math.max(nx2, nv[0]));
+          return c;
+        };
+        const cl = costAt(left), cr = costAt(right);
+        const nx = cl < cr ? left : cr < cl ? right : pref;
+        if (costAt(nx) <= costAt(a[0])) {
+          a[0] = nx;
+          b[0] = nx;
+        }
+      }
+    }
+  }
+  return pts;
+}
+function stepOffEndpointFaces(route, srcBox, dstBox, allBoxes) {
+  const GRAZE = 4;
+  const STEP = 22;
+  const MIN = GRAZE + 4;
+  const pts = [];
+  for (const p of route) {
+    const last2 = pts[pts.length - 1];
+    if (!last2 || Math.abs(last2[0] - p[0]) > 0.01 || Math.abs(last2[1] - p[1]) > 0.01) pts.push([p[0], p[1]]);
+  }
+  const isV = (a, b) => Math.abs(a[0] - b[0]) < 2 && Math.abs(a[1] - b[1]) > 3;
+  const isH = (a, b) => Math.abs(a[1] - b[1]) < 2 && Math.abs(a[0] - b[0]) > 3;
+  const lane = (box, dir, axis, spanLo, spanHi) => {
+    const lo = axis === "x" ? box.x : box.y;
+    const size2 = axis === "x" ? box.w : box.h;
+    const edge = dir < 0 ? lo : lo + size2;
+    let bound = dir < 0 ? -Infinity : Infinity;
+    for (const o of allBoxes) {
+      const oLo = axis === "x" ? o.x : o.y;
+      const oHi = oLo + (axis === "x" ? o.w : o.h);
+      const ocLo = axis === "x" ? o.y : o.x;
+      const ocHi = ocLo + (axis === "x" ? o.h : o.w);
+      if (ocHi <= spanLo + 1 || ocLo >= spanHi - 1) continue;
+      if (dir < 0 && oHi <= edge + 0.5) bound = Math.max(bound, oHi);
+      else if (dir > 0 && oLo >= edge - 0.5) bound = Math.min(bound, oLo);
+    }
+    if (!Number.isFinite(bound)) return edge + dir * STEP;
+    const mid = (edge + bound) / 2;
+    return dir < 0 ? Math.min(edge - MIN, Math.max(bound + MIN, mid)) : Math.max(edge + MIN, Math.min(bound - MIN, mid));
+  };
+  const clearOwn = (box, fromStart) => {
+    if (!box || pts.length < 3) return;
+    const portIdx = fromStart ? 0 : pts.length - 1;
+    const scan = fromStart ? [0, 1, 2] : [pts.length - 2, pts.length - 3, pts.length - 4];
+    for (const i of scan) {
+      if (i < 0 || i + 1 >= pts.length) continue;
+      const a = pts[i], b = pts[i + 1];
+      let nx = null;
+      let ny = null;
+      if (isV(a, b)) {
+        const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+        if (!(y0 < box.y + box.h - 2 && y1 > box.y + 2)) continue;
+        if (Math.abs(a[0] - box.x) < GRAZE) nx = lane(box, -1, "x", y0, y1);
+        else if (Math.abs(a[0] - (box.x + box.w)) < GRAZE) nx = lane(box, 1, "x", y0, y1);
+      } else if (isH(a, b)) {
+        const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
+        if (!(x0 < box.x + box.w - 2 && x1 > box.x + 2)) continue;
+        if (Math.abs(a[1] - box.y) < GRAZE) ny = lane(box, -1, "y", x0, x1);
+        else if (Math.abs(a[1] - (box.y + box.h)) < GRAZE) ny = lane(box, 1, "y", x0, x1);
+      }
+      if (nx === null && ny === null) continue;
+      const touchesPort = i === portIdx || i + 1 === portIdx;
+      if (!touchesPort) {
+        if (nx !== null) {
+          a[0] = nx;
+          b[0] = nx;
+        } else {
+          a[1] = ny;
+          b[1] = ny;
+        }
+        return;
+      }
+      const port = pts[portIdx];
+      const nonPort = i === portIdx ? i + 1 : i;
+      if (nx !== null) {
+        pts[nonPort] = [nx, pts[nonPort][1]];
+        pts.splice(fromStart ? 1 : pts.length - 1, 0, [nx, port[1]]);
+      } else {
+        pts[nonPort] = [pts[nonPort][0], ny];
+        pts.splice(fromStart ? 1 : pts.length - 1, 0, [port[0], ny]);
+      }
+      return;
+    }
+  };
+  clearOwn(srcBox, true);
+  clearOwn(dstBox, false);
+  return pts;
+}
+function straightenFacingApproach(route, fromBox, toBox, foreignNodes = []) {
+  if (!fromBox || !toBox || route.length < 2) return route;
+  const p0 = route[0], pN = route[route.length - 1];
+  const EPS = 3;
+  const faceOf3 = (pt, b) => {
+    if (Math.abs(pt[0] - b.x) < EPS) return "W";
+    if (Math.abs(pt[0] - (b.x + b.w)) < EPS) return "E";
+    if (Math.abs(pt[1] - b.y) < EPS) return "N";
+    if (Math.abs(pt[1] - (b.y + b.h)) < EPS) return "S";
+    return null;
+  };
+  const fa = faceOf3(p0, fromBox), ta = faceOf3(pN, toBox);
+  const M = 8;
+  const clearRun = (horizontal, cross, lo, hi) => {
+    for (const o of foreignNodes) {
+      if (horizontal) {
+        if (lo < o.x + o.w + M && hi > o.x - M && cross > o.y - M && cross < o.y + o.h + M) return false;
+      } else if (lo < o.y + o.h + M && hi > o.y - M && cross > o.x - M && cross < o.x + o.w + M) return false;
+    }
+    return true;
+  };
+  if (fa === "E" && ta === "W" || fa === "W" && ta === "E") {
+    const lo = Math.max(fromBox.y, toBox.y), hi = Math.min(fromBox.y + fromBox.h, toBox.y + toBox.h);
+    if (hi - lo > 8 && Math.abs(p0[1] - pN[1]) > EPS) {
+      const y = Math.min(hi - 4, Math.max(lo + 4, (p0[1] + pN[1]) / 2));
+      if (clearRun(true, y, Math.min(p0[0], pN[0]), Math.max(p0[0], pN[0]))) return [[p0[0], y], [pN[0], y]];
+    }
+  }
+  if (fa === "S" && ta === "N" || fa === "N" && ta === "S") {
+    const lo = Math.max(fromBox.x, toBox.x), hi = Math.min(fromBox.x + fromBox.w, toBox.x + toBox.w);
+    if (hi - lo > 8 && Math.abs(p0[0] - pN[0]) > EPS) {
+      const x = Math.min(hi - 4, Math.max(lo + 4, (p0[0] + pN[0]) / 2));
+      if (clearRun(false, x, Math.min(p0[1], pN[1]), Math.max(p0[1], pN[1]))) return [[x, p0[1]], [x, pN[1]]];
+    }
+  }
+  return route;
+}
+function orthogonalizeApproach(route, fromBox, toBox) {
+  if (route.length < 2) return route;
+  const pts = route.map((p) => [p[0], p[1]]);
+  const EPS = 3;
+  const diag = (a, b) => Math.abs(a[0] - b[0]) > 1.5 && Math.abs(a[1] - b[1]) > 1.5;
+  const faceHorizontal = (pt, box) => {
+    if (!box) return null;
+    if (Math.abs(pt[0] - box.x) < EPS || Math.abs(pt[0] - (box.x + box.w)) < EPS) return true;
+    if (Math.abs(pt[1] - box.y) < EPS || Math.abs(pt[1] - (box.y + box.h)) < EPS) return false;
+    return null;
+  };
+  const n = pts.length;
+  if (diag(pts[n - 2], pts[n - 1])) {
+    const port = pts[n - 1], prev = pts[n - 2];
+    const corner = faceHorizontal(port, toBox) === false ? [port[0], prev[1]] : [prev[0], port[1]];
+    pts.splice(n - 1, 0, corner);
+  }
+  if (diag(pts[0], pts[1])) {
+    const port = pts[0], next = pts[1];
+    const corner = faceHorizontal(port, fromBox) === false ? [port[0], next[1]] : [next[0], port[1]];
+    pts.splice(1, 0, corner);
+  }
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (diag(pts[i], pts[i + 1])) {
+      pts.splice(i + 1, 0, [pts[i + 1][0], pts[i][1]]);
+      i++;
+    }
+  }
+  return pts;
+}
+var inBox = (p, b) => p[0] > b.x && p[0] < b.x + b.w && p[1] > b.y && p[1] < b.y + b.h;
+function faceHit(outside, inside, b) {
+  if (Math.abs(outside[0] - inside[0]) < Math.abs(outside[1] - inside[1])) {
+    return [inside[0], outside[1] < inside[1] ? b.y : b.y + b.h];
+  }
+  return [outside[0] < inside[0] ? b.x : b.x + b.w, inside[1]];
+}
+function crossesCentre(a, b, box) {
+  const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
+  if (Math.abs(b[1] - a[1]) < Math.abs(b[0] - a[0])) {
+    if (a[1] <= box.y || a[1] >= box.y + box.h) return false;
+    return Math.min(a[0], b[0]) < cx && Math.max(a[0], b[0]) > cx;
+  }
+  if (a[0] <= box.x || a[0] >= box.x + box.w) return false;
+  return Math.min(a[1], b[1]) < cy && Math.max(a[1], b[1]) > cy;
+}
+function clipToEndpointFaces(route, fromBox, toBox) {
+  let pts = route;
+  if (toBox && pts.length >= 2) {
+    const n = pts.length - 1;
+    const bad = crossesCentre(pts[n - 1], pts[n], toBox) || pts.slice(0, n).some((q, i) => i > 0 && inBox(q, toBox));
+    if (bad) {
+      let enter = -1;
+      for (let i = 0; i < pts.length; i++) {
+        if (!inBox(pts[i], toBox) && !(i === pts.length - 1)) {
+          enter = i;
+          continue;
+        }
+        break;
+      }
+      if (enter >= 0 && enter < pts.length - 1) {
+        pts = [...pts.slice(0, enter + 1), faceHit(pts[enter], pts[enter + 1], toBox)];
+      }
+    }
+  }
+  if (fromBox && pts.length >= 2) {
+    const bad = crossesCentre(pts[1], pts[0], fromBox) || pts.slice(1).some((q, i) => i < pts.length - 2 && inBox(q, fromBox));
+    if (bad) {
+      let exit = -1;
+      for (let i = pts.length - 1; i >= 0; i--) {
+        if (!inBox(pts[i], fromBox) && i !== 0) {
+          exit = i;
+          continue;
+        }
+        break;
+      }
+      if (exit > 0) pts = [faceHit(pts[exit], pts[exit - 1], fromBox), ...pts.slice(exit)];
+    }
+  }
+  return pts === route ? route : simplifyRoute(pts);
+}
+function simplifyRoute(pts) {
+  if (pts.length < 3) return pts;
+  const out = [pts[0]];
+  for (let i = 1; i < pts.length - 1; i++) {
+    const a = out[out.length - 1], b = pts[i], c = pts[i + 1];
+    const collinear = Math.abs(a[0] - b[0]) < 0.01 && Math.abs(b[0] - c[0]) < 0.01 || Math.abs(a[1] - b[1]) < 0.01 && Math.abs(b[1] - c[1]) < 0.01;
+    if (!collinear) out.push(b);
+  }
+  out.push(pts[pts.length - 1]);
+  return out;
+}
+function segHits(a, b, box, inset) {
+  const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
+  const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
+  return x1 > box.x + inset && x0 < box.x + box.w - inset && y1 > box.y + inset && y0 < box.y + box.h - inset;
+}
+function ridesFace(a, b, box) {
+  const NEAR = 2.5;
+  const MIN = 8;
+  if (Math.abs(a[1] - b[1]) < 1.5) {
+    if (Math.abs(a[1] - box.y) > NEAR && Math.abs(a[1] - (box.y + box.h)) > NEAR) return false;
+    const lo = Math.max(Math.min(a[0], b[0]), box.x);
+    const hi = Math.min(Math.max(a[0], b[0]), box.x + box.w);
+    return hi - lo > MIN;
+  }
+  if (Math.abs(a[0] - b[0]) < 1.5) {
+    if (Math.abs(a[0] - box.x) > NEAR && Math.abs(a[0] - (box.x + box.w)) > NEAR) return false;
+    const lo = Math.max(Math.min(a[1], b[1]), box.y);
+    const hi = Math.min(Math.max(a[1], b[1]), box.y + box.h);
+    return hi - lo > MIN;
+  }
+  return false;
+}
+function straightenStaircase(route, p) {
+  const blockers = [...p.foreignNodes ?? [], ...p.foreignZones ?? []];
+  const ends = [p.fromBox, p.toBox].filter((b) => !!b);
+  let pts = route;
+  for (let pass = 0; pass < 4; pass++) {
+    let changed = false;
+    for (let i = 0; i + 3 < pts.length; i++) {
+      const [a, b, c, d] = [pts[i], pts[i + 1], pts[i + 2], pts[i + 3]];
+      const abV = Math.abs(a[0] - b[0]) < 1.5, cdV = Math.abs(c[0] - d[0]) < 1.5;
+      if (abV !== cdV) continue;
+      for (const corner of [[a[0], d[1]], [d[0], a[1]]]) {
+        const okAxis = (Math.abs(a[0] - corner[0]) < 1.5 || Math.abs(a[1] - corner[1]) < 1.5) && (Math.abs(corner[0] - d[0]) < 1.5 || Math.abs(corner[1] - d[1]) < 1.5);
+        if (!okAxis) continue;
+        const vert = (p2, q) => Math.abs(p2[0] - q[0]) < 1.5;
+        if (i === 0 && vert(a, corner) !== abV) continue;
+        if (i + 3 === pts.length - 1 && vert(corner, d) !== cdV) continue;
+        const hit = blockers.some((o) => segHits(a, corner, o, 1) || segHits(corner, d, o, 1)) || ends.some((o) => i > 0 && segHits(a, corner, o, 2) || i + 3 < pts.length - 1 && segHits(corner, d, o, 2)) || ends.some((o) => ridesFace(a, corner, o) || ridesFace(corner, d, o));
+        if (hit) continue;
+        pts = [...pts.slice(0, i + 1), corner, ...pts.slice(i + 3)];
+        changed = true;
+        break;
+      }
+      if (changed) break;
+    }
+    if (!changed) break;
+  }
+  return pts === route ? route : simplifyRoute(pts);
+}
+function refineRoute(route, p) {
+  let r2 = straightenFacingApproach(route, p.fromBox, p.toBox, p.foreignNodes);
+  r2 = orthogonalizeApproach(r2, p.fromBox, p.toBox);
+  r2 = detourAroundForeignZones(r2, p.foreignZones, p.foreignNodes);
+  r2 = pushClearOfForeignNodes(r2, p.foreignNodes, p.allNodes);
+  r2 = stepOffEndpointFaces(r2, p.fromBox, p.toBox, p.allNodes);
+  r2 = clipToEndpointFaces(r2, p.fromBox, p.toBox);
+  r2 = straightenStaircase(r2, p);
+  return simplifyRoute(r2);
+}
+var sameRoute = (a, b) => a.length === b.length && a.every((q, i) => Math.abs(q[0] - b[i][0]) < 0.01 && Math.abs(q[1] - b[i][1]) < 0.01);
+function refineRouteTraced(route, p) {
+  const changedBy = [];
+  let r2 = route;
+  const step = (name, out) => {
+    if (!sameRoute(r2, out)) changedBy.push(name);
+    r2 = out;
+  };
+  step("straightenFacingApproach", straightenFacingApproach(r2, p.fromBox, p.toBox, p.foreignNodes));
+  step("orthogonalizeApproach", orthogonalizeApproach(r2, p.fromBox, p.toBox));
+  step("detourAroundForeignZones", detourAroundForeignZones(r2, p.foreignZones, p.foreignNodes));
+  step("pushClearOfForeignNodes", pushClearOfForeignNodes(r2, p.foreignNodes, p.allNodes));
+  step("stepOffEndpointFaces", stepOffEndpointFaces(r2, p.fromBox, p.toBox, p.allNodes));
+  step("clipToEndpointFaces", clipToEndpointFaces(r2, p.fromBox, p.toBox));
+  step("straightenStaircase", straightenStaircase(r2, p));
+  return { route: r2, changedBy };
+}
+function trunkRun(pts) {
+  let best = null;
+  for (let i = 2; i < pts.length - 1; i++) {
+    const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
+    const dx = Math.abs(ax - bx), dy = Math.abs(ay - by);
+    const vertical = dx < 0.5;
+    if (!vertical && dy >= 0.5) continue;
+    const len = vertical ? dy : dx;
+    if (!best || len > best.len) best = { at: i, vertical, len };
+  }
+  return best ? { at: best.at, vertical: best.vertical } : null;
+}
+function separateReciprocalRoutes(routes, boxOf) {
+  const byPair = /* @__PURE__ */ new Map();
+  routes.forEach((r2, i) => {
+    if (r2.from === r2.to) return;
+    const k = r2.from < r2.to ? `${r2.from}\0${r2.to}` : `${r2.to}\0${r2.from}`;
+    byPair.set(k, [...byPair.get(k) ?? [], i]);
+  });
+  for (const idxs of byPair.values()) {
+    if (idxs.length !== 2) continue;
+    const [i, j] = idxs;
+    if (routes[i].from === routes[j].from) continue;
+    const a = boxOf(routes[i].from), b = boxOf(routes[i].to);
+    if (!a || !b) continue;
+    const ti = trunkRun(routes[i].pts), tj = trunkRun(routes[j].pts);
+    if (!ti || !tj || ti.vertical !== tj.vertical) continue;
+    const axis = ti.vertical ? 0 : 1;
+    const li = routes[i].pts[ti.at][axis], lj = routes[j].pts[tj.at][axis];
+    if (Math.abs(li - lj) > 1.5) continue;
+    const lo = axis === 0 ? Math.min(a.x + a.w, b.x + b.w) : Math.min(a.y + a.h, b.y + b.h);
+    const hi = axis === 0 ? Math.max(a.x, b.x) : Math.max(a.y, b.y);
+    const gap = hi - lo;
+    if (gap <= 4) continue;
+    const step = Math.min(20, Math.max(4, gap - 6)) / 2;
+    for (const [r2, t, dir] of [[routes[i], ti, -1], [routes[j], tj, 1]]) {
+      r2.pts[t.at - 1] = [...r2.pts[t.at - 1]];
+      r2.pts[t.at] = [...r2.pts[t.at]];
+      r2.pts[t.at - 1][axis] += step * dir;
+      r2.pts[t.at][axis] += step * dir;
+    }
+  }
+}
+function routeCrossings(p, q) {
+  const segs = (pts) => {
+    const o = [];
+    for (let i = 1; i < pts.length; i++) o.push([pts[i - 1], pts[i]]);
+    return o;
+  };
+  let n = 0;
+  for (const [a0, a1] of segs(p)) {
+    const av = Math.abs(a0[0] - a1[0]) < 0.5;
+    for (const [b0, b1] of segs(q)) {
+      const bv = Math.abs(b0[0] - b1[0]) < 0.5;
+      if (av === bv) continue;
+      const [v0, v1] = av ? [a0, a1] : [b0, b1];
+      const [h0, h1] = av ? [b0, b1] : [a0, a1];
+      const inV = h0[1] > Math.min(v0[1], v1[1]) + 0.5 && h0[1] < Math.max(v0[1], v1[1]) - 0.5;
+      const inH = v0[0] > Math.min(h0[0], h1[0]) + 0.5 && v0[0] < Math.max(h0[0], h1[0]) - 0.5;
+      if (inV && inH) n++;
+    }
+  }
+  return n;
+}
+function faceOf2(pt, box) {
+  const [x, y] = pt;
+  if (Math.abs(y - box.y) < 1.5) return "N";
+  if (Math.abs(y - (box.y + box.h)) < 1.5) return "S";
+  if (Math.abs(x - box.x) < 1.5) return "W";
+  if (Math.abs(x - (box.x + box.w)) < 1.5) return "E";
+  return null;
+}
+function uncrossSharedFaces(items, boxOf) {
+  const faces = /* @__PURE__ */ new Map();
+  items.forEach((it, i) => {
+    if (it.raw.length < 2) return;
+    for (const [id2, pt, end] of [
+      [it.from, it.raw[0], "a"],
+      [it.to, it.raw[it.raw.length - 1], "b"]
+    ]) {
+      const box = boxOf(id2);
+      const side = box && faceOf2(pt, box);
+      if (!side) continue;
+      const k = `${id2}:${side}:${end}`;
+      faces.set(k, [...faces.get(k) ?? [], i]);
+    }
+  });
+  const out = [];
+  for (const [key, idxs] of faces) {
+    if (idxs.length !== 2) continue;
+    const [i, j] = idxs;
+    const a = items[i], b = items[j];
+    const before = routeCrossings(a.refined, b.refined);
+    if (!before) continue;
+    const end = key.endsWith(":a") ? 0 : 1;
+    const horizontalFace = key.includes(":N:") || key.includes(":S:");
+    const axis = horizontalFace ? 0 : 1;
+    const at = (r2) => end === 0 ? 0 : r2.length - 1;
+    const ai = at(a.raw), bi = at(b.raw);
+    const pa = a.raw[ai][axis], pb = b.raw[bi][axis];
+    if (Math.abs(pa - pb) < 1e-6) continue;
+    const shifted = (r2, k, to) => {
+      const copy2 = r2.map((p) => [...p]);
+      const stub = end === 0 ? 1 : r2.length - 2;
+      copy2[k][axis] = to;
+      if (stub >= 0 && stub < copy2.length && Math.abs(r2[stub][axis] - r2[k][axis]) < 1.5) {
+        copy2[stub][axis] = to;
+      }
+      return copy2;
+    };
+    const ra = a.refine(shifted(a.raw, ai, pb));
+    const rb = b.refine(shifted(b.raw, bi, pa));
+    if (ra.length && rb.length && routeCrossings(ra, rb) < before) {
+      out.push({ index: i, route: ra }, { index: j, route: rb });
+    }
+  }
+  return out;
+}
+function absorbPortJog(route, fromBox, toBox) {
+  let pts = route.map((p) => [p[0], p[1]]);
+  const fix = (atStart, box) => {
+    if (!box || pts.length < 4) return;
+    const idx = atStart ? [0, 1, 2, 3] : [pts.length - 1, pts.length - 2, pts.length - 3, pts.length - 4];
+    const [p0, p1, p2, p3] = idx.map((k) => pts[k]);
+    const onN = Math.abs(p0[1] - box.y) < 1.5, onS = Math.abs(p0[1] - (box.y + box.h)) < 1.5;
+    const onW = Math.abs(p0[0] - box.x) < 1.5, onE = Math.abs(p0[0] - (box.x + box.w)) < 1.5;
+    const vertFace = onN || onS;
+    if (!vertFace && !onW && !onE) return;
+    const a = vertFace ? 0 : 1;
+    const perp = 1 - a;
+    const stub = Math.abs(p1[perp] - p0[perp]);
+    if (Math.abs(p1[a] - p0[a]) > 1.5 || stub < 0.5 || stub > 40) return;
+    if (Math.abs(p2[perp] - p1[perp]) > 1.5) return;
+    if (Math.abs(p3[a] - p2[a]) > 1.5) return;
+    const jog = Math.abs(p2[a] - p1[a]);
+    if (jog < 0.5) return;
+    const INSET = 6;
+    const lo = (a === 0 ? box.x : box.y) + INSET;
+    const hi = (a === 0 ? box.x + box.w : box.y + box.h) - INSET;
+    if (p2[a] < lo || p2[a] > hi) return;
+    p0[a] = p2[a];
+    p1[a] = p2[a];
+  };
+  fix(true, fromBox);
+  fix(false, toBox);
+  pts = pts.filter((p, i) => i === 0 || Math.abs(p[0] - pts[i - 1][0]) > 0.5 || Math.abs(p[1] - pts[i - 1][1]) > 0.5);
+  const out = [];
+  for (const p of pts) {
+    const n = out.length;
+    if (n >= 2) {
+      const a = out[n - 2], b = out[n - 1];
+      const collinear = Math.abs(a[0] - b[0]) < 0.5 && Math.abs(b[0] - p[0]) < 0.5 || Math.abs(a[1] - b[1]) < 0.5 && Math.abs(b[1] - p[1]) < 0.5;
+      if (collinear) out.pop();
+    }
+    out.push(p);
+  }
+  return out;
+}
+
+// ../../packages/deltagraph/src/board/layoutMetrics.ts
+var DG_LAYOUT_WEIGHTS = { violation: 10, crossing: 3, backEdge: 2, bend: 1, aspectOver3: 4 };
+function dgLayoutMetrics(doc, axis = "TB") {
+  const report = dgAnalyzeRouting(doc);
+  const debugBy = new Map((doc.diagnostics?.debug?.edges ?? []).map((e) => [e.id, e]));
+  const nodeAt = new Map(report.nodes.map((n) => [n.slug, n]));
+  const issuesBy = /* @__PURE__ */ new Map();
+  for (const v of report.violations) (issuesBy.get(v.edgeId) ?? issuesBy.set(v.edgeId, []).get(v.edgeId)).push(v);
+  const crossBy = /* @__PURE__ */ new Map();
+  let crossings = 0;
+  for (let i = 0; i < report.edges.length; i++) {
+    for (let j = i + 1; j < report.edges.length; j++) {
+      const c = routeCrossings(report.edges[i].pts, report.edges[j].pts);
+      if (!c) continue;
+      crossings += c;
+      crossBy.set(report.edges[i].id, (crossBy.get(report.edges[i].id) ?? 0) + c);
+      crossBy.set(report.edges[j].id, (crossBy.get(report.edges[j].id) ?? 0) + c);
+    }
+  }
+  const perEdge = report.edges.map((e) => {
+    let length2 = 0;
+    for (let k = 1; k < e.pts.length; k++) length2 += Math.abs(e.pts[k][0] - e.pts[k - 1][0]) + Math.abs(e.pts[k][1] - e.pts[k - 1][1]);
+    const a = e.from ? nodeAt.get(e.from) : void 0, b = e.to ? nodeAt.get(e.to) : void 0;
+    const centre = (n) => axis === "LR" ? (n.x1 + n.x2) / 2 : (n.y1 + n.y2) / 2;
+    const backward = !!(a && b && a !== b && centre(b) < centre(a) - 1);
+    const dbg = debugBy.get(e.id);
+    return {
+      id: e.id,
+      from: e.from,
+      to: e.to,
+      label: e.label === e.id ? "" : e.label,
+      bends: Math.max(0, e.pts.length - 2),
+      length: Math.round(length2),
+      crossings: crossBy.get(e.id) ?? 0,
+      backward,
+      ...dbg?.method ? { method: dbg.method } : {},
+      ...dbg?.refinedBy?.length ? { refinedBy: dbg.refinedBy } : {},
+      issues: (issuesBy.get(e.id) ?? []).map((v) => `${v.kind}${v.node ? ` (${v.node})` : ""}: ${v.detail}`)
+    };
+  });
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const n of report.nodes) {
+    x0 = Math.min(x0, n.x1);
+    y0 = Math.min(y0, n.y1);
+    x1 = Math.max(x1, n.x2);
+    y1 = Math.max(y1, n.y2);
+  }
+  for (const e of report.edges) for (const [px, py] of e.pts) {
+    x0 = Math.min(x0, px);
+    y0 = Math.min(y0, py);
+    x1 = Math.max(x1, px);
+    y1 = Math.max(y1, py);
+  }
+  const width = Number.isFinite(x0) ? Math.round(x1 - x0) : 0, height = Number.isFinite(y0) ? Math.round(y1 - y0) : 0;
+  const aspect = width && height ? Math.round(Math.max(width, height) / Math.min(width, height) * 100) / 100 : 1;
+  const byKind = {};
+  for (const v of report.violations) byKind[v.kind] = (byKind[v.kind] ?? 0) + 1;
+  const bends = perEdge.reduce((s, e) => s + e.bends, 0);
+  const backEdges = perEdge.filter((e) => e.backward).length;
+  const dropped = perEdge.filter((e) => e.method === "dropped").length;
+  const W2 = DG_LAYOUT_WEIGHTS;
+  const score = Math.round(
+    (report.violations.length + dropped) * W2.violation + crossings * W2.crossing + backEdges * W2.backEdge + bends * W2.bend + (report.nodes.length >= 4 ? Math.max(0, aspect - 3) * W2.aspectOver3 : 0)
+  );
+  return { nodes: report.nodes.length, edges: report.edges.length, width, height, aspect, crossings, bends, backEdges, violations: report.violations.length, byKind, dropped, score, perEdge };
 }
 
 // ../../packages/deltagraph/src/layout/networkSimplex.ts
@@ -10814,7 +11790,7 @@ var UNSUPPORTED_RE = new RegExp(
 function dgIsMindmap(src2) {
   return /^\s*mindmap\b/m.test(src2);
 }
-var SHAPES = [
+var SHAPES2 = [
   [/^\(\((.*)\)\)$/, DgElementType.Ellipse],
   // ((circle))
   [/^\)\)(.*)\(\($/, DgElementType.Ellipse],
@@ -10836,7 +11812,7 @@ function readNode(raw) {
     id2 = idm[1];
     s = idm[2];
   }
-  for (const [re, type] of SHAPES) {
+  for (const [re, type] of SHAPES2) {
     const m = re.exec(s);
     if (m) return { label: m[1].trim(), type, id: id2 };
   }
@@ -11913,257 +12889,6 @@ var DG_DETECTORS = {
   [DgSourceKind.Treemap]: dgIsTreemap
 };
 
-// ../../packages/deltagraph/src/board/routingQuality.ts
-var clock = () => {
-  try {
-    if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
-    if (typeof Date !== "undefined") return Date.now();
-  } catch {
-  }
-  return 0;
-};
-var SHAPES2 = /* @__PURE__ */ new Set([
-  DgElementType.Rectangle,
-  DgElementType.Ellipse,
-  DgElementType.Diamond
-]);
-var EDGES = /* @__PURE__ */ new Set([DgElementType.Arrow, DgElementType.Line]);
-var r = (n) => Math.round(n);
-function nodeBox(e) {
-  return {
-    id: e.id,
-    slug: e.data?.dsl ?? e.id,
-    label: (e.text ?? "").trim(),
-    x1: Math.min(e.x, e.x + e.w),
-    y1: Math.min(e.y, e.y + e.h),
-    x2: Math.max(e.x, e.x + e.w),
-    y2: Math.max(e.y, e.y + e.h)
-  };
-}
-function edgePolyline(e) {
-  return (e.points ?? []).map(([px, py]) => [e.x + px, e.y + py]);
-}
-function densify(pts, step) {
-  const out = [];
-  for (let i = 1; i < pts.length; i++) {
-    const [ax, ay] = pts[i - 1];
-    const [bx, by] = pts[i];
-    const len = Math.hypot(bx - ax, by - ay);
-    const k = Math.max(1, Math.round(len / step));
-    for (let j = i === 1 ? 0 : 1; j <= k; j++) out.push([ax + (bx - ax) * j / k, ay + (by - ay) * j / k]);
-  }
-  return out;
-}
-var SIDE_NAME = { W: "west", E: "east", N: "north", S: "south" };
-function faceOf(x, y, n, graze, inset) {
-  if (Math.abs(x - n.x1) < graze && y > n.y1 + inset && y < n.y2 - inset) return "W";
-  if (Math.abs(x - n.x2) < graze && y > n.y1 + inset && y < n.y2 - inset) return "E";
-  if (Math.abs(y - n.y1) < graze && x > n.x1 + inset && x < n.x2 - inset) return "N";
-  if (Math.abs(y - n.y2) < graze && x > n.x1 + inset && x < n.x2 - inset) return "S";
-  return "";
-}
-function maxFaceRun(samples, n, graze, inset) {
-  let cur = "";
-  let run = 0;
-  let mx = 0;
-  let side = "";
-  let at = null;
-  let start = null;
-  for (const [x, y] of samples) {
-    const f = faceOf(x, y, n, graze, inset);
-    if (f && f === cur) {
-      run++;
-    } else {
-      cur = f;
-      run = f ? 1 : 0;
-      start = f ? [x, y] : null;
-    }
-    if (run > mx) {
-      mx = run;
-      side = cur;
-      at = start && [r((start[0] + x) / 2), r((start[1] + y) / 2)];
-    }
-  }
-  return { runPx: mx, side, at };
-}
-function segCrossesCentre(a, b, n) {
-  const cx = (n.x1 + n.x2) / 2;
-  const cy = (n.y1 + n.y2) / 2;
-  const horizontal = Math.abs(b[1] - a[1]) < Math.abs(b[0] - a[0]);
-  if (horizontal) {
-    if (a[1] <= n.y1 || a[1] >= n.y2) return false;
-    return Math.min(a[0], b[0]) < cx && Math.max(a[0], b[0]) > cx;
-  }
-  if (a[0] <= n.x1 || a[0] >= n.x2) return false;
-  return Math.min(a[1], b[1]) < cy && Math.max(a[1], b[1]) > cy;
-}
-function segCrossesBox(a, b, n, inset) {
-  const x0 = n.x1 + inset;
-  const y0 = n.y1 + inset;
-  const x1 = n.x2 - inset;
-  const y1 = n.y2 - inset;
-  if (x1 <= x0 || y1 <= y0) return false;
-  const dx = b[0] - a[0];
-  const dy = b[1] - a[1];
-  const p = [-dx, dx, -dy, dy];
-  const q = [a[0] - x0, x1 - a[0], a[1] - y0, y1 - a[1]];
-  let t0 = 0;
-  let t1 = 1;
-  for (let i = 0; i < 4; i++) {
-    if (p[i] === 0) {
-      if (q[i] < 0) return false;
-    } else {
-      const t = q[i] / p[i];
-      if (p[i] < 0) {
-        if (t > t1) return false;
-        if (t > t0) t0 = t;
-      } else {
-        if (t < t0) return false;
-        if (t < t1) t1 = t;
-      }
-    }
-  }
-  return t0 < t1 - 1e-9;
-}
-function dgAnalyzeRouting(doc, opts = {}) {
-  const graze = opts.graze ?? 3;
-  const rideMin = opts.rideMin ?? 16;
-  const clipInset = opts.clipInset ?? 6;
-  const step = opts.step ?? 4;
-  const checkDiagonal = opts.checkDiagonal ?? true;
-  const detourRatio = opts.detourRatio ?? 2;
-  const nodes = doc.elements.filter((e) => SHAPES2.has(e.type) && !e.hidden).map(nodeBox);
-  const edges = doc.elements.filter((e) => EDGES.has(e.type) && !e.hidden).map((e) => ({ id: e.id, label: (e.text ?? "").trim() || e.id, pts: edgePolyline(e) }));
-  const violations = [];
-  const contains = (n, [x, y], pad) => x >= n.x1 - pad && x <= n.x2 + pad && y >= n.y1 - pad && y <= n.y2 + pad;
-  for (const e of edges) {
-    if (e.pts.length < 2) continue;
-    const p0 = e.pts[0];
-    const pN = e.pts[e.pts.length - 1];
-    const fromNode = nodes.find((n) => contains(n, p0, 4));
-    const toNode = nodes.find((n) => contains(n, pN, 4));
-    e.from = fromNode?.slug;
-    e.to = toNode?.slug;
-    const endpointIds = new Set([fromNode?.id, toNode?.id].filter(Boolean));
-    if (e.pts.length > 1) {
-      let travelled = 0;
-      for (let i = 1; i < e.pts.length; i++) {
-        travelled += Math.abs(e.pts[i][0] - e.pts[i - 1][0]) + Math.abs(e.pts[i][1] - e.pts[i - 1][1]);
-      }
-      const [sx, sy] = e.pts[0];
-      const [ex, ey] = e.pts[e.pts.length - 1];
-      const direct = Math.abs(ex - sx) + Math.abs(ey - sy);
-      if (direct > 120 && travelled > direct * detourRatio) {
-        violations.push({
-          kind: "detour",
-          edgeId: e.id,
-          edge: e.label,
-          detail: `travels ${r(travelled)}px for a ${r(direct)}px span (${(travelled / direct).toFixed(1)}x)`
-        });
-      }
-    }
-    if (checkDiagonal) {
-      for (let i = 1; i < e.pts.length; i++) {
-        const [ax, ay] = e.pts[i - 1];
-        const [bx, by] = e.pts[i];
-        if (Math.abs(bx - ax) > 1.5 && Math.abs(by - ay) > 1.5) {
-          violations.push({
-            kind: "diagonal",
-            edgeId: e.id,
-            edge: e.label,
-            detail: `segment ${i} isn't axis-aligned ((${r(ax)},${r(ay)})\u2192(${r(bx)},${r(by)}))`
-          });
-          break;
-        }
-      }
-    }
-    const samples = densify(e.pts, step);
-    for (const n of nodes) {
-      const { runPx: runSamples, side, at } = maxFaceRun(samples, n, graze, 4);
-      const px = (runSamples - 1) * step;
-      if (px >= rideMin) {
-        if (endpointIds.has(n.id)) {
-          violations.push({
-            kind: "port-hug",
-            edgeId: e.id,
-            edge: e.label,
-            node: n.slug,
-            detail: `rides its own ${SIDE_NAME[side]} edge ~${r(px)}px near ${JSON.stringify(at)} before leaving \u2014 should step off perpendicular`
-          });
-        } else {
-          violations.push({
-            kind: "foreign-ride",
-            edgeId: e.id,
-            edge: e.label,
-            node: n.slug,
-            detail: `rides the ${SIDE_NAME[side]} edge of a node it doesn't touch ~${r(px)}px near ${JSON.stringify(at)}`
-          });
-        }
-      }
-    }
-    const last2 = e.pts.length - 1;
-    for (const n of nodes) {
-      const isSource = n.id === fromNode?.id;
-      const isTarget = n.id === toNode?.id;
-      for (let i = 1; i <= last2; i++) {
-        const terminal = isSource && i === 1 || isTarget && i === last2;
-        const hit = terminal ? segCrossesCentre(e.pts[i - 1], e.pts[i], n) : segCrossesBox(e.pts[i - 1], e.pts[i], n, clipInset);
-        if (!hit) continue;
-        violations.push({
-          kind: "node-clip",
-          edgeId: e.id,
-          edge: e.label,
-          node: n.slug,
-          detail: terminal ? `approaches its own ${isSource ? "source" : "target"} from the far side, crossing the body to reach the port` : `segment ${i} passes through the node body`
-        });
-        break;
-      }
-    }
-  }
-  return { nodes, edges, violations };
-}
-var dgNowMs = clock;
-function dgBuildDiagnostics(doc, phase, debug, now = clock) {
-  const a0 = now();
-  const report = dgAnalyzeRouting(doc);
-  const analyzeMs = now() - a0;
-  const byKind = {};
-  for (const v of report.violations) byKind[v.kind] = (byKind[v.kind] ?? 0) + 1;
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const n of report.nodes) {
-    if (n.x1 < x0) x0 = n.x1;
-    if (n.y1 < y0) y0 = n.y1;
-    if (n.x2 > x1) x1 = n.x2;
-    if (n.y2 > y1) y1 = n.y2;
-  }
-  for (const e of report.edges) for (const [px, py] of e.pts) {
-    if (px < x0) x0 = px;
-    if (py < y0) y0 = py;
-    if (px > x1) x1 = px;
-    if (py > y1) y1 = py;
-  }
-  const bbox = Number.isFinite(x0) ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : { x: 0, y: 0, w: 0, h: 0 };
-  return {
-    nodes: report.nodes.length,
-    edges: report.edges.length,
-    zones: doc.elements.filter((e) => e.type === DgElementType.Zone && !e.hidden).length,
-    bbox,
-    routing: {
-      clean: report.violations.length === 0,
-      total: report.violations.length,
-      byKind,
-      violations: report.violations.map((v) => ({ kind: v.kind, edgeId: v.edgeId, edge: v.edge, node: v.node, detail: v.detail }))
-    },
-    timings: {
-      layoutMs: Math.round(phase.layoutMs * 100) / 100,
-      refineMs: Math.round(phase.refineMs * 100) / 100,
-      analyzeMs: Math.round(analyzeMs * 100) / 100,
-      totalMs: Math.round((phase.buildMs + analyzeMs) * 100) / 100
-    },
-    ...debug ? { debug } : {}
-  };
-}
-
 // ../../packages/deltagraph/src/board/sequenceBoard.ts
 var MARGIN = 26;
 var HEADER_H = 40;
@@ -12171,597 +12896,6 @@ var LIFELINE_TOP = MARGIN + HEADER_H;
 var STEP0 = LIFELINE_TOP + 34;
 var HEAD2 = /* @__PURE__ */ new Set(["sync" /* Sync */, "return" /* Return */, "async" /* Async */]);
 var DASHED = /* @__PURE__ */ new Set(["return" /* Return */, "dashed" /* Dashed */]);
-
-// ../../packages/deltagraph/src/board/connectorRouting.ts
-function pushClearOfForeignNodes(route, obstacles, allBoxes = obstacles) {
-  const n = route.length;
-  if (n < 4) return route;
-  const GRAZE = 24;
-  const CLEAR = 64;
-  const pts = route.map((p) => [p[0], p[1]]);
-  const SNAP = 9;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const a = pts[i - 1], b = pts[i];
-    const dx = Math.abs(b[0] - a[0]), dy = Math.abs(b[1] - a[1]);
-    if (dx >= dy && dy > 0 && dy <= SNAP) b[1] = a[1];
-    else if (dy > dx && dx > 0 && dx <= SNAP) b[0] = a[0];
-  }
-  const isV = (a, b) => Math.abs(a[0] - b[0]) < 1.5 && Math.abs(a[1] - b[1]) > 3;
-  const isH = (a, b) => Math.abs(a[1] - b[1]) < 1.5 && Math.abs(a[0] - b[0]) > 3;
-  const clipCount = (horizontal, cross, lo, hi) => {
-    let c = 0;
-    for (const o of obstacles) {
-      if (horizontal) {
-        if (lo < o.x + o.w - 1 && hi > o.x + 1 && cross > o.y + 1 && cross < o.y + o.h - 1) c++;
-      } else if (lo < o.y + o.h - 1 && hi > o.y + 1 && cross > o.x + 1 && cross < o.x + o.w - 1) c++;
-    }
-    return c;
-  };
-  const laneOff = (edge, dir, lo, hi, pushX) => {
-    let bound = dir < 0 ? -Infinity : Infinity;
-    for (const o of allBoxes) {
-      const oLo = pushX ? o.x : o.y;
-      const oHi = oLo + (pushX ? o.w : o.h);
-      const ocLo = pushX ? o.y : o.x;
-      const ocHi = ocLo + (pushX ? o.h : o.w);
-      if (ocHi <= lo + 1 || ocLo >= hi - 1) continue;
-      if (dir < 0 && oHi <= edge + 0.5) bound = Math.max(bound, oHi);
-      else if (dir > 0 && oLo >= edge - 0.5) bound = Math.min(bound, oLo);
-    }
-    const want = edge + dir * CLEAR;
-    if (!Number.isFinite(bound)) return want;
-    const MIN = 12;
-    const gap = Math.abs(bound - edge);
-    if (gap < MIN * 2) return (edge + bound) / 2;
-    return dir < 0 ? Math.max(want, Math.min(edge - MIN, bound + MIN)) : Math.min(want, Math.max(edge + MIN, bound - MIN));
-  };
-  for (let i = 1; i <= n - 3; i++) {
-    const a = pts[i], b = pts[i + 1];
-    if (isV(a, b)) {
-      const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-      let nx = a[0];
-      for (const o of obstacles) {
-        if (!(y0 < o.y + o.h - 2 && y1 > o.y + 2)) continue;
-        const cx = o.x + o.w / 2;
-        if (a[0] <= cx) {
-          if (o.x - a[0] < GRAZE) nx = Math.min(nx, laneOff(o.x, -1, y0, y1, true));
-        } else {
-          if (a[0] - (o.x + o.w) < GRAZE) nx = Math.max(nx, laneOff(o.x + o.w, 1, y0, y1, true));
-        }
-      }
-      if (nx !== a[0] && clipCount(false, nx, y0, y1) <= clipCount(false, a[0], y0, y1)) {
-        a[0] = nx;
-        b[0] = nx;
-      }
-    } else if (isH(a, b)) {
-      const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-      let ny = a[1];
-      for (const o of obstacles) {
-        if (!(x0 < o.x + o.w - 2 && x1 > o.x + 2)) continue;
-        const cy = o.y + o.h / 2;
-        if (a[1] <= cy) {
-          if (o.y - a[1] < GRAZE) ny = Math.min(ny, laneOff(o.y, -1, x0, x1, false));
-        } else {
-          if (a[1] - (o.y + o.h) < GRAZE) ny = Math.max(ny, laneOff(o.y + o.h, 1, x0, x1, false));
-        }
-      }
-      if (ny !== a[1] && clipCount(true, ny, x0, x1) <= clipCount(true, a[1], x0, x1)) {
-        a[1] = ny;
-        b[1] = ny;
-      }
-    }
-  }
-  return pts;
-}
-function detourAroundForeignZones(route, zones, nodeBoxes = []) {
-  const n = route.length;
-  if (n < 4 || zones.length === 0) return route;
-  const CLEAR = 24;
-  const pts = route.map((p) => [p[0], p[1]]);
-  const OVERSHOOT = 0.5;
-  const spanX = [Math.min(route[0][0], route[n - 1][0]), Math.max(route[0][0], route[n - 1][0])];
-  const spanY = [Math.min(route[0][1], route[n - 1][1]), Math.max(route[0][1], route[n - 1][1])];
-  const overshoot = (v, span) => v < span[0] - 1 || v > span[1] + 1 ? OVERSHOOT : 0;
-  const clips = (horizontal, cross, lo, hi) => {
-    let c = 0;
-    for (const o of nodeBoxes) {
-      if (horizontal) {
-        if (lo < o.x + o.w - 1 && hi > o.x + 1 && cross > o.y + 1 && cross < o.y + o.h - 1) c++;
-      } else if (lo < o.y + o.h - 1 && hi > o.y + 1 && cross > o.x + 1 && cross < o.x + o.w - 1) c++;
-    }
-    return c;
-  };
-  for (let i = 1; i <= n - 3; i++) {
-    const a = pts[i], b = pts[i + 1];
-    if (Math.abs(a[1] - b[1]) < 1.5 && Math.abs(a[0] - b[0]) > 3) {
-      const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-      const corridor = zones.filter((z) => x0 < z.x + z.w && x1 > z.x);
-      const grazes = corridor.some((z) => a[1] > z.y - 2 && a[1] < z.y + z.h + 2);
-      if (grazes && corridor.length) {
-        const up = Math.min(...corridor.map((z) => z.y)) - CLEAR;
-        const down = Math.max(...corridor.map((z) => z.y + z.h)) + CLEAR;
-        const pref = a[1] - up < (down - a[1]) * 0.75 ? up : down;
-        const pv = pts[i - 1], nv = pts[i + 2];
-        const costAt = (ny2) => {
-          let c = clips(true, ny2, x0, x1) + overshoot(ny2, spanY);
-          if (pv) c += clips(false, a[0], Math.min(pv[1], ny2), Math.max(pv[1], ny2));
-          if (nv) c += clips(false, b[0], Math.min(ny2, nv[1]), Math.max(ny2, nv[1]));
-          return c;
-        };
-        const cu = costAt(up), cd = costAt(down);
-        const ny = cu < cd ? up : cd < cu ? down : pref;
-        if (costAt(ny) <= costAt(a[1])) {
-          a[1] = ny;
-          b[1] = ny;
-        }
-      }
-    } else if (Math.abs(a[0] - b[0]) < 1.5 && Math.abs(a[1] - b[1]) > 3) {
-      const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-      const corridor = zones.filter((z) => y0 < z.y + z.h && y1 > z.y);
-      const grazes = corridor.some((z) => a[0] > z.x - 2 && a[0] < z.x + z.w + 2);
-      if (grazes && corridor.length) {
-        const left = Math.min(...corridor.map((z) => z.x)) - CLEAR;
-        const right = Math.max(...corridor.map((z) => z.x + z.w)) + CLEAR;
-        const pref = a[0] - left < (right - a[0]) * 0.75 ? left : right;
-        const pv = pts[i - 1], nv = pts[i + 2];
-        const costAt = (nx2) => {
-          let c = clips(false, nx2, y0, y1) + overshoot(nx2, spanX);
-          if (pv) c += clips(true, a[1], Math.min(pv[0], nx2), Math.max(pv[0], nx2));
-          if (nv) c += clips(true, b[1], Math.min(nx2, nv[0]), Math.max(nx2, nv[0]));
-          return c;
-        };
-        const cl = costAt(left), cr = costAt(right);
-        const nx = cl < cr ? left : cr < cl ? right : pref;
-        if (costAt(nx) <= costAt(a[0])) {
-          a[0] = nx;
-          b[0] = nx;
-        }
-      }
-    }
-  }
-  return pts;
-}
-function stepOffEndpointFaces(route, srcBox, dstBox, allBoxes) {
-  const GRAZE = 4;
-  const STEP = 22;
-  const MIN = GRAZE + 4;
-  const pts = [];
-  for (const p of route) {
-    const last2 = pts[pts.length - 1];
-    if (!last2 || Math.abs(last2[0] - p[0]) > 0.01 || Math.abs(last2[1] - p[1]) > 0.01) pts.push([p[0], p[1]]);
-  }
-  const isV = (a, b) => Math.abs(a[0] - b[0]) < 2 && Math.abs(a[1] - b[1]) > 3;
-  const isH = (a, b) => Math.abs(a[1] - b[1]) < 2 && Math.abs(a[0] - b[0]) > 3;
-  const lane = (box, dir, axis, spanLo, spanHi) => {
-    const lo = axis === "x" ? box.x : box.y;
-    const size2 = axis === "x" ? box.w : box.h;
-    const edge = dir < 0 ? lo : lo + size2;
-    let bound = dir < 0 ? -Infinity : Infinity;
-    for (const o of allBoxes) {
-      const oLo = axis === "x" ? o.x : o.y;
-      const oHi = oLo + (axis === "x" ? o.w : o.h);
-      const ocLo = axis === "x" ? o.y : o.x;
-      const ocHi = ocLo + (axis === "x" ? o.h : o.w);
-      if (ocHi <= spanLo + 1 || ocLo >= spanHi - 1) continue;
-      if (dir < 0 && oHi <= edge + 0.5) bound = Math.max(bound, oHi);
-      else if (dir > 0 && oLo >= edge - 0.5) bound = Math.min(bound, oLo);
-    }
-    if (!Number.isFinite(bound)) return edge + dir * STEP;
-    const mid = (edge + bound) / 2;
-    return dir < 0 ? Math.min(edge - MIN, Math.max(bound + MIN, mid)) : Math.max(edge + MIN, Math.min(bound - MIN, mid));
-  };
-  const clearOwn = (box, fromStart) => {
-    if (!box || pts.length < 3) return;
-    const portIdx = fromStart ? 0 : pts.length - 1;
-    const scan = fromStart ? [0, 1, 2] : [pts.length - 2, pts.length - 3, pts.length - 4];
-    for (const i of scan) {
-      if (i < 0 || i + 1 >= pts.length) continue;
-      const a = pts[i], b = pts[i + 1];
-      let nx = null;
-      let ny = null;
-      if (isV(a, b)) {
-        const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-        if (!(y0 < box.y + box.h - 2 && y1 > box.y + 2)) continue;
-        if (Math.abs(a[0] - box.x) < GRAZE) nx = lane(box, -1, "x", y0, y1);
-        else if (Math.abs(a[0] - (box.x + box.w)) < GRAZE) nx = lane(box, 1, "x", y0, y1);
-      } else if (isH(a, b)) {
-        const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-        if (!(x0 < box.x + box.w - 2 && x1 > box.x + 2)) continue;
-        if (Math.abs(a[1] - box.y) < GRAZE) ny = lane(box, -1, "y", x0, x1);
-        else if (Math.abs(a[1] - (box.y + box.h)) < GRAZE) ny = lane(box, 1, "y", x0, x1);
-      }
-      if (nx === null && ny === null) continue;
-      const touchesPort = i === portIdx || i + 1 === portIdx;
-      if (!touchesPort) {
-        if (nx !== null) {
-          a[0] = nx;
-          b[0] = nx;
-        } else {
-          a[1] = ny;
-          b[1] = ny;
-        }
-        return;
-      }
-      const port = pts[portIdx];
-      const nonPort = i === portIdx ? i + 1 : i;
-      if (nx !== null) {
-        pts[nonPort] = [nx, pts[nonPort][1]];
-        pts.splice(fromStart ? 1 : pts.length - 1, 0, [nx, port[1]]);
-      } else {
-        pts[nonPort] = [pts[nonPort][0], ny];
-        pts.splice(fromStart ? 1 : pts.length - 1, 0, [port[0], ny]);
-      }
-      return;
-    }
-  };
-  clearOwn(srcBox, true);
-  clearOwn(dstBox, false);
-  return pts;
-}
-function straightenFacingApproach(route, fromBox, toBox, foreignNodes = []) {
-  if (!fromBox || !toBox || route.length < 2) return route;
-  const p0 = route[0], pN = route[route.length - 1];
-  const EPS = 3;
-  const faceOf3 = (pt, b) => {
-    if (Math.abs(pt[0] - b.x) < EPS) return "W";
-    if (Math.abs(pt[0] - (b.x + b.w)) < EPS) return "E";
-    if (Math.abs(pt[1] - b.y) < EPS) return "N";
-    if (Math.abs(pt[1] - (b.y + b.h)) < EPS) return "S";
-    return null;
-  };
-  const fa = faceOf3(p0, fromBox), ta = faceOf3(pN, toBox);
-  const M = 8;
-  const clearRun = (horizontal, cross, lo, hi) => {
-    for (const o of foreignNodes) {
-      if (horizontal) {
-        if (lo < o.x + o.w + M && hi > o.x - M && cross > o.y - M && cross < o.y + o.h + M) return false;
-      } else if (lo < o.y + o.h + M && hi > o.y - M && cross > o.x - M && cross < o.x + o.w + M) return false;
-    }
-    return true;
-  };
-  if (fa === "E" && ta === "W" || fa === "W" && ta === "E") {
-    const lo = Math.max(fromBox.y, toBox.y), hi = Math.min(fromBox.y + fromBox.h, toBox.y + toBox.h);
-    if (hi - lo > 8 && Math.abs(p0[1] - pN[1]) > EPS) {
-      const y = Math.min(hi - 4, Math.max(lo + 4, (p0[1] + pN[1]) / 2));
-      if (clearRun(true, y, Math.min(p0[0], pN[0]), Math.max(p0[0], pN[0]))) return [[p0[0], y], [pN[0], y]];
-    }
-  }
-  if (fa === "S" && ta === "N" || fa === "N" && ta === "S") {
-    const lo = Math.max(fromBox.x, toBox.x), hi = Math.min(fromBox.x + fromBox.w, toBox.x + toBox.w);
-    if (hi - lo > 8 && Math.abs(p0[0] - pN[0]) > EPS) {
-      const x = Math.min(hi - 4, Math.max(lo + 4, (p0[0] + pN[0]) / 2));
-      if (clearRun(false, x, Math.min(p0[1], pN[1]), Math.max(p0[1], pN[1]))) return [[x, p0[1]], [x, pN[1]]];
-    }
-  }
-  return route;
-}
-function orthogonalizeApproach(route, fromBox, toBox) {
-  if (route.length < 2) return route;
-  const pts = route.map((p) => [p[0], p[1]]);
-  const EPS = 3;
-  const diag = (a, b) => Math.abs(a[0] - b[0]) > 1.5 && Math.abs(a[1] - b[1]) > 1.5;
-  const faceHorizontal = (pt, box) => {
-    if (!box) return null;
-    if (Math.abs(pt[0] - box.x) < EPS || Math.abs(pt[0] - (box.x + box.w)) < EPS) return true;
-    if (Math.abs(pt[1] - box.y) < EPS || Math.abs(pt[1] - (box.y + box.h)) < EPS) return false;
-    return null;
-  };
-  const n = pts.length;
-  if (diag(pts[n - 2], pts[n - 1])) {
-    const port = pts[n - 1], prev = pts[n - 2];
-    const corner = faceHorizontal(port, toBox) === false ? [port[0], prev[1]] : [prev[0], port[1]];
-    pts.splice(n - 1, 0, corner);
-  }
-  if (diag(pts[0], pts[1])) {
-    const port = pts[0], next = pts[1];
-    const corner = faceHorizontal(port, fromBox) === false ? [port[0], next[1]] : [next[0], port[1]];
-    pts.splice(1, 0, corner);
-  }
-  for (let i = 0; i < pts.length - 1; i++) {
-    if (diag(pts[i], pts[i + 1])) {
-      pts.splice(i + 1, 0, [pts[i + 1][0], pts[i][1]]);
-      i++;
-    }
-  }
-  return pts;
-}
-var inBox = (p, b) => p[0] > b.x && p[0] < b.x + b.w && p[1] > b.y && p[1] < b.y + b.h;
-function faceHit(outside, inside, b) {
-  if (Math.abs(outside[0] - inside[0]) < Math.abs(outside[1] - inside[1])) {
-    return [inside[0], outside[1] < inside[1] ? b.y : b.y + b.h];
-  }
-  return [outside[0] < inside[0] ? b.x : b.x + b.w, inside[1]];
-}
-function crossesCentre(a, b, box) {
-  const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
-  if (Math.abs(b[1] - a[1]) < Math.abs(b[0] - a[0])) {
-    if (a[1] <= box.y || a[1] >= box.y + box.h) return false;
-    return Math.min(a[0], b[0]) < cx && Math.max(a[0], b[0]) > cx;
-  }
-  if (a[0] <= box.x || a[0] >= box.x + box.w) return false;
-  return Math.min(a[1], b[1]) < cy && Math.max(a[1], b[1]) > cy;
-}
-function clipToEndpointFaces(route, fromBox, toBox) {
-  let pts = route;
-  if (toBox && pts.length >= 2) {
-    const n = pts.length - 1;
-    const bad = crossesCentre(pts[n - 1], pts[n], toBox) || pts.slice(0, n).some((q, i) => i > 0 && inBox(q, toBox));
-    if (bad) {
-      let enter = -1;
-      for (let i = 0; i < pts.length; i++) {
-        if (!inBox(pts[i], toBox) && !(i === pts.length - 1)) {
-          enter = i;
-          continue;
-        }
-        break;
-      }
-      if (enter >= 0 && enter < pts.length - 1) {
-        pts = [...pts.slice(0, enter + 1), faceHit(pts[enter], pts[enter + 1], toBox)];
-      }
-    }
-  }
-  if (fromBox && pts.length >= 2) {
-    const bad = crossesCentre(pts[1], pts[0], fromBox) || pts.slice(1).some((q, i) => i < pts.length - 2 && inBox(q, fromBox));
-    if (bad) {
-      let exit = -1;
-      for (let i = pts.length - 1; i >= 0; i--) {
-        if (!inBox(pts[i], fromBox) && i !== 0) {
-          exit = i;
-          continue;
-        }
-        break;
-      }
-      if (exit > 0) pts = [faceHit(pts[exit], pts[exit - 1], fromBox), ...pts.slice(exit)];
-    }
-  }
-  return pts === route ? route : simplifyRoute(pts);
-}
-function simplifyRoute(pts) {
-  if (pts.length < 3) return pts;
-  const out = [pts[0]];
-  for (let i = 1; i < pts.length - 1; i++) {
-    const a = out[out.length - 1], b = pts[i], c = pts[i + 1];
-    const collinear = Math.abs(a[0] - b[0]) < 0.01 && Math.abs(b[0] - c[0]) < 0.01 || Math.abs(a[1] - b[1]) < 0.01 && Math.abs(b[1] - c[1]) < 0.01;
-    if (!collinear) out.push(b);
-  }
-  out.push(pts[pts.length - 1]);
-  return out;
-}
-function segHits(a, b, box, inset) {
-  const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-  const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-  return x1 > box.x + inset && x0 < box.x + box.w - inset && y1 > box.y + inset && y0 < box.y + box.h - inset;
-}
-function ridesFace(a, b, box) {
-  const NEAR = 2.5;
-  const MIN = 8;
-  if (Math.abs(a[1] - b[1]) < 1.5) {
-    if (Math.abs(a[1] - box.y) > NEAR && Math.abs(a[1] - (box.y + box.h)) > NEAR) return false;
-    const lo = Math.max(Math.min(a[0], b[0]), box.x);
-    const hi = Math.min(Math.max(a[0], b[0]), box.x + box.w);
-    return hi - lo > MIN;
-  }
-  if (Math.abs(a[0] - b[0]) < 1.5) {
-    if (Math.abs(a[0] - box.x) > NEAR && Math.abs(a[0] - (box.x + box.w)) > NEAR) return false;
-    const lo = Math.max(Math.min(a[1], b[1]), box.y);
-    const hi = Math.min(Math.max(a[1], b[1]), box.y + box.h);
-    return hi - lo > MIN;
-  }
-  return false;
-}
-function straightenStaircase(route, p) {
-  const blockers = [...p.foreignNodes ?? [], ...p.foreignZones ?? []];
-  const ends = [p.fromBox, p.toBox].filter((b) => !!b);
-  let pts = route;
-  for (let pass = 0; pass < 4; pass++) {
-    let changed = false;
-    for (let i = 0; i + 3 < pts.length; i++) {
-      const [a, b, c, d] = [pts[i], pts[i + 1], pts[i + 2], pts[i + 3]];
-      const abV = Math.abs(a[0] - b[0]) < 1.5, cdV = Math.abs(c[0] - d[0]) < 1.5;
-      if (abV !== cdV) continue;
-      for (const corner of [[a[0], d[1]], [d[0], a[1]]]) {
-        const okAxis = (Math.abs(a[0] - corner[0]) < 1.5 || Math.abs(a[1] - corner[1]) < 1.5) && (Math.abs(corner[0] - d[0]) < 1.5 || Math.abs(corner[1] - d[1]) < 1.5);
-        if (!okAxis) continue;
-        const vert = (p2, q) => Math.abs(p2[0] - q[0]) < 1.5;
-        if (i === 0 && vert(a, corner) !== abV) continue;
-        if (i + 3 === pts.length - 1 && vert(corner, d) !== cdV) continue;
-        const hit = blockers.some((o) => segHits(a, corner, o, 1) || segHits(corner, d, o, 1)) || ends.some((o) => i > 0 && segHits(a, corner, o, 2) || i + 3 < pts.length - 1 && segHits(corner, d, o, 2)) || ends.some((o) => ridesFace(a, corner, o) || ridesFace(corner, d, o));
-        if (hit) continue;
-        pts = [...pts.slice(0, i + 1), corner, ...pts.slice(i + 3)];
-        changed = true;
-        break;
-      }
-      if (changed) break;
-    }
-    if (!changed) break;
-  }
-  return pts === route ? route : simplifyRoute(pts);
-}
-function refineRoute(route, p) {
-  let r2 = straightenFacingApproach(route, p.fromBox, p.toBox, p.foreignNodes);
-  r2 = orthogonalizeApproach(r2, p.fromBox, p.toBox);
-  r2 = detourAroundForeignZones(r2, p.foreignZones, p.foreignNodes);
-  r2 = pushClearOfForeignNodes(r2, p.foreignNodes, p.allNodes);
-  r2 = stepOffEndpointFaces(r2, p.fromBox, p.toBox, p.allNodes);
-  r2 = clipToEndpointFaces(r2, p.fromBox, p.toBox);
-  r2 = straightenStaircase(r2, p);
-  return simplifyRoute(r2);
-}
-var sameRoute = (a, b) => a.length === b.length && a.every((q, i) => Math.abs(q[0] - b[i][0]) < 0.01 && Math.abs(q[1] - b[i][1]) < 0.01);
-function refineRouteTraced(route, p) {
-  const changedBy = [];
-  let r2 = route;
-  const step = (name, out) => {
-    if (!sameRoute(r2, out)) changedBy.push(name);
-    r2 = out;
-  };
-  step("straightenFacingApproach", straightenFacingApproach(r2, p.fromBox, p.toBox, p.foreignNodes));
-  step("orthogonalizeApproach", orthogonalizeApproach(r2, p.fromBox, p.toBox));
-  step("detourAroundForeignZones", detourAroundForeignZones(r2, p.foreignZones, p.foreignNodes));
-  step("pushClearOfForeignNodes", pushClearOfForeignNodes(r2, p.foreignNodes, p.allNodes));
-  step("stepOffEndpointFaces", stepOffEndpointFaces(r2, p.fromBox, p.toBox, p.allNodes));
-  step("clipToEndpointFaces", clipToEndpointFaces(r2, p.fromBox, p.toBox));
-  step("straightenStaircase", straightenStaircase(r2, p));
-  return { route: r2, changedBy };
-}
-function trunkRun(pts) {
-  let best = null;
-  for (let i = 2; i < pts.length - 1; i++) {
-    const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
-    const dx = Math.abs(ax - bx), dy = Math.abs(ay - by);
-    const vertical = dx < 0.5;
-    if (!vertical && dy >= 0.5) continue;
-    const len = vertical ? dy : dx;
-    if (!best || len > best.len) best = { at: i, vertical, len };
-  }
-  return best ? { at: best.at, vertical: best.vertical } : null;
-}
-function separateReciprocalRoutes(routes, boxOf) {
-  const byPair = /* @__PURE__ */ new Map();
-  routes.forEach((r2, i) => {
-    if (r2.from === r2.to) return;
-    const k = r2.from < r2.to ? `${r2.from}\0${r2.to}` : `${r2.to}\0${r2.from}`;
-    byPair.set(k, [...byPair.get(k) ?? [], i]);
-  });
-  for (const idxs of byPair.values()) {
-    if (idxs.length !== 2) continue;
-    const [i, j] = idxs;
-    if (routes[i].from === routes[j].from) continue;
-    const a = boxOf(routes[i].from), b = boxOf(routes[i].to);
-    if (!a || !b) continue;
-    const ti = trunkRun(routes[i].pts), tj = trunkRun(routes[j].pts);
-    if (!ti || !tj || ti.vertical !== tj.vertical) continue;
-    const axis = ti.vertical ? 0 : 1;
-    const li = routes[i].pts[ti.at][axis], lj = routes[j].pts[tj.at][axis];
-    if (Math.abs(li - lj) > 1.5) continue;
-    const lo = axis === 0 ? Math.min(a.x + a.w, b.x + b.w) : Math.min(a.y + a.h, b.y + b.h);
-    const hi = axis === 0 ? Math.max(a.x, b.x) : Math.max(a.y, b.y);
-    const gap = hi - lo;
-    if (gap <= 4) continue;
-    const step = Math.min(20, Math.max(4, gap - 6)) / 2;
-    for (const [r2, t, dir] of [[routes[i], ti, -1], [routes[j], tj, 1]]) {
-      r2.pts[t.at - 1] = [...r2.pts[t.at - 1]];
-      r2.pts[t.at] = [...r2.pts[t.at]];
-      r2.pts[t.at - 1][axis] += step * dir;
-      r2.pts[t.at][axis] += step * dir;
-    }
-  }
-}
-function routeCrossings(p, q) {
-  const segs = (pts) => {
-    const o = [];
-    for (let i = 1; i < pts.length; i++) o.push([pts[i - 1], pts[i]]);
-    return o;
-  };
-  let n = 0;
-  for (const [a0, a1] of segs(p)) {
-    const av = Math.abs(a0[0] - a1[0]) < 0.5;
-    for (const [b0, b1] of segs(q)) {
-      const bv = Math.abs(b0[0] - b1[0]) < 0.5;
-      if (av === bv) continue;
-      const [v0, v1] = av ? [a0, a1] : [b0, b1];
-      const [h0, h1] = av ? [b0, b1] : [a0, a1];
-      const inV = h0[1] > Math.min(v0[1], v1[1]) + 0.5 && h0[1] < Math.max(v0[1], v1[1]) - 0.5;
-      const inH = v0[0] > Math.min(h0[0], h1[0]) + 0.5 && v0[0] < Math.max(h0[0], h1[0]) - 0.5;
-      if (inV && inH) n++;
-    }
-  }
-  return n;
-}
-function faceOf2(pt, box) {
-  const [x, y] = pt;
-  if (Math.abs(y - box.y) < 1.5) return "N";
-  if (Math.abs(y - (box.y + box.h)) < 1.5) return "S";
-  if (Math.abs(x - box.x) < 1.5) return "W";
-  if (Math.abs(x - (box.x + box.w)) < 1.5) return "E";
-  return null;
-}
-function uncrossSharedFaces(items, boxOf) {
-  const faces = /* @__PURE__ */ new Map();
-  items.forEach((it, i) => {
-    if (it.raw.length < 2) return;
-    for (const [id2, pt, end] of [
-      [it.from, it.raw[0], "a"],
-      [it.to, it.raw[it.raw.length - 1], "b"]
-    ]) {
-      const box = boxOf(id2);
-      const side = box && faceOf2(pt, box);
-      if (!side) continue;
-      const k = `${id2}:${side}:${end}`;
-      faces.set(k, [...faces.get(k) ?? [], i]);
-    }
-  });
-  const out = [];
-  for (const [key, idxs] of faces) {
-    if (idxs.length !== 2) continue;
-    const [i, j] = idxs;
-    const a = items[i], b = items[j];
-    const before = routeCrossings(a.refined, b.refined);
-    if (!before) continue;
-    const end = key.endsWith(":a") ? 0 : 1;
-    const horizontalFace = key.includes(":N:") || key.includes(":S:");
-    const axis = horizontalFace ? 0 : 1;
-    const at = (r2) => end === 0 ? 0 : r2.length - 1;
-    const ai = at(a.raw), bi = at(b.raw);
-    const pa = a.raw[ai][axis], pb = b.raw[bi][axis];
-    if (Math.abs(pa - pb) < 1e-6) continue;
-    const shifted = (r2, k, to) => {
-      const copy2 = r2.map((p) => [...p]);
-      const stub = end === 0 ? 1 : r2.length - 2;
-      copy2[k][axis] = to;
-      if (stub >= 0 && stub < copy2.length && Math.abs(r2[stub][axis] - r2[k][axis]) < 1.5) {
-        copy2[stub][axis] = to;
-      }
-      return copy2;
-    };
-    const ra = a.refine(shifted(a.raw, ai, pb));
-    const rb = b.refine(shifted(b.raw, bi, pa));
-    if (ra.length && rb.length && routeCrossings(ra, rb) < before) {
-      out.push({ index: i, route: ra }, { index: j, route: rb });
-    }
-  }
-  return out;
-}
-function absorbPortJog(route, fromBox, toBox) {
-  let pts = route.map((p) => [p[0], p[1]]);
-  const fix = (atStart, box) => {
-    if (!box || pts.length < 4) return;
-    const idx = atStart ? [0, 1, 2, 3] : [pts.length - 1, pts.length - 2, pts.length - 3, pts.length - 4];
-    const [p0, p1, p2, p3] = idx.map((k) => pts[k]);
-    const onN = Math.abs(p0[1] - box.y) < 1.5, onS = Math.abs(p0[1] - (box.y + box.h)) < 1.5;
-    const onW = Math.abs(p0[0] - box.x) < 1.5, onE = Math.abs(p0[0] - (box.x + box.w)) < 1.5;
-    const vertFace = onN || onS;
-    if (!vertFace && !onW && !onE) return;
-    const a = vertFace ? 0 : 1;
-    const perp = 1 - a;
-    const stub = Math.abs(p1[perp] - p0[perp]);
-    if (Math.abs(p1[a] - p0[a]) > 1.5 || stub < 0.5 || stub > 40) return;
-    if (Math.abs(p2[perp] - p1[perp]) > 1.5) return;
-    if (Math.abs(p3[a] - p2[a]) > 1.5) return;
-    const jog = Math.abs(p2[a] - p1[a]);
-    if (jog < 0.5) return;
-    const INSET = 6;
-    const lo = (a === 0 ? box.x : box.y) + INSET;
-    const hi = (a === 0 ? box.x + box.w : box.y + box.h) - INSET;
-    if (p2[a] < lo || p2[a] > hi) return;
-    p0[a] = p2[a];
-    p1[a] = p2[a];
-  };
-  fix(true, fromBox);
-  fix(false, toBox);
-  pts = pts.filter((p, i) => i === 0 || Math.abs(p[0] - pts[i - 1][0]) > 0.5 || Math.abs(p[1] - pts[i - 1][1]) > 0.5);
-  const out = [];
-  for (const p of pts) {
-    const n = out.length;
-    if (n >= 2) {
-      const a = out[n - 2], b = out[n - 1];
-      const collinear = Math.abs(a[0] - b[0]) < 0.5 && Math.abs(b[0] - p[0]) < 0.5 || Math.abs(a[1] - b[1]) < 0.5 && Math.abs(b[1] - p[1]) < 0.5;
-      if (collinear) out.pop();
-    }
-    out.push(p);
-  }
-  return out;
-}
 
 // ../../packages/deltagraph/src/board/geometry.ts
 var EDGE_LABEL_WRAP_CHARS = 26;
@@ -13040,7 +13174,7 @@ function dgParseDsl(dsl) {
     }
     const dm = /^direction\s*:\s*([a-z_-]+)$/i.exec(line);
     if (dm) {
-      directionDirective = toDgLayoutDirection(dm[1]);
+      directionDirective = dgKnownDirection(dm[1]);
       return;
     }
     const sg = /^(?:subgraph|group)\b\s*(.*)$/i.exec(line);
@@ -13116,7 +13250,14 @@ var DG_BUILD_DEFAULTS = {
   padTop: 36,
   padBottom: 20
 };
+var DG_AUTO_LR_MARGIN = 0.9;
 function dgBuildBoard(input, errors = []) {
+  if (input.direction === DgLayoutDirection.Auto) {
+    const td = dgBuildBoard({ ...input, direction: DgLayoutDirection.TopDown }, [...errors]);
+    const lr = dgBuildBoard({ ...input, direction: DgLayoutDirection.LeftRight }, [...errors]);
+    const tdScore = dgLayoutMetrics(td.doc, "TB").score, lrScore = dgLayoutMetrics(lr.doc, "LR").score;
+    return lrScore < tdScore * DG_AUTO_LR_MARGIN ? lr : td;
+  }
   const { nodes: pNodes, edges: pEdges, prev, theme, direction } = input;
   const groups = input.groups ?? [];
   const o = { ...DG_BUILD_DEFAULTS, ...input.options ?? {} };
@@ -13489,7 +13630,7 @@ function dgBuildBoard(input, errors = []) {
     // to A* look like a different bug, and the page connects neither.
     ...trace?.funnels.length ? { funnels: trace.funnels.map((f) => ({ ...f })) } : {}
   } : void 0;
-  doc.diagnostics = dgBuildDiagnostics(doc, { layoutMs, refineMs, buildMs: now() - buildStart }, debugInfo, now);
+  doc.diagnostics = { ...dgBuildDiagnostics(doc, { layoutMs, refineMs, buildMs: now() - buildStart }, debugInfo, now), axis: dgLayoutAxis(direction ?? DgLayoutDirection.Auto) };
   return { doc, errors };
 }
 
@@ -13515,7 +13656,14 @@ var ANCHORS = [
   { fx: 1, fy: 1 }
   // corners
 ];
-var BINDABLE = /* @__PURE__ */ new Set([DgElementType.Rectangle, DgElementType.Ellipse, DgElementType.Diamond, DgElementType.Sticky]);
+var BINDABLE = /* @__PURE__ */ new Set([
+  DgElementType.Rectangle,
+  DgElementType.Ellipse,
+  DgElementType.Diamond,
+  DgElementType.Sticky,
+  DgElementType.Timer,
+  DgElementType.Poll
+]);
 function anchorBox(el) {
   const b = elementAabb(el);
   if (el.type === DgElementType.Rectangle && el.data?.widget) {
@@ -14642,20 +14790,23 @@ var stamp = () => ({ id: `c_${Date.now().toString(36)}${Math.random().toString(3
 function addSticky(b, text, opts = {}) {
   if (!mayWrite(b, "sticky")) return null;
   const els = boardElements(b);
-  const mine = els.filter((e) => e.createdBy === b.id).length;
+  const mine = els.filter((e) => e.createdBy === b.id && e.type === DgElementType.Sticky).length;
   let x = 120, y = 120;
   const anchor = opts.near ? findElement(b, opts.near) : null;
-  if (anchor) {
+  if (opts.x !== void 0 && opts.y !== void 0) {
+    x = opts.x;
+    y = opts.y;
+  } else if (anchor) {
     const a = elementAabb(anchor);
     x = a.x + a.w + 24 + mine % 3 * 216;
     y = a.y + Math.floor(mine / 3) * 136;
   } else if (els.length) {
-    const onPage = els.filter((e) => opts.page ? e.page === opts.page : true);
+    const onPage = els.filter((e) => (opts.page ? e.page === opts.page : true) && e.createdBy !== b.id);
     const boxes = (onPage.length ? onPage : els).map(elementAabb);
-    const minX = Math.min(...boxes.map((r2) => r2.x));
-    const maxY = Math.max(...boxes.map((r2) => r2.y + r2.h));
-    x = minX + mine % 4 * 216;
-    y = maxY + 40 + Math.floor(mine / 4) * 136;
+    const maxX = Math.max(...boxes.map((r2) => r2.x + r2.w));
+    const minY = Math.min(...boxes.map((r2) => r2.y));
+    x = maxX + 80 + mine % 2 * 230;
+    y = minY + Math.floor(mine / 2) * 150;
   }
   const zs = els.map((e) => e.z);
   const el = makeElement(DgElementType.Sticky, Math.round(x), Math.round(y), 200, 120, zs, b.id);
@@ -14679,6 +14830,42 @@ function setText(b, ref, text) {
   m.set("updatedAt", Date.now());
   pointAt(b, el);
   log(`${b.name}: set ${el.id} to "${short(text)}"`);
+  return true;
+}
+function moveElement(b, ref, x, y) {
+  if (!mayWrite(b, "move")) return false;
+  const el = findElement(b, ref);
+  if (!el) {
+    log(`${b.name}: no element matches "${ref}"`);
+    return false;
+  }
+  const m = b.els.get(el.id);
+  if (!(m instanceof YMap)) return false;
+  b.doc.transact(() => {
+    m.set("x", Math.round(x));
+    m.set("y", Math.round(y));
+    m.set("updatedAt", Date.now());
+  });
+  pointAt(b, { ...el, x, y });
+  log(`${b.name}: moved ${el.id} to ${Math.round(x)},${Math.round(y)}`);
+  return true;
+}
+function resizeElement(b, ref, w, h) {
+  if (!mayWrite(b, "resize")) return false;
+  const el = findElement(b, ref);
+  if (!el) {
+    log(`${b.name}: no element matches "${ref}"`);
+    return false;
+  }
+  const m = b.els.get(el.id);
+  if (!(m instanceof YMap)) return false;
+  b.doc.transact(() => {
+    m.set("w", Math.max(20, Math.round(w)));
+    m.set("h", Math.max(20, Math.round(h)));
+    m.set("updatedAt", Date.now());
+  });
+  pointAt(b, el);
+  log(`${b.name}: resized ${el.id} to ${Math.round(w)}x${Math.round(h)}`);
   return true;
 }
 function vote(b, ref, remove = false) {
@@ -14810,6 +14997,7 @@ var CLOSE_REASON = {
   4001: "the owner removed this agent, or the share does not allow agents",
   4003: "the relay refused the agent's identity",
   4004: "the share was ended",
+  4010: "the share is full (200 people)",
   4006: "this agent is already in the room in another session",
   4007: "a newer session of this agent took over",
   4008: "the owner did not let this agent in",
@@ -14818,6 +15006,7 @@ var CLOSE_REASON = {
 function closeReason(code) {
   return CLOSE_REASON[code] ?? `the relay closed the room (${code})`;
 }
+var DOC_KEY = /^f_[a-z0-9]+_[a-z0-9]+$/i;
 var Rooms = class {
   constructor(joiner2, envRelay) {
     this.joiner = joiner2;
@@ -14862,6 +15051,9 @@ var Rooms = class {
   async join(req) {
     const relayOverride = req.relay || this.envRelay;
     if (!req.link && !req.code) throw new Error("pass a share link or a share code");
+    const given = (req.link ?? req.code ?? "").trim();
+    if (DOC_KEY.test(given)) throw new Error(`"${given}" is a document key, not a share. Ask for the share code (like KQ47-XMP0, from Share) or the full share link including everything after #.`);
+    if (req.link && !tokenFromInput(req.link) && normShareCode(req.link)) req = { ...req, code: req.link, link: void 0 };
     let payload = null;
     if (req.link) {
       const tok = tokenFromInput(req.link);
@@ -14975,6 +15167,8 @@ var BoardAction = /* @__PURE__ */ ((BoardAction2) => {
   BoardAction2["SetDiagram"] = "set_diagram";
   BoardAction2["EditDiagram"] = "edit_diagram";
   BoardAction2["Relayout"] = "relayout";
+  BoardAction2["Move"] = "move";
+  BoardAction2["Resize"] = "resize";
   return BoardAction2;
 })(BoardAction || {});
 var BOARD_ACTIONS = Object.values(BoardAction);
@@ -15005,7 +15199,7 @@ function toolList() {
         type: "object",
         properties: {
           link: { type: "string", description: "The share link, exactly as given, including everything after #." },
-          code: { type: "string", description: "A share code instead of a link." },
+          code: { type: "string", description: "A share code instead of a link: 8 letters and digits, the dash optional (KQ47-XMP0 or KQ47XMP0). A code passed as link works too. A document key (f_...) is not a share." },
           relay: { type: "string", description: "Relay websocket URL. Only needed for a localhost link (wss://beta.collab.submillisecond.com for local development)." }
         }
       },
@@ -15068,7 +15262,7 @@ function toolList() {
     {
       name: "deltalab_board" /* Board */,
       title: "Act on a board",
-      description: "Change a board. Actions: sticky (text, optional near=<ref> to place it beside an element), set_text (ref, text), vote / unvote (ref), comment (ref, text: a thread on an element), say (text: the board discussion), set_diagram (dsl: deltagraph DSL or a deltagraph link; placed nodes keep their place, stickies and frames are untouched), edit_diagram (ops: add_node, remove_node, rename, add_edge, remove_edge, set_direction, move_to_group, add_group), relayout. <ref> is an element id from deltalab_read, an id prefix, or the start of its text.",
+      description: "Change a board. Actions: sticky (text; it lands to the right of the board's content unless near=<ref> places it beside an element or x and y place it exactly), set_text (ref, text), vote / unvote (ref), move (ref, x, y: the element's top-left corner), resize (ref, w, h), comment (ref, text: a thread on an element), say (text: the board discussion), set_diagram (dsl: deltagraph DSL or a deltagraph link; placed nodes keep their place, stickies and frames are untouched), edit_diagram (ops: add_node, remove_node, rename, add_edge, remove_edge, set_direction, move_to_group, add_group), relayout (re-solves the whole diagram and drops positions people set; avoid it on an arranged board). Diagram node positions are written as @(x,y) in the DSL and set_diagram keeps them; the engine stacks each subgraph in its own band, so placing sections side by side means writing positions. move and resize suit stickies and anything the diagram does not own; set_diagram re-sizes diagram nodes from their labels. <ref> is an element id from deltalab_read, an id prefix, or the start of its text.",
       inputSchema: {
         type: "object",
         properties: {
@@ -15077,6 +15271,10 @@ function toolList() {
           ref: { type: "string", description: "Element to act on." },
           text: { type: "string" },
           near: { type: "string", description: "sticky: place it beside this element." },
+          x: { type: "number", description: "sticky, move: left edge in board units." },
+          y: { type: "number", description: "sticky, move: top edge in board units." },
+          w: { type: "number", description: "resize: width in board units." },
+          h: { type: "number", description: "resize: height in board units." },
           dsl: { type: "string", description: "set_diagram: deltagraph DSL, or a deltagraph viewer link." },
           ops: { type: "array", items: { type: "object" }, description: "edit_diagram: deltagraph edit operations." }
         },
@@ -15164,6 +15362,7 @@ function documentView(bot, from2, to, numbered = true) {
   ].join("\n");
 }
 var str = (v) => typeof v === "string" && v.length ? v : void 0;
+var num = (v) => typeof v === "number" && Number.isFinite(v) ? v : void 0;
 var int = (v) => typeof v === "number" && Number.isFinite(v) ? Math.trunc(v) : void 0;
 function needsDoc(room, bot) {
   if (isBoard(bot)) throw new Error(`${room.handle} is a board: use deltalab_board`);
@@ -15242,7 +15441,7 @@ ${text.replace(/\n*$/, "")}`);
         switch (action) {
           case "sticky" /* Sticky */: {
             if (!text) return fail("sticky needs text");
-            const el = addSticky(bot, text, { near: str(args2.near) });
+            const el = addSticky(bot, text, { near: str(args2.near), x: num(args2.x), y: num(args2.y) });
             return el ? ok(`added sticky ${el.id}`) : fail("could not add the sticky");
           }
           case "set_text" /* SetText */:
@@ -15272,6 +15471,16 @@ ${text.replace(/\n*$/, "")}`);
           case "relayout" /* Relayout */:
             relayout(bot);
             return ok("relaid out the diagram");
+          case "move" /* Move */: {
+            const x = num(args2.x), y = num(args2.y);
+            if (!ref || x === void 0 || y === void 0) return fail("move needs ref, x and y");
+            return moveElement(bot, ref, x, y) ? ok(`moved ${ref} to ${Math.round(x)},${Math.round(y)}`) : fail(`no element matches "${ref}"`);
+          }
+          case "resize" /* Resize */: {
+            const w = num(args2.w), h = num(args2.h);
+            if (!ref || w === void 0 || h === void 0) return fail("resize needs ref, w and h");
+            return resizeElement(bot, ref, w, h) ? ok(`resized ${ref} to ${Math.round(w)}x${Math.round(h)}`) : fail(`no element matches "${ref}"`);
+          }
         }
         return fail("unknown action");
       }
@@ -15307,7 +15516,7 @@ ${m.text}`;
 
 // agent/mcp/server.ts
 var MCP_PROTOCOL_VERSION = "2025-06-18";
-var MCP_SERVER_INFO = { name: "deltalab", title: "deltalab", version: "0.1.0" };
+var MCP_SERVER_INFO = { name: "deltalab", title: "deltalab", version: "0.2.0" };
 async function handleMcpMessage(rooms2, msg) {
   const req = msg;
   if (!req || req.jsonrpc !== "2.0" || typeof req.method !== "string") {

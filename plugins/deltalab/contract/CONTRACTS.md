@@ -35,12 +35,12 @@ omitted, it is the room joined most recently.
 
 | Tool | Arguments (required in bold) | Does |
 |---|---|---|
-| `deltalab_join` | `link` or `code`, `relay` | Join; returns handle `rN`, title, permission, who is here. A code waits in the lobby until the owner admits. |
+| `deltalab_join` | `link` or `code`, `relay` | Join; returns handle `rN`, title, permission, who is here. A code waits in the lobby until the owner admits. A code passed as `link` joins as a code; a document key (`f_...`) is refused by name. Codes go to the production relay. |
 | `deltalab_status` | - | Every room: state, permission, who is here, unread inbox. |
 | `deltalab_read` | `room`, `from_line`, `to_line`, `numbered` | Document: outline plus numbered lines. Board: elements, discussion, diagram DSL, viewer link. |
 | `deltalab_write` | `room`, **`text`**, `under_heading`, `after_line` | Direct write into a document. Refused unless permission is `edit`. |
 | `deltalab_suggest` | `room`, **`find`**, **`replace`**, `why` | Propose a replacement for the owner to accept. Refused for view-only. |
-| `deltalab_board` | `room`, **`action`**, `ref`, `text`, `near`, `dsl`, `ops` | Board change; `action` is one of `sticky`, `set_text`, `vote`, `unvote`, `comment`, `say`, `set_diagram`, `edit_diagram`, `relayout`. Refused unless `edit`. |
+| `deltalab_board` | `room`, **`action`**, `ref`, `text`, `near`, `x`, `y`, `w`, `h`, `dsl`, `ops` | Board change; `action` is one of `sticky`, `set_text`, `vote`, `unvote`, `comment`, `say`, `set_diagram`, `edit_diagram`, `relayout`, `move`, `resize`. A sticky lands right of the board's content unless `near` or `x`/`y` place it. `move` takes `ref`, `x`, `y`; `resize` takes `ref`, `w`, `h`. Refused unless `edit`. |
 | `deltalab_inbox` | `room`, `wait_seconds` (0-55) | Messages people wrote since the last call, each `[rN mK] author: text`. |
 | `deltalab_reply` | `room`, **`id`**, **`text`** | Answer an inbox message where it was written. |
 | `deltalab_leave` | `room` | Leave; presence clears at once. |
@@ -48,7 +48,7 @@ omitted, it is the room joined most recently.
 Room states in `deltalab_status`: `joining`, `waiting`, `live`, `closed`,
 `failed`. A closed room names why: removed by the owner (4001), identity refused
 (4003), share ended (4004), duplicate or replaced session (4006, 4007), not
-admitted (4008), rate limited (4029).
+admitted (4008), share full at 200 people (4010), rate limited (4029).
 
 Permissions: `edit` (write directly), `suggest` (a Review link, or the owner
 set the whole document to Review), `view`.
