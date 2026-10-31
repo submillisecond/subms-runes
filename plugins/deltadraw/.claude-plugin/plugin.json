@@ -1,0 +1,7 @@
+{
+  "name": "deltadraw",
+  "description": "deltadraw rune for Claude Code: dd (draw a picture - a scene, an illustration, a hand-drawn sketch - as a submillisecond.com/deltadraw URL; the scene travels in the URL fragment and the viewer compiles it). Installs the hosted deltadraw MCP server (check, url, png, svg, gif, pack, to_scene, symbols, spec; prompts draw, refine), so every drawing is compiled through the real engine and looked at as a PNG before it is handed over. Without MCP, a zero-dep dd-url script builds the link offline and dd-png fetches the picture (or one frame) and dd-gif the animation over plain HTTP, on Windows and POSIX.",
+  "version": "1.1.0",
+  "privacyPolicyUrl": "https://www.submillisecond.com/deltadraw/privacy",
+  "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" }
+}

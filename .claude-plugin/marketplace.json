@@ -32,6 +32,14 @@
       }
     },
     {
+      "name": "deltadraw",
+      "source": "./plugins/deltadraw",
+      "description": "deltadraw rune: dd (draw a picture - a scene, an illustration, a hand-drawn sketch - as a submillisecond.com/deltadraw URL; the scene travels in the URL fragment and the viewer compiles it, and it opens in deltalab as a painting you can keep working on). Installs the hosted deltadraw MCP server, so every drawing is compiled through the real engine and looked at as a PNG before it is handed over; scenes can animate (pages, tween) and render as GIFs. Without MCP, a zero-dep dd-url script builds the link offline and dd-png and dd-gif fetch a picture, a frame or an animation over plain HTTP, on Windows and POSIX.",
+      "author": {
+        "name": "Kieran Smith"
+      }
+    },
+    {
       "name": "deltalab",
       "source": "./plugins/deltalab",
       "description": "deltalab rune: deltalab (join a live deltalab document or board from a share link and work in it beside the people already there, as a named robot participant). A local MCP server in one bundled file (Node 22, no install) reads and writes the shared markdown, suggests changes when the owner has the document in Review, adds stickies, votes, comments and reshapes a board's diagram, and answers what people write to the agent. The share key stays on this machine; the relay only sees ciphertext.",

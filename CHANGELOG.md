@@ -8,6 +8,12 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Added
 
+- `deltadraw` `dd` skill: PNG and GIF renders now embed the serif, mono and hand faces plus italics, so the note that they drew everything as Inter is replaced with the one remaining gap (hand text has no bold or italic in a PNG).
+- `deltalab` `plugin.json` licence is `MIT`, matching the repo `LICENSE` and README; it said `MIT OR Apache-2.0` with no Apache text in the repo.
+- `deltalab` `plugin.json` carries `privacyPolicyUrl` (https://www.submillisecond.com/deltalab/privacy), which the other hosted-service packs already had.
+- README pack rows for `dg`, `dd` and `deltalab` cut to what each does; the install line names every pack instead of clipboard and imageverse only. CONTRIBUTING's lifecycle lost its bold step labels, the "AISkill-DLC" name and the emoji copied from the release workflow's title.
+- `deltadraw` 1.1.0: `dd-gif` (both backends) saves an animated GIF from the worker's `/gif` (`--mode pages|replay`, `--width`); `dd-png` takes `--page` / `-Page` for one frame of an animation. The `dd` skill documents the animation grammar (`page`, `tween`, `id`, `allframes`), text styles and `deltadraw_gif`. Contract test 101 checks, all passing; the live test gains a page render and a GIF.
+- `deltadraw` 1.0.0, rune `dd`: draw a picture as a `submillisecond.com/deltadraw` URL. Installs the hosted deltadraw MCP server (check, url, png, svg, pack, to_scene, symbols, spec; prompts draw, refine). `dd-url` builds the link offline and `dd-png` fetches the picture over HTTP, in .ps1 and .sh, both held by the contract test (79 checks). The nightly live test applies once `deltadraw.submillisecond.com` is deployed.
 - `deltalab` names a share that is full (200 people, close 4010) in `deltalab_status`.
 - `deltalab` 0.2.0: `deltalab_board` gains `move` (ref, x, y) and `resize` (ref, w, h), and `sticky` takes `x`/`y`. A sticky with no placement now lands in two columns right of the board's content; below it, the notes ended up under the diagram the next time it grew.
 - `deltalab_join` takes a code in either field and refuses a document key (`f_...`) by name, saying to ask for the code or the full link. A session lost three round trips to a pasted document key.
