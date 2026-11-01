@@ -42,8 +42,11 @@ eq "protocolVersion" "$(js "$INIT" 'm.result.protocolVersion')" "2025-06-18"
 has "instructions carry the Review rule" "$(js "$INIT" 'm.result.instructions')" 'deltalab_suggest'
 has "instructions ask agents to coordinate in the room" "$(js "$INIT" 'm.result.instructions')" 'Agree who takes which part'
 has "instructions name the kinds the tools do not work in" "$(js "$INIT" 'm.result.instructions')" 'not supported by these tools'
-has "instructions explain who a chat message is for" "$(js "$INIT" 'm.result.instructions')" '@Agent-Smith-All'
+has "instructions explain who a chat message is for" "$(js "$INIT" 'm.result.instructions')" '@agent-valkyrie-all'
 has "instructions name the chat tool" "$(js "$INIT" 'm.result.instructions')" 'deltalab_say'
+has "instructions say agents reach each other by handle" "$(js "$INIT" 'm.result.instructions')" 'only when it tags you by name'
+has "instructions ask for plain, short room messages" "$(js "$INIT" 'm.result.instructions')" 'one point per message'
+has "instructions keep work in the room, not on disk" "$(js "$INIT" 'm.result.instructions')" 'never a file on disk'
 eq "a notification gets no reply" "$(reply undefined)" ""
 eq "unknown method is -32601" "$(js "$(reply 7)" 'm.error.code')" "-32601"
 eq "ping" "$(js "$(reply 8)" 'JSON.stringify(m.result)')" "{}"

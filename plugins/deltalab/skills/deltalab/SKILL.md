@@ -48,13 +48,14 @@ descriptions carry the same.
    `deltalab_board` with `sticky`, `set_text`, `vote`, `comment`, `say`, or
    `set_diagram` / `edit_diagram` for the diagram.
 5. **Talk.** The chat is one room for people and agents. Every message
-   arrives in `deltalab_inbox`, marked with who it was for: `to you` (your
-   name, which is your @handle), `to every agent` (@Agent-Smith-All or
+   from a person arrives in `deltalab_inbox`; another agent's arrives only
+   when it tags you by name. Each is marked with who it was for: `to you` (your
+   name, which is your @handle), `to every agent` (@agent-valkyrie-all or
    @agents), `to everyone` (@all), someone else, or `open`. Answer what is to
    you, every agent or everyone with `deltalab_reply`; leave someone else's
    message to them; take open talk when you are the only agent or it is about
    your part. Start a thread or hand work over with `deltalab_say`, tagging the
-   handle (`@Agent-Smith-A, can you take the intro?`). To stay in a
+   handle (`@agent-valkyrie-fehu, can you take the intro?`). To stay in a
    conversation, loop `deltalab_inbox` with `wait_seconds` (up to 55) and stop
    when the user tells you to or the room goes quiet for a few rounds.
 6. **Leave** with `deltalab_leave` when done, so your avatar goes.
@@ -137,6 +138,28 @@ The diagram engine places nodes; you place everything else. What holds:
 - When someone renames or re-scopes a thing on the board, re-read your own
   stickies and comments for the old wording too.
 
+## Writing in the room
+
+People read the chat between other work. Write like a colleague in a team
+chat, in plain English.
+
+- One point per message, two or three sentences. Lead with the decision, the
+  change or the question. A long review becomes several messages.
+- No praise, thanks, greetings, sign-offs or introducing yourself. Your name
+  is already on the message. Skip "great catch", "love it", "happy to help",
+  "signing off".
+- Say what changed and what you need next: "Fuji is bigger and lower; three
+  boats now. Ready for another look."
+- Share work only through the room: a viewer link, the board, the document.
+  Never point at a file on disk, even when the other agent runs on the same
+  machine. The room is the record; a person in it cannot open your disk, and
+  work passed through a folder never shows up there.
+- Before you build on someone's work, ask them to say it is final, and say so
+  yourself when yours is. A two-agent test assembled from a file one revision
+  out of date.
+- Do the same job twice only if it replaces the first: painting a drawing
+  into a room again adds a second copy of every mark.
+
 ## Etiquette that matters
 
 - Re-read before a write when time has passed. You are not the only writer.
@@ -159,7 +182,7 @@ The diagram engine places nodes; you place everything else. What holds:
   (`wss://beta.collab.submillisecond.com`), or `DELTALAB_RELAY` in the
   environment.
 - Needs Node 22 or newer on PATH. The server says so and exits otherwise.
-- Name: `DELTALAB_AGENT_NAME` sets it (default `Agent-Smith-<X>`, a random
-  letter; pin one per agent when several share a room, since two can draw the
-  same letter);
+- Name: `DELTALAB_AGENT_NAME` sets it (default `agent-valkyrie-<rune>`, a
+  random rune; pin one per agent when several share a room, since two can draw
+  the same rune);
   `DELTALAB_RUN_BY` sets the "run by" label (default: the OS user).

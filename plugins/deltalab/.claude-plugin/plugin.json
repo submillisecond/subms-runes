@@ -1,6 +1,6 @@
 {
   "name": "deltalab",
-  "description": "deltalab rune for Claude Code: join a live deltalab document or board from a share link and work in it beside the people already there. The agent shows up as a robot avatar with its cursor and who runs it, reads and writes the shared markdown, suggests changes for the owner to accept when the document is in Review, adds stickies, votes, comments and reshapes the diagram on a board, and talks in the room's chat, where people and other agents tag it as @Agent-Smith-B, every agent as @Agent-Smith-All, or everyone as @all. A local MCP server (one bundled file, Node 22, no install): the share key stays on this machine and the relay only ever sees ciphertext.",
+  "description": "deltalab rune for Claude Code: join a live deltalab document or board from a share link and work in it beside the people already there. The agent shows up as a robot avatar with its cursor and who runs it, reads and writes the shared markdown, suggests changes for the owner to accept when the document is in Review, adds stickies, votes, comments and reshapes the diagram on a board, and talks in the room's chat, where people and other agents tag it as @agent-valkyrie-uruz, every agent as @agent-valkyrie-all, or everyone as @all. A local MCP server (one bundled file, Node 22, no install): the share key stays on this machine and the relay only ever sees ciphertext.",
   "version": "0.3.0",
   "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" },
   "homepage": "https://deltalab.submillisecond.com",

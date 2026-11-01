@@ -7,11 +7,11 @@ import { userInfo } from "node:os";
 // ../../node_modules/.pnpm/lib0@0.2.117/node_modules/lib0/map.js
 var create = () => /* @__PURE__ */ new Map();
 var copy = (m) => {
-  const r2 = create();
+  const r = create();
   m.forEach((v, k) => {
-    r2.set(k, v);
+    r.set(k, v);
   });
-  return r2;
+  return r;
 };
 var setIfUndefined = (map3, key2, createT) => {
   let set = map3.get(key2);
@@ -595,10 +595,10 @@ var readVarUint = (decoder) => {
   let mult = 1;
   const len = decoder.arr.length;
   while (decoder.pos < len) {
-    const r2 = decoder.arr[decoder.pos++];
-    num2 = num2 + (r2 & BITS7) * mult;
+    const r = decoder.arr[decoder.pos++];
+    num2 = num2 + (r & BITS7) * mult;
     mult *= 128;
-    if (r2 < BIT8) {
+    if (r < BIT8) {
       return num2;
     }
     if (num2 > MAX_SAFE_INTEGER) {
@@ -608,19 +608,19 @@ var readVarUint = (decoder) => {
   throw errorUnexpectedEndOfArray;
 };
 var readVarInt = (decoder) => {
-  let r2 = decoder.arr[decoder.pos++];
-  let num2 = r2 & BITS6;
+  let r = decoder.arr[decoder.pos++];
+  let num2 = r & BITS6;
   let mult = 64;
-  const sign2 = (r2 & BIT7) > 0 ? -1 : 1;
-  if ((r2 & BIT8) === 0) {
+  const sign2 = (r & BIT7) > 0 ? -1 : 1;
+  if ((r & BIT8) === 0) {
     return sign2 * num2;
   }
   const len = decoder.arr.length;
   while (decoder.pos < len) {
-    r2 = decoder.arr[decoder.pos++];
-    num2 = num2 + (r2 & BITS7) * mult;
+    r = decoder.arr[decoder.pos++];
+    num2 = num2 + (r & BITS7) * mult;
     mult *= 128;
-    if (r2 < BIT8) {
+    if (r < BIT8) {
       return sign2 * num2;
     }
     if (num2 > MAX_SAFE_INTEGER) {
@@ -1237,8 +1237,8 @@ var DeleteItem = class {
    * @param {number} clock
    * @param {number} len
    */
-  constructor(clock2, len) {
-    this.clock = clock2;
+  constructor(clock, len) {
+    this.clock = clock;
     this.len = len;
   }
 };
@@ -1260,15 +1260,15 @@ var iterateDeletedStructs = (transaction, ds, f) => ds.clients.forEach((deletes,
     }
   }
 });
-var findIndexDS = (dis, clock2) => {
+var findIndexDS = (dis, clock) => {
   let left = 0;
   let right = dis.length - 1;
   while (left <= right) {
     const midindex = floor((left + right) / 2);
     const mid = dis[midindex];
     const midclock = mid.clock;
-    if (midclock <= clock2) {
-      if (clock2 < midclock + mid.len) {
+    if (midclock <= clock) {
+      if (clock < midclock + mid.len) {
         return midindex;
       }
       left = midindex + 1;
@@ -1317,11 +1317,11 @@ var mergeDeleteSets = (dss) => {
   sortAndMergeDeleteSet(merged);
   return merged;
 };
-var addToDeleteSet = (ds, client, clock2, length2) => {
+var addToDeleteSet = (ds, client, clock, length2) => {
   setIfUndefined(ds.clients, client, () => (
     /** @type {Array<DeleteItem>} */
     []
-  )).push(new DeleteItem(clock2, length2));
+  )).push(new DeleteItem(clock, length2));
 };
 var createDeleteSet = () => new DeleteSet();
 var createDeleteSetFromStructStore = (ss) => {
@@ -1331,14 +1331,14 @@ var createDeleteSetFromStructStore = (ss) => {
     for (let i = 0; i < structs.length; i++) {
       const struct = structs[i];
       if (struct.deleted) {
-        const clock2 = struct.id.clock;
+        const clock = struct.id.clock;
         let len = struct.length;
         if (i + 1 < structs.length) {
           for (let next = structs[i + 1]; i + 1 < structs.length && next.deleted; next = structs[++i + 1]) {
             len += next.length;
           }
         }
-        dsitems.push(new DeleteItem(clock2, len));
+        dsitems.push(new DeleteItem(clock, len));
       }
     }
     if (dsitems.length > 0) {
@@ -1390,16 +1390,16 @@ var readAndApplyDeleteSet = (decoder, transaction, store) => {
     const structs = store.clients.get(client) || [];
     const state = getState(store, client);
     for (let i2 = 0; i2 < numberOfDeletes; i2++) {
-      const clock2 = decoder.readDsClock();
-      const clockEnd = clock2 + decoder.readDsLen();
-      if (clock2 < state) {
+      const clock = decoder.readDsClock();
+      const clockEnd = clock + decoder.readDsLen();
+      if (clock < state) {
         if (state < clockEnd) {
           addToDeleteSet(unappliedDS, client, state, clockEnd - state);
         }
-        let index = findIndexSS(structs, clock2);
+        let index = findIndexSS(structs, clock);
         let struct = structs[index];
-        if (!struct.deleted && struct.id.clock < clock2) {
-          structs.splice(index + 1, 0, splitItem(transaction, struct, clock2 - struct.id.clock));
+        if (!struct.deleted && struct.id.clock < clock) {
+          structs.splice(index + 1, 0, splitItem(transaction, struct, clock - struct.id.clock));
           index++;
         }
         while (index < structs.length) {
@@ -1416,7 +1416,7 @@ var readAndApplyDeleteSet = (decoder, transaction, store) => {
           }
         }
       } else {
-        addToDeleteSet(unappliedDS, client, clock2, clockEnd - clock2);
+        addToDeleteSet(unappliedDS, client, clock, clockEnd - clock);
       }
     }
   }
@@ -1944,8 +1944,8 @@ var DSEncoderV1 = class {
   /**
    * @param {number} clock
    */
-  writeDsClock(clock2) {
-    writeVarUint(this.restEncoder, clock2);
+  writeDsClock(clock) {
+    writeVarUint(this.restEncoder, clock);
   }
   /**
    * @param {number} len
@@ -2047,9 +2047,9 @@ var DSEncoderV2 = class {
   /**
    * @param {number} clock
    */
-  writeDsClock(clock2) {
-    const diff = clock2 - this.dsCurrVal;
-    this.dsCurrVal = clock2;
+  writeDsClock(clock) {
+    const diff = clock - this.dsCurrVal;
+    this.dsCurrVal = clock;
     writeVarUint(this.restEncoder, diff);
   }
   /**
@@ -2176,32 +2176,32 @@ var UpdateEncoderV2 = class extends DSEncoderV2 {
    * @param {string} key
    */
   writeKey(key2) {
-    const clock2 = this.keyMap.get(key2);
-    if (clock2 === void 0) {
+    const clock = this.keyMap.get(key2);
+    if (clock === void 0) {
       this.keyClockEncoder.write(this.keyClock++);
       this.stringEncoder.write(key2);
     } else {
-      this.keyClockEncoder.write(clock2);
+      this.keyClockEncoder.write(clock);
     }
   }
 };
-var writeStructs = (encoder, structs, client, clock2) => {
-  clock2 = max(clock2, structs[0].id.clock);
-  const startNewStructs = findIndexSS(structs, clock2);
+var writeStructs = (encoder, structs, client, clock) => {
+  clock = max(clock, structs[0].id.clock);
+  const startNewStructs = findIndexSS(structs, clock);
   writeVarUint(encoder.restEncoder, structs.length - startNewStructs);
   encoder.writeClient(client);
-  writeVarUint(encoder.restEncoder, clock2);
+  writeVarUint(encoder.restEncoder, clock);
   const firstStruct = structs[startNewStructs];
-  firstStruct.write(encoder, clock2 - firstStruct.id.clock);
+  firstStruct.write(encoder, clock - firstStruct.id.clock);
   for (let i = startNewStructs + 1; i < structs.length; i++) {
     structs[i].write(encoder, 0);
   }
 };
 var writeClientsStructs = (encoder, store, _sm) => {
   const sm = /* @__PURE__ */ new Map();
-  _sm.forEach((clock2, client) => {
-    if (getState(store, client) > clock2) {
-      sm.set(client, clock2);
+  _sm.forEach((clock, client) => {
+    if (getState(store, client) > clock) {
+      sm.set(client, clock);
     }
   });
   getStateVector(store).forEach((_clock, client) => {
@@ -2210,13 +2210,13 @@ var writeClientsStructs = (encoder, store, _sm) => {
     }
   });
   writeVarUint(encoder.restEncoder, sm.size);
-  from(sm.entries()).sort((a, b) => b[0] - a[0]).forEach(([client, clock2]) => {
+  from(sm.entries()).sort((a, b) => b[0] - a[0]).forEach(([client, clock]) => {
     writeStructs(
       encoder,
       /** @type {Array<GC|Item>} */
       store.clients.get(client),
       client,
-      clock2
+      clock
     );
   });
 };
@@ -2227,27 +2227,27 @@ var readClientsStructRefs = (decoder, doc) => {
     const numberOfStructs = readVarUint(decoder.restDecoder);
     const refs = new Array(numberOfStructs);
     const client = decoder.readClient();
-    let clock2 = readVarUint(decoder.restDecoder);
+    let clock = readVarUint(decoder.restDecoder);
     clientRefs.set(client, { i: 0, refs });
     for (let i2 = 0; i2 < numberOfStructs; i2++) {
       const info = decoder.readInfo();
       switch (BITS5 & info) {
         case 0: {
           const len = decoder.readLen();
-          refs[i2] = new GC(createID(client, clock2), len);
-          clock2 += len;
+          refs[i2] = new GC(createID(client, clock), len);
+          clock += len;
           break;
         }
         case 10: {
           const len = readVarUint(decoder.restDecoder);
-          refs[i2] = new Skip(createID(client, clock2), len);
-          clock2 += len;
+          refs[i2] = new Skip(createID(client, clock), len);
+          clock += len;
           break;
         }
         default: {
           const cantCopyParentInfo = (info & (BIT7 | BIT8)) === 0;
           const struct = new Item(
-            createID(client, clock2),
+            createID(client, clock),
             null,
             // left
             (info & BIT8) === BIT8 ? decoder.readLeftID() : null,
@@ -2264,7 +2264,7 @@ var readClientsStructRefs = (decoder, doc) => {
             // item content
           );
           refs[i2] = struct;
-          clock2 += struct.length;
+          clock += struct.length;
         }
       }
     }
@@ -2302,10 +2302,10 @@ var integrateStructs = (transaction, store, clientsStructRefs) => {
   }
   const restStructs = new StructStore();
   const missingSV = /* @__PURE__ */ new Map();
-  const updateMissingSv = (client, clock2) => {
+  const updateMissingSv = (client, clock) => {
     const mclock = missingSV.get(client);
-    if (mclock == null || mclock > clock2) {
-      missingSV.set(client, clock2);
+    if (mclock == null || mclock > clock) {
+      missingSV.set(client, clock);
     }
   };
   let stackHead = (
@@ -2400,17 +2400,17 @@ var readUpdateV2 = (decoder, ydoc, transactionOrigin, structDecoder = new Update
   const restStructs = integrateStructs(transaction, store, ss);
   const pending = store.pendingStructs;
   if (pending) {
-    for (const [client, clock2] of pending.missing) {
-      if (clock2 < getState(store, client)) {
+    for (const [client, clock] of pending.missing) {
+      if (clock < getState(store, client)) {
         retry = true;
         break;
       }
     }
     if (restStructs) {
-      for (const [client, clock2] of restStructs.missing) {
+      for (const [client, clock] of restStructs.missing) {
         const mclock = pending.missing.get(client);
-        if (mclock == null || mclock > clock2) {
-          pending.missing.set(client, clock2);
+        if (mclock == null || mclock > clock) {
+          pending.missing.set(client, clock);
         }
       }
       pending.update = mergeUpdatesV2([pending.update, restStructs.update]);
@@ -2474,17 +2474,17 @@ var readStateVector = (decoder) => {
   const ssLength = readVarUint(decoder.restDecoder);
   for (let i = 0; i < ssLength; i++) {
     const client = readVarUint(decoder.restDecoder);
-    const clock2 = readVarUint(decoder.restDecoder);
-    ss.set(client, clock2);
+    const clock = readVarUint(decoder.restDecoder);
+    ss.set(client, clock);
   }
   return ss;
 };
 var decodeStateVector = (decodedState) => readStateVector(new DSDecoderV1(createDecoder(decodedState)));
 var writeStateVector = (encoder, sv) => {
   writeVarUint(encoder.restEncoder, sv.size);
-  from(sv.entries()).sort((a, b) => b[0] - a[0]).forEach(([client, clock2]) => {
+  from(sv.entries()).sort((a, b) => b[0] - a[0]).forEach(([client, clock]) => {
     writeVarUint(encoder.restEncoder, client);
-    writeVarUint(encoder.restEncoder, clock2);
+    writeVarUint(encoder.restEncoder, clock);
   });
   return encoder;
 };
@@ -2519,13 +2519,13 @@ var ID = class {
    * @param {number} client client id
    * @param {number} clock unique per client id, continuous number
    */
-  constructor(client, clock2) {
+  constructor(client, clock) {
     this.client = client;
-    this.clock = clock2;
+    this.clock = clock;
   }
 };
 var compareIDs = (a, b) => a === b || a !== null && b !== null && a.client === b.client && a.clock === b.clock;
-var createID = (client, clock2) => new ID(client, clock2);
+var createID = (client, clock) => new ID(client, clock);
 var findRootTypeKey = (type) => {
   for (const [key2, value] of type.doc.share.entries()) {
     if (value === type) {
@@ -2687,9 +2687,9 @@ var splitSnapshotAffectedStructs = (transaction, snapshot) => {
   const meta = setIfUndefined(transaction.meta, splitSnapshotAffectedStructs, create2);
   const store = transaction.doc.store;
   if (!meta.has(snapshot)) {
-    snapshot.sv.forEach((clock2, client) => {
-      if (clock2 < getState(store, client)) {
-        getItemCleanStart(transaction, createID(client, clock2));
+    snapshot.sv.forEach((clock, client) => {
+      if (clock < getState(store, client)) {
+        getItemCleanStart(transaction, createID(client, clock));
       }
     });
     iterateDeletedStructs(transaction, snapshot.ds, (_item) => {
@@ -2733,20 +2733,20 @@ var addStruct = (store, struct) => {
   }
   structs.push(struct);
 };
-var findIndexSS = (structs, clock2) => {
+var findIndexSS = (structs, clock) => {
   let left = 0;
   let right = structs.length - 1;
   let mid = structs[right];
   let midclock = mid.id.clock;
-  if (midclock === clock2) {
+  if (midclock === clock) {
     return right;
   }
-  let midindex = floor(clock2 / (midclock + mid.length - 1) * right);
+  let midindex = floor(clock / (midclock + mid.length - 1) * right);
   while (left <= right) {
     mid = structs[midindex];
     midclock = mid.id.clock;
-    if (midclock <= clock2) {
-      if (clock2 < midclock + mid.length) {
+    if (midclock <= clock) {
+      if (clock < midclock + mid.length) {
         return midindex;
       }
       left = midindex + 1;
@@ -2765,11 +2765,11 @@ var getItem = (
   /** @type {function(StructStore,ID):Item} */
   find
 );
-var findIndexCleanStart = (transaction, structs, clock2) => {
-  const index = findIndexSS(structs, clock2);
+var findIndexCleanStart = (transaction, structs, clock) => {
+  const index = findIndexSS(structs, clock);
   const struct = structs[index];
-  if (struct.id.clock < clock2 && struct instanceof Item) {
-    structs.splice(index + 1, 0, splitItem(transaction, struct, clock2 - struct.id.clock));
+  if (struct.id.clock < clock && struct instanceof Item) {
+    structs.splice(index + 1, 0, splitItem(transaction, struct, clock - struct.id.clock));
     return index + 1;
   }
   return index;
@@ -2836,7 +2836,7 @@ var Transaction = class {
   }
 };
 var writeUpdateMessageFromTransaction = (encoder, transaction) => {
-  if (transaction.deleteSet.clients.size === 0 && !any(transaction.afterState, (clock2, client) => transaction.beforeState.get(client) !== clock2)) {
+  if (transaction.deleteSet.clients.size === 0 && !any(transaction.afterState, (clock, client) => transaction.beforeState.get(client) !== clock)) {
     return false;
   }
   sortAndMergeDeleteSet(transaction.deleteSet);
@@ -2960,9 +2960,9 @@ var cleanupTransactions = (transactionCleanups, i) => {
         tryGcDeleteSet(ds, store, doc.gcFilter);
       }
       tryMergeDeleteSet(ds, store);
-      transaction.afterState.forEach((clock2, client) => {
+      transaction.afterState.forEach((clock, client) => {
         const beforeClock = transaction.beforeState.get(client) || 0;
-        if (beforeClock !== clock2) {
+        if (beforeClock !== clock) {
           const structs = (
             /** @type {Array<GC|Item>} */
             store.clients.get(client)
@@ -2974,12 +2974,12 @@ var cleanupTransactions = (transactionCleanups, i) => {
         }
       });
       for (let i2 = mergeStructs.length - 1; i2 >= 0; i2--) {
-        const { client, clock: clock2 } = mergeStructs[i2].id;
+        const { client, clock } = mergeStructs[i2].id;
         const structs = (
           /** @type {Array<GC|Item>} */
           store.clients.get(client)
         );
-        const replacedStructPos = findIndexSS(structs, clock2);
+        const replacedStructPos = findIndexSS(structs, clock);
         if (replacedStructPos + 1 < structs.length) {
           if (tryToMergeWithLefts(structs, replacedStructPos + 1) > 1) {
             continue;
@@ -3061,17 +3061,17 @@ function* lazyStructReaderGenerator(decoder) {
   for (let i = 0; i < numOfStateUpdates; i++) {
     const numberOfStructs = readVarUint(decoder.restDecoder);
     const client = decoder.readClient();
-    let clock2 = readVarUint(decoder.restDecoder);
+    let clock = readVarUint(decoder.restDecoder);
     for (let i2 = 0; i2 < numberOfStructs; i2++) {
       const info = decoder.readInfo();
       if (info === 10) {
         const len = readVarUint(decoder.restDecoder);
-        yield new Skip(createID(client, clock2), len);
-        clock2 += len;
+        yield new Skip(createID(client, clock), len);
+        clock += len;
       } else if ((BITS5 & info) !== 0) {
         const cantCopyParentInfo = (info & (BIT7 | BIT8)) === 0;
         const struct = new Item(
-          createID(client, clock2),
+          createID(client, clock),
           null,
           // left
           (info & BIT8) === BIT8 ? decoder.readLeftID() : null,
@@ -3089,11 +3089,11 @@ function* lazyStructReaderGenerator(decoder) {
           // item content
         );
         yield struct;
-        clock2 += struct.length;
+        clock += struct.length;
       } else {
         const len = decoder.readLen();
-        yield new GC(createID(client, clock2), len);
-        clock2 += len;
+        yield new GC(createID(client, clock), len);
+        clock += len;
       }
     }
   }
@@ -3148,21 +3148,21 @@ var LazyStructWriter = class {
 var mergeUpdates = (updates) => mergeUpdatesV2(updates, UpdateDecoderV1, UpdateEncoderV1);
 var sliceStruct = (left, diff) => {
   if (left.constructor === GC) {
-    const { client, clock: clock2 } = left.id;
-    return new GC(createID(client, clock2 + diff), left.length - diff);
+    const { client, clock } = left.id;
+    return new GC(createID(client, clock + diff), left.length - diff);
   } else if (left.constructor === Skip) {
-    const { client, clock: clock2 } = left.id;
-    return new Skip(createID(client, clock2 + diff), left.length - diff);
+    const { client, clock } = left.id;
+    return new Skip(createID(client, clock + diff), left.length - diff);
   } else {
     const leftItem = (
       /** @type {Item} */
       left
     );
-    const { client, clock: clock2 } = leftItem.id;
+    const { client, clock } = leftItem.id;
     return new Item(
-      createID(client, clock2 + diff),
+      createID(client, clock + diff),
       null,
-      createID(client, clock2 + diff - 1),
+      createID(client, clock + diff - 1),
       null,
       leftItem.rightOrigin,
       leftItem.parent,
@@ -4957,15 +4957,15 @@ var cleanupYTextAfterTransaction = (transaction) => {
   const needFullCleanup = /* @__PURE__ */ new Set();
   const doc = transaction.doc;
   for (const [client, afterClock] of transaction.afterState.entries()) {
-    const clock2 = transaction.beforeState.get(client) || 0;
-    if (afterClock === clock2) {
+    const clock = transaction.beforeState.get(client) || 0;
+    if (afterClock === clock) {
       continue;
     }
     iterateStructs(
       transaction,
       /** @type {Array<Item|GC>} */
       doc.store.clients.get(client),
-      clock2,
+      clock,
       afterClock,
       (item) => {
         if (!item.deleted && /** @type {Item} */
@@ -7359,11 +7359,11 @@ var followRedone = (store, id2) => {
   };
 };
 var splitItem = (transaction, leftItem, diff) => {
-  const { client, clock: clock2 } = leftItem.id;
+  const { client, clock } = leftItem.id;
   const rightItem = new Item(
-    createID(client, clock2 + diff),
+    createID(client, clock + diff),
     leftItem,
-    createID(client, clock2 + diff - 1),
+    createID(client, clock + diff - 1),
     leftItem.right,
     leftItem.rightOrigin,
     leftItem.parent,
@@ -7558,19 +7558,19 @@ var Item = class _Item extends AbstractStruct {
         this.right = right;
         this.left.right = this;
       } else {
-        let r2;
+        let r;
         if (this.parentSub !== null) {
-          r2 = /** @type {AbstractType<any>} */
+          r = /** @type {AbstractType<any>} */
           this.parent._map.get(this.parentSub) || null;
-          while (r2 !== null && r2.left !== null) {
-            r2 = r2.left;
+          while (r !== null && r.left !== null) {
+            r = r.left;
           }
         } else {
-          r2 = /** @type {AbstractType<any>} */
+          r = /** @type {AbstractType<any>} */
           this.parent._start;
           this.parent._start = this;
         }
-        this.right = r2;
+        this.right = r;
       }
       if (this.right !== null) {
         this.right.left = this;
@@ -7992,7 +7992,7 @@ var Awareness = class extends Observable {
   setLocalState(state) {
     const clientID = this.clientID;
     const currLocalMeta = this.meta.get(clientID);
-    const clock2 = currLocalMeta === void 0 ? 0 : currLocalMeta.clock + 1;
+    const clock = currLocalMeta === void 0 ? 0 : currLocalMeta.clock + 1;
     const prevState = this.states.get(clientID);
     if (state === null) {
       this.states.delete(clientID);
@@ -8000,7 +8000,7 @@ var Awareness = class extends Observable {
       this.states.set(clientID, state);
     }
     this.meta.set(clientID, {
-      clock: clock2,
+      clock,
       lastUpdated: getUnixTime()
     });
     const added = [];
@@ -8075,12 +8075,12 @@ var encodeAwarenessUpdate = (awareness, clients, states = awareness.states) => {
   for (let i = 0; i < len; i++) {
     const clientID = clients[i];
     const state = states.get(clientID) || null;
-    const clock2 = (
+    const clock = (
       /** @type {MetaClientState} */
       awareness.meta.get(clientID).clock
     );
     writeVarUint(encoder, clientID);
-    writeVarUint(encoder, clock2);
+    writeVarUint(encoder, clock);
     writeVarString(encoder, JSON.stringify(state));
   }
   return toUint8Array(encoder);
@@ -8095,15 +8095,15 @@ var applyAwarenessUpdate = (awareness, update, origin) => {
   const len = readVarUint(decoder);
   for (let i = 0; i < len; i++) {
     const clientID = readVarUint(decoder);
-    let clock2 = readVarUint(decoder);
+    let clock = readVarUint(decoder);
     const state = JSON.parse(readVarString(decoder));
     const clientMeta = awareness.meta.get(clientID);
     const prevState = awareness.states.get(clientID);
     const currClock = clientMeta === void 0 ? 0 : clientMeta.clock;
-    if (currClock < clock2 || currClock === clock2 && state === null && awareness.states.has(clientID)) {
+    if (currClock < clock || currClock === clock && state === null && awareness.states.has(clientID)) {
       if (state === null) {
         if (clientID === awareness.clientID && awareness.getLocalState() != null) {
-          clock2++;
+          clock++;
         } else {
           awareness.states.delete(clientID);
         }
@@ -8111,7 +8111,7 @@ var applyAwarenessUpdate = (awareness, update, origin) => {
         awareness.states.set(clientID, state);
       }
       awareness.meta.set(clientID, {
-        clock: clock2,
+        clock,
         lastUpdated: timestamp
       });
       if (clientMeta === void 0 && state !== null) {
@@ -8611,33 +8611,37 @@ async function authorizeUpdate(env, ownerPublicKeyB64, docId, now = Date.now()) 
   if (!await verify(authorPub, env.sig, updateBytes(env.docId, env.update))) return null;
   return fromB64(env.update);
 }
-function revocationBytes(r2) {
-  return utf8(JSON.stringify(["revoke", r2.docId, r2.author, r2.capSig, r2.after]));
+function revocationBytes(r) {
+  return utf8(JSON.stringify(["revoke", r.docId, r.author, r.capSig, r.after]));
 }
-async function verifyRevocation(r2, ownerPublicKeyB64, docId) {
-  if (!r2 || r2.docId !== docId || typeof r2.after !== "number" || r2.after < 0) return false;
+async function issueRevocation(ownerPriv, docId, author, capSig, after) {
+  const body = { docId, author, capSig, after };
+  return { ...body, sig: await sign(ownerPriv, revocationBytes(body)) };
+}
+async function verifyRevocation(r, ownerPublicKeyB64, docId) {
+  if (!r || r.docId !== docId || typeof r.after !== "number" || r.after < 0) return false;
   try {
-    return await verify(await importPublicKey(ownerPublicKeyB64), r2.sig, revocationBytes(r2));
+    return await verify(await importPublicKey(ownerPublicKeyB64), r.sig, revocationBytes(r));
   } catch {
     return false;
   }
 }
-function modeBytes(r2) {
-  const after = Object.keys(r2.after).sort().map((k) => [k, r2.after[k]]);
-  return utf8(JSON.stringify(["mode", r2.docId, r2.mode, r2.seq, after]));
+function modeBytes(r) {
+  const after = Object.keys(r.after).sort().map((k) => [k, r.after[k]]);
+  return utf8(JSON.stringify(["mode", r.docId, r.mode, r.seq, after]));
 }
-async function verifyModeRecord(r2, ownerPublicKeyB64, docId) {
-  if (!r2 || r2.docId !== docId || typeof r2.seq !== "number" || !r2.after || typeof r2.after !== "object") return false;
-  if (r2.mode !== "edit" /* Edit */ && r2.mode !== "review" /* Review */) return false;
+async function verifyModeRecord(r, ownerPublicKeyB64, docId) {
+  if (!r || r.docId !== docId || typeof r.seq !== "number" || !r.after || typeof r.after !== "object") return false;
+  if (r.mode !== "edit" /* Edit */ && r.mode !== "review" /* Review */) return false;
   try {
-    return await verify(await importPublicKey(ownerPublicKeyB64), r2.sig, modeBytes(r2));
+    return await verify(await importPublicKey(ownerPublicKeyB64), r.sig, modeBytes(r));
   } catch {
     return false;
   }
 }
 function modeAt(records, pairKey, pos) {
   let mode = "edit" /* Edit */;
-  for (const r2 of records) if (pos > (r2.after[pairKey] ?? 0)) mode = r2.mode;
+  for (const r of records) if (pos > (r.after[pairKey] ?? 0)) mode = r.mode;
   return mode;
 }
 
@@ -8722,8 +8726,8 @@ function touchesOnlySuggestions(doc, update) {
     if (!underSuggestions(s)) return false;
   }
   for (const [client, ranges] of ds.clients) {
-    for (const { clock: clock2, len } of ranges) {
-      for (let c = clock2; c < clock2 + len; ) {
+    for (const { clock, len } of ranges) {
+      for (let c = clock; c < clock + len; ) {
         const it = inDoc({ client, clock: c }) ?? inUpdate({ client, clock: c });
         if (!it || !underSuggestions(it)) return false;
         c = it.id.clock + it.length;
@@ -8853,10 +8857,10 @@ function bridgeAuthorizedSync(appDoc, wire, ctx, onReject) {
   const modeListeners = /* @__PURE__ */ new Set();
   const addModes = async (list) => {
     let changed = false;
-    for (const r2 of list) {
-      if (modes.some((m) => m.sig === r2.sig)) continue;
-      if (!await verifyModeRecord(r2, ctx.ownerPublicKey, ctx.docId)) continue;
-      modes = [...modes, r2].sort((a, b) => a.seq - b.seq);
+    for (const r of list) {
+      if (modes.some((m) => m.sig === r.sig)) continue;
+      if (!await verifyModeRecord(r, ctx.ownerPublicKey, ctx.docId)) continue;
+      modes = [...modes, r].sort((a, b) => a.seq - b.seq);
       changed = true;
     }
     if (changed) for (const fn of modeListeners) fn();
@@ -9024,6 +9028,7 @@ var LOBBY_REFUSAL = {
 var ECDH = { name: "ECDH", namedCurve: "P-256" };
 var ANSWER_CONTEXT = "subms-answer-v1";
 var INVITE_CONTEXT = "subms-invite-v1";
+var GRANT_CONTEXT = "subms-grant-v1";
 function unb64(s) {
   const bin = atob(s);
   const out = new Uint8Array(new ArrayBuffer(bin.length));
@@ -9070,6 +9075,7 @@ var RelayAction = /* @__PURE__ */ ((RelayAction2) => {
   RelayAction2["AdmitLobby"] = "admitLobby";
   RelayAction2["DenyLobby"] = "denyLobby";
   RelayAction2["Kick"] = "kick";
+  RelayAction2["Unkick"] = "unkick";
   RelayAction2["EndShare"] = "endShare";
   RelayAction2["ResumeShare"] = "resumeShare";
   RelayAction2["BlockIp"] = "blockIp";
@@ -9145,22 +9151,69 @@ function suggestText(doc, range, after, by, extra = {}) {
   return s;
 }
 
+// ../../packages/identity/src/runes.ts
+var VALKYRIE_RUNES = [
+  { id: "fehu", name: "Fehu", meaning: "Wealth / Abundance", path: "M9 3V21M9 9L16 4M9 14L16 9" },
+  { id: "uruz", name: "Uruz", meaning: "Primal Strength", path: "M8 21V3L16 9V21" },
+  { id: "thurisaz", name: "Thurisaz", meaning: "Giants / Force", path: "M9 3V21M9 8L15 12L9 16" },
+  { id: "ansuz", name: "Ansuz", meaning: "Wisdom / Voice", path: "M9 3V21M9 4L15 9M9 10L15 15" },
+  { id: "raidho", name: "Raidho", meaning: "Journey / Progress", path: "M9 3V21M9 3L15 7.5L9 12L15 21" },
+  { id: "kenaz", name: "Kenaz", meaning: "Torch / Focus", path: "M15 4L9 12L15 20" },
+  { id: "gebo", name: "Gebo", meaning: "Gift / Exchange", path: "M6 4L18 20M18 4L6 20" },
+  { id: "wunjo", name: "Wunjo", meaning: "Joy / Harmony", path: "M9 3V21M9 3L15 7.5L9 12" },
+  { id: "hagalaz", name: "Hagalaz", meaning: "Disruption / Chaos", path: "M8 3V21M16 3V21M8 9L16 15" },
+  { id: "naudiz", name: "Naudiz", meaning: "Necessity / Drive", path: "M12 3V21M8 9L16 14" },
+  { id: "isaz", name: "Isaz", meaning: "Ice / Preservation", path: "M12 3V21" },
+  { id: "jera", name: "Jera", meaning: "Harvest / Cycles", path: "M11 5L7 10L11 15M13 9L17 14L13 19" },
+  { id: "eihwaz", name: "Eihwaz", meaning: "Endurance / Yew Tree", path: "M12 3V21M12 3L16 7M12 21L8 17" },
+  { id: "perthro", name: "Perthro", meaning: "Mystery / Probability", path: "M8 3V21M8 3L13 7L15 4M8 21L13 17L15 20" },
+  { id: "algiz", name: "Algiz", meaning: "Protection / Shield", path: "M12 3V21M12 10L7 4M12 10L17 4" },
+  { id: "sowilo", name: "Sowilo", meaning: "Sun / Energy", path: "M15 3L9 9L15 15L9 21" },
+  { id: "tiwaz", name: "Tiwaz", meaning: "Justice / Victory", path: "M12 3V21M6 9L12 3L18 9" },
+  { id: "berkano", name: "Berkano", meaning: "Growth / New Birth", path: "M8 3V21M8 3L15 7.5L8 12L15 16.5L8 21" },
+  { id: "ehwaz", name: "Ehwaz", meaning: "Trust / Teamwork", path: "M7 3V21M17 3V21M7 3L12 9L17 3" },
+  { id: "mannaz", name: "Mannaz", meaning: "Human / Self", path: "M7 3V21M17 3V21M7 3L17 11M17 3L7 11" },
+  { id: "laguz", name: "Laguz", meaning: "Water / Flow / Intuition", path: "M9 3V21M9 3L15 9" },
+  { id: "ingwaz", name: "Ingwaz", meaning: "Seed / Internal Growth", path: "M12 4L18 12L12 20L6 12Z" },
+  { id: "dagaz", name: "Dagaz", meaning: "Day / Dawn / Breakthrough", path: "M6 4V20M18 4V20M6 4L18 20M18 4L6 20" },
+  { id: "othala", name: "Othala", meaning: "Ancestral Land / Heritage", path: "M12 3L17 9L12 15L7 9ZM9 12.5L5 21M15 12.5L19 21" },
+  // The Younger Futhark after the Elder: its own staves and twigs, drawn so no
+  // two agents share a face even where the names are cousins (naud, naudiz).
+  { id: "kaun", name: "Kaun", meaning: "Ulcer / Fire / Transmutation", alphabet: "younger", path: "M12 3V21M12 9L17 4" },
+  { id: "hagall", name: "Hagall", meaning: "Hail / Structural Storm", alphabet: "younger", path: "M12 3V21M6 6L18 18M18 6L6 18" },
+  { id: "naud", name: "Naud", meaning: "Constraints / Necessity", alphabet: "younger", path: "M12 3V21M7 13L17 9" },
+  { id: "is", name: "Is", meaning: "Ice / Absolute Zero", alphabet: "younger", path: "M12 3V21M10 3H14M10 21H14" },
+  { id: "ar", name: "Ar", meaning: "Plenty / Good Year", alphabet: "younger", path: "M12 3V21M12 12L17 9" },
+  { id: "sol", name: "Sol", meaning: "Sun / Vital Power", alphabet: "younger", path: "M9 3L15 9L9 15L15 21" },
+  { id: "tyr", name: "Tyr", meaning: "The Sky God / Leadership", alphabet: "younger", path: "M12 3V21M12 3L7 8" },
+  { id: "bjarkan", name: "Bjarkan", meaning: "Birch / Renewal", alphabet: "younger", path: "M9 3V21M9 3L14 7.5L9 12L14 16.5L9 21" },
+  { id: "madr", name: "Madr", meaning: "Man / Human Element", alphabet: "younger", path: "M12 3V21M12 9L7 3.5M12 9L17 3.5" },
+  { id: "logr", name: "Logr", meaning: "Water / Deep Oceans", alphabet: "younger", path: "M10 3V21M10 3L16 8" },
+  { id: "yr", name: "Yr", meaning: "Yew / Bow / Precision", alphabet: "younger", path: "M12 3V21M12 14L7 20M12 14L17 20" },
+  { id: "os", name: "Os", meaning: "Mouth / Divine Voice", alphabet: "younger", path: "M10 3V21M10 7L16 11M10 12L16 16" },
+  { id: "stong", name: "Stunginn Iss", meaning: "Punctured Ice / Stealth", alphabet: "younger", path: "M12 3V21M9 12H15" },
+  { id: "sol-v2", name: "Sol (Alternative)", meaning: "Radiance", alphabet: "younger", path: "M12 4V20M4 12H20M6.5 6.5L17.5 17.5M17.5 6.5L6.5 17.5" },
+  { id: "thurs", name: "Thurs", meaning: "Giant Force", alphabet: "younger", path: "M10 3V21M10 7L16 12L10 17" },
+  { id: "reidh", name: "Reidh", meaning: "Riding / Active Transit", alphabet: "younger", path: "M10 3V21M10 3L16 7L10 11L16 21" }
+];
+var AGENT_HANDLE_PREFIX = "agent-valkyrie-";
+function valkyrieHandle(i) {
+  const n = Math.max(0, Math.floor(i));
+  const rune = VALKYRIE_RUNES[n % VALKYRIE_RUNES.length];
+  const round = Math.floor(n / VALKYRIE_RUNES.length);
+  return `${AGENT_HANDLE_PREFIX}${rune.id}${round ? `-${round + 1}` : ""}`;
+}
+
 // editor/collab/mentions/mentionTargets.ts
 var MentionGroup = /* @__PURE__ */ ((MentionGroup2) => {
-  MentionGroup2["AgentSmithAll"] = "Agent-Smith-All";
+  MentionGroup2["AgentsAll"] = "agent-valkyrie-all";
   MentionGroup2["Agents"] = "agents";
   MentionGroup2["All"] = "all";
+  MentionGroup2["LegacyAgentsAll"] = "Agent-Smith-All";
   return MentionGroup2;
 })(MentionGroup || {});
 function agentHandle(i) {
-  let n = Math.max(0, Math.floor(i)) + 1;
-  let s = "";
-  while (n > 0) {
-    const r2 = (n - 1) % 26;
-    s = String.fromCharCode(65 + r2) + s;
-    n = Math.floor((n - 1) / 26);
-  }
-  return `Agent-Smith-${s}`;
+  return valkyrieHandle(i);
 }
 function mentionHandle(name) {
   return name.trim().replace(/@/g, "").replace(/\s+/g, "-");
@@ -9231,24 +9284,6 @@ var DG_COLORS = {
   edgeTrigger: "#ff9f43"
   // a "full recompute" / eager-trigger edge stands out orange
 };
-var EDGE_CLASS_COLORS = {
-  write: "#ffb066",
-  // warm amber
-  read: "#4fd08a",
-  // green
-  hot: "#ff6b6b",
-  // red - a hot/critical path
-  cold: "#5cc8ff",
-  // cyan - a cold/background path
-  warn: "#ffce4d",
-  // amber - a caution path
-  ctrl: "#b58cff"
-  // violet - control / metadata plane
-};
-var DG_NODE_ROLES = ["in", "proc", "dec", "out", "err", "ext"];
-function toDgNodeRole(v) {
-  return typeof v === "string" && DG_NODE_ROLES.includes(v) ? v : null;
-}
 
 // ../../packages/deltagraph/src/board/schema.ts
 var DgFormat = {
@@ -9285,16 +9320,6 @@ var DIRECTION_ALIASES = {
   right_left: DgLayoutDirection.RightLeft,
   "right-left": DgLayoutDirection.RightLeft
 };
-function dgKnownDirection(v) {
-  return DIRECTION_ALIASES[v.trim().toLowerCase()];
-}
-function dgLayoutAxis(d) {
-  return d === DgLayoutDirection.LeftRight || d === DgLayoutDirection.RightLeft ? "LR" : "TB";
-}
-function dgLayoutReversed(d) {
-  return d === DgLayoutDirection.RightLeft || d === DgLayoutDirection.BottomTop;
-}
-var DG_SCHEMA_VERSION_PLAIN = 2;
 var DgElementType = {
   Rectangle: "rectangle",
   Ellipse: "ellipse",
@@ -9370,11 +9395,7 @@ var DgFillStyle = { Solid: "solid", Hachure: "hachure", Transparent: "transparen
 var DgStrokeStyle = { Solid: "solid", Dashed: "dashed", Dotted: "dotted" };
 var DgFontFamily = { Hand: "hand", Sans: "sans", Mono: "mono", Serif: "serif" };
 var DgAlign = { Left: "left", Center: "center", Right: "right" };
-var DgTheme = { Dark: "dark", Light: "light" };
-var DgBackgroundType = { Solid: "solid", Dot: "dot", Grid: "grid" };
-var DgGridType = { Dot: "dot", Line: "line", None: "none" };
 var DgArrowhead = { Triangle: "triangle" };
-var DgFlowSpeed = { Fast: "fast", Slow: "slow" };
 var DgErCardinality = {
   ZeroOrOne: "zero_or_one",
   ExactlyOne: "exactly_one",
@@ -9382,80 +9403,6 @@ var DgErCardinality = {
   OneOrMany: "one_or_many"
 };
 var ER_CARDINALITIES = new Set(Object.values(DgErCardinality));
-var DgArch = {
-  Database: "database",
-  Stream: "stream",
-  Hexagon: "hexagon",
-  Actor: "actor",
-  Search: "search",
-  Triangle: "triangle",
-  Parallelogram: "parallelogram",
-  Cylinder: "cylinder",
-  Cloud: "cloud",
-  Server: "server",
-  Cache: "cache",
-  Gateway: "gateway",
-  LoadBalancer: "loadbalancer",
-  Pentagon: "pentagon",
-  Octagon: "octagon",
-  Star: "star",
-  ArrowBlock: "arrow-block",
-  Chevron: "chevron",
-  Callout: "callout",
-  Document: "document",
-  ManualInput: "manual-input",
-  Client: "client",
-  Mobile: "mobile",
-  Api: "api",
-  Function: "function",
-  Scheduler: "scheduler",
-  Users: "users",
-  Firewall: "firewall",
-  Bucket: "bucket",
-  Cluster: "cluster",
-  Topic: "topic",
-  Cdn: "cdn",
-  Dns: "dns",
-  Proxy: "proxy",
-  RateLimiter: "rate-limiter",
-  Auth: "auth",
-  Secrets: "secrets",
-  Pod: "pod",
-  Worker: "worker",
-  Monitoring: "monitoring",
-  Logs: "logs",
-  Warehouse: "warehouse",
-  Notify: "notify",
-  Payment: "payment",
-  Model: "ml-model",
-  Webhook: "webhook",
-  FeatureFlags: "feature-flags",
-  Trapezoid: "trapezoid",
-  Cross: "cross",
-  Cube: "cube",
-  Heart: "heart",
-  Delay: "delay",
-  Tag: "tag",
-  Subroutine: "subroutine",
-  OffPage: "off-page"
-};
-function dgCreateEmptyBoard(theme = DgTheme.Dark) {
-  return {
-    format: DG_FORMAT,
-    schemaVersion: DG_SCHEMA_VERSION_PLAIN,
-    id: `wb_${Math.random().toString(36).slice(2, 12)}`,
-    meta: {},
-    canvas: {
-      background: { type: DgBackgroundType.Solid, color: DG_COLORS.canvasBackground },
-      grid: { type: DgGridType.Dot, size: 24, snap: false, visible: true },
-      theme
-    },
-    elements: [],
-    assets: {},
-    collections: [],
-    comments: []
-  };
-}
 
 // ../../packages/deltagraph/src/board/fracIndex.ts
 var Z_WIDTH = 12;
@@ -9482,14 +9429,6 @@ function newElementId() {
 }
 function newSeed() {
   return Math.floor(Math.random() * 2 ** 31);
-}
-function seedFrom(key2) {
-  let h = 2166136261;
-  for (let i = 0; i < key2.length; i++) {
-    h ^= key2.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return (h >>> 0) % 2 ** 31;
 }
 var HOLLOW_TYPES = /* @__PURE__ */ new Set([
   DgElementType.Rectangle,
@@ -9699,4783 +9638,20 @@ function applyTextDiff(t, next) {
 // ../../packages/deltaboard/src/boardComments.ts
 var BOARD_THREAD_ID = "__board__";
 
-// ../../packages/deltagraph/src/board/membership.ts
-function dgIsDiagram(el) {
-  return el.type === DgElementType.Diagram && !!el.diagram;
-}
-function dgDiagrams(doc) {
-  return doc.elements.filter(dgIsDiagram);
-}
-function dgDiagramOwnedIds(doc) {
-  const diagrams = new Set(dgDiagrams(doc).map((d) => d.id));
-  if (!diagrams.size) return /* @__PURE__ */ new Set();
-  const byId = new Map(doc.elements.map((e) => [e.id, e]));
-  const owned = /* @__PURE__ */ new Set();
-  for (const el of doc.elements) {
-    if (diagrams.has(el.id)) continue;
-    let cur = el;
-    for (let hops = 0; cur && hops <= doc.elements.length; hops++) {
-      if (diagrams.has(cur.id)) {
-        owned.add(el.id);
-        break;
-      }
-      cur = cur.parent ? byId.get(cur.parent) : void 0;
-    }
-  }
-  return owned;
-}
-
-// ../../packages/deltagraph/src/board/routingQuality.ts
-var clock = () => {
-  try {
-    if (typeof performance !== "undefined" && typeof performance.now === "function") return performance.now();
-    if (typeof Date !== "undefined") return Date.now();
-  } catch {
-  }
-  return 0;
-};
-var SHAPES = /* @__PURE__ */ new Set([
-  DgElementType.Rectangle,
-  DgElementType.Ellipse,
-  DgElementType.Diamond
-]);
-var EDGES = /* @__PURE__ */ new Set([DgElementType.Arrow, DgElementType.Line]);
-var r = (n) => Math.round(n);
-function nodeBox(e) {
-  return {
-    id: e.id,
-    slug: e.data?.dsl ?? e.id,
-    label: (e.text ?? "").trim(),
-    x1: Math.min(e.x, e.x + e.w),
-    y1: Math.min(e.y, e.y + e.h),
-    x2: Math.max(e.x, e.x + e.w),
-    y2: Math.max(e.y, e.y + e.h)
-  };
-}
-function edgePolyline(e) {
-  return (e.points ?? []).map(([px, py]) => [e.x + px, e.y + py]);
-}
-function densify(pts, step) {
-  const out = [];
-  for (let i = 1; i < pts.length; i++) {
-    const [ax, ay] = pts[i - 1];
-    const [bx, by] = pts[i];
-    const len = Math.hypot(bx - ax, by - ay);
-    const k = Math.max(1, Math.round(len / step));
-    for (let j = i === 1 ? 0 : 1; j <= k; j++) out.push([ax + (bx - ax) * j / k, ay + (by - ay) * j / k]);
-  }
-  return out;
-}
-var SIDE_NAME = { W: "west", E: "east", N: "north", S: "south" };
-function faceOf(x, y, n, graze, inset) {
-  if (Math.abs(x - n.x1) < graze && y > n.y1 + inset && y < n.y2 - inset) return "W";
-  if (Math.abs(x - n.x2) < graze && y > n.y1 + inset && y < n.y2 - inset) return "E";
-  if (Math.abs(y - n.y1) < graze && x > n.x1 + inset && x < n.x2 - inset) return "N";
-  if (Math.abs(y - n.y2) < graze && x > n.x1 + inset && x < n.x2 - inset) return "S";
-  return "";
-}
-function maxFaceRun(samples, n, graze, inset) {
-  let cur = "";
-  let run = 0;
-  let mx = 0;
-  let side = "";
-  let at = null;
-  let start = null;
-  for (const [x, y] of samples) {
-    const f = faceOf(x, y, n, graze, inset);
-    if (f && f === cur) {
-      run++;
-    } else {
-      cur = f;
-      run = f ? 1 : 0;
-      start = f ? [x, y] : null;
-    }
-    if (run > mx) {
-      mx = run;
-      side = cur;
-      at = start && [r((start[0] + x) / 2), r((start[1] + y) / 2)];
-    }
-  }
-  return { runPx: mx, side, at };
-}
-function segCrossesCentre(a, b, n) {
-  const cx = (n.x1 + n.x2) / 2;
-  const cy = (n.y1 + n.y2) / 2;
-  const horizontal = Math.abs(b[1] - a[1]) < Math.abs(b[0] - a[0]);
-  if (horizontal) {
-    if (a[1] <= n.y1 || a[1] >= n.y2) return false;
-    return Math.min(a[0], b[0]) < cx && Math.max(a[0], b[0]) > cx;
-  }
-  if (a[0] <= n.x1 || a[0] >= n.x2) return false;
-  return Math.min(a[1], b[1]) < cy && Math.max(a[1], b[1]) > cy;
-}
-function segCrossesBox(a, b, n, inset) {
-  const x0 = n.x1 + inset;
-  const y0 = n.y1 + inset;
-  const x1 = n.x2 - inset;
-  const y1 = n.y2 - inset;
-  if (x1 <= x0 || y1 <= y0) return false;
-  const dx = b[0] - a[0];
-  const dy = b[1] - a[1];
-  const p = [-dx, dx, -dy, dy];
-  const q = [a[0] - x0, x1 - a[0], a[1] - y0, y1 - a[1]];
-  let t0 = 0;
-  let t1 = 1;
-  for (let i = 0; i < 4; i++) {
-    if (p[i] === 0) {
-      if (q[i] < 0) return false;
-    } else {
-      const t = q[i] / p[i];
-      if (p[i] < 0) {
-        if (t > t1) return false;
-        if (t > t0) t0 = t;
-      } else {
-        if (t < t0) return false;
-        if (t < t1) t1 = t;
-      }
-    }
-  }
-  return t0 < t1 - 1e-9;
-}
-function dgAnalyzeRouting(doc, opts = {}) {
-  const graze = opts.graze ?? 3;
-  const rideMin = opts.rideMin ?? 16;
-  const clipInset = opts.clipInset ?? 6;
-  const step = opts.step ?? 4;
-  const checkDiagonal = opts.checkDiagonal ?? true;
-  const detourRatio = opts.detourRatio ?? 2;
-  const nodes = doc.elements.filter((e) => SHAPES.has(e.type) && !e.hidden).map(nodeBox);
-  const edges = doc.elements.filter((e) => EDGES.has(e.type) && !e.hidden).map((e) => ({ id: e.id, label: (e.text ?? "").trim() || e.id, pts: edgePolyline(e) }));
-  const violations = [];
-  const contains = (n, [x, y], pad) => x >= n.x1 - pad && x <= n.x2 + pad && y >= n.y1 - pad && y <= n.y2 + pad;
-  for (const e of edges) {
-    if (e.pts.length < 2) continue;
-    const p0 = e.pts[0];
-    const pN = e.pts[e.pts.length - 1];
-    const fromNode = nodes.find((n) => contains(n, p0, 4));
-    const toNode = nodes.find((n) => contains(n, pN, 4));
-    e.from = fromNode?.slug;
-    e.to = toNode?.slug;
-    const endpointIds = new Set([fromNode?.id, toNode?.id].filter(Boolean));
-    if (e.pts.length > 1) {
-      let travelled = 0;
-      for (let i = 1; i < e.pts.length; i++) {
-        travelled += Math.abs(e.pts[i][0] - e.pts[i - 1][0]) + Math.abs(e.pts[i][1] - e.pts[i - 1][1]);
-      }
-      const [sx, sy] = e.pts[0];
-      const [ex, ey] = e.pts[e.pts.length - 1];
-      const direct = Math.abs(ex - sx) + Math.abs(ey - sy);
-      if (direct > 120 && travelled > direct * detourRatio) {
-        violations.push({
-          kind: "detour",
-          edgeId: e.id,
-          edge: e.label,
-          detail: `travels ${r(travelled)}px for a ${r(direct)}px span (${(travelled / direct).toFixed(1)}x)`
-        });
-      }
-    }
-    if (checkDiagonal) {
-      for (let i = 1; i < e.pts.length; i++) {
-        const [ax, ay] = e.pts[i - 1];
-        const [bx, by] = e.pts[i];
-        if (Math.abs(bx - ax) > 1.5 && Math.abs(by - ay) > 1.5) {
-          violations.push({
-            kind: "diagonal",
-            edgeId: e.id,
-            edge: e.label,
-            detail: `segment ${i} isn't axis-aligned ((${r(ax)},${r(ay)})\u2192(${r(bx)},${r(by)}))`
-          });
-          break;
-        }
-      }
-    }
-    const samples = densify(e.pts, step);
-    for (const n of nodes) {
-      const { runPx: runSamples, side, at } = maxFaceRun(samples, n, graze, 4);
-      const px = (runSamples - 1) * step;
-      if (px >= rideMin) {
-        if (endpointIds.has(n.id)) {
-          violations.push({
-            kind: "port-hug",
-            edgeId: e.id,
-            edge: e.label,
-            node: n.slug,
-            detail: `rides its own ${SIDE_NAME[side]} edge ~${r(px)}px near ${JSON.stringify(at)} before leaving \u2014 should step off perpendicular`
-          });
-        } else {
-          violations.push({
-            kind: "foreign-ride",
-            edgeId: e.id,
-            edge: e.label,
-            node: n.slug,
-            detail: `rides the ${SIDE_NAME[side]} edge of a node it doesn't touch ~${r(px)}px near ${JSON.stringify(at)}`
-          });
-        }
-      }
-    }
-    const last2 = e.pts.length - 1;
-    for (const n of nodes) {
-      const isSource = n.id === fromNode?.id;
-      const isTarget = n.id === toNode?.id;
-      for (let i = 1; i <= last2; i++) {
-        const terminal = isSource && i === 1 || isTarget && i === last2;
-        const hit = terminal ? segCrossesCentre(e.pts[i - 1], e.pts[i], n) : segCrossesBox(e.pts[i - 1], e.pts[i], n, clipInset);
-        if (!hit) continue;
-        violations.push({
-          kind: "node-clip",
-          edgeId: e.id,
-          edge: e.label,
-          node: n.slug,
-          detail: terminal ? `approaches its own ${isSource ? "source" : "target"} from the far side, crossing the body to reach the port` : `segment ${i} passes through the node body`
-        });
-        break;
-      }
-    }
-  }
-  return { nodes, edges, violations };
-}
-var dgNowMs = clock;
-function dgBuildDiagnostics(doc, phase, debug, now = clock) {
-  const a0 = now();
-  const report = dgAnalyzeRouting(doc);
-  const analyzeMs = now() - a0;
-  const byKind = {};
-  for (const v of report.violations) byKind[v.kind] = (byKind[v.kind] ?? 0) + 1;
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const n of report.nodes) {
-    if (n.x1 < x0) x0 = n.x1;
-    if (n.y1 < y0) y0 = n.y1;
-    if (n.x2 > x1) x1 = n.x2;
-    if (n.y2 > y1) y1 = n.y2;
-  }
-  for (const e of report.edges) for (const [px, py] of e.pts) {
-    if (px < x0) x0 = px;
-    if (py < y0) y0 = py;
-    if (px > x1) x1 = px;
-    if (py > y1) y1 = py;
-  }
-  const bbox = Number.isFinite(x0) ? { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } : { x: 0, y: 0, w: 0, h: 0 };
-  return {
-    nodes: report.nodes.length,
-    edges: report.edges.length,
-    zones: doc.elements.filter((e) => e.type === DgElementType.Zone && !e.hidden).length,
-    bbox,
-    routing: {
-      clean: report.violations.length === 0,
-      total: report.violations.length,
-      byKind,
-      violations: report.violations.map((v) => ({ kind: v.kind, edgeId: v.edgeId, edge: v.edge, node: v.node, detail: v.detail }))
-    },
-    timings: {
-      layoutMs: Math.round(phase.layoutMs * 100) / 100,
-      refineMs: Math.round(phase.refineMs * 100) / 100,
-      analyzeMs: Math.round(analyzeMs * 100) / 100,
-      totalMs: Math.round((phase.buildMs + analyzeMs) * 100) / 100
-    },
-    ...debug ? { debug } : {}
-  };
-}
-
-// ../../packages/deltagraph/src/board/connectorRouting.ts
-function pushClearOfForeignNodes(route, obstacles, allBoxes = obstacles) {
-  const n = route.length;
-  if (n < 4) return route;
-  const GRAZE = 24;
-  const CLEAR = 64;
-  const pts = route.map((p) => [p[0], p[1]]);
-  const SNAP = 9;
-  for (let i = 1; i < pts.length - 1; i++) {
-    const a = pts[i - 1], b = pts[i];
-    const dx = Math.abs(b[0] - a[0]), dy = Math.abs(b[1] - a[1]);
-    if (dx >= dy && dy > 0 && dy <= SNAP) b[1] = a[1];
-    else if (dy > dx && dx > 0 && dx <= SNAP) b[0] = a[0];
-  }
-  const isV = (a, b) => Math.abs(a[0] - b[0]) < 1.5 && Math.abs(a[1] - b[1]) > 3;
-  const isH = (a, b) => Math.abs(a[1] - b[1]) < 1.5 && Math.abs(a[0] - b[0]) > 3;
-  const clipCount = (horizontal, cross, lo, hi) => {
-    let c = 0;
-    for (const o of obstacles) {
-      if (horizontal) {
-        if (lo < o.x + o.w - 1 && hi > o.x + 1 && cross > o.y + 1 && cross < o.y + o.h - 1) c++;
-      } else if (lo < o.y + o.h - 1 && hi > o.y + 1 && cross > o.x + 1 && cross < o.x + o.w - 1) c++;
-    }
-    return c;
-  };
-  const laneOff = (edge, dir, lo, hi, pushX) => {
-    let bound = dir < 0 ? -Infinity : Infinity;
-    for (const o of allBoxes) {
-      const oLo = pushX ? o.x : o.y;
-      const oHi = oLo + (pushX ? o.w : o.h);
-      const ocLo = pushX ? o.y : o.x;
-      const ocHi = ocLo + (pushX ? o.h : o.w);
-      if (ocHi <= lo + 1 || ocLo >= hi - 1) continue;
-      if (dir < 0 && oHi <= edge + 0.5) bound = Math.max(bound, oHi);
-      else if (dir > 0 && oLo >= edge - 0.5) bound = Math.min(bound, oLo);
-    }
-    const want = edge + dir * CLEAR;
-    if (!Number.isFinite(bound)) return want;
-    const MIN = 12;
-    const gap = Math.abs(bound - edge);
-    if (gap < MIN * 2) return (edge + bound) / 2;
-    return dir < 0 ? Math.max(want, Math.min(edge - MIN, bound + MIN)) : Math.min(want, Math.max(edge + MIN, bound - MIN));
-  };
-  for (let i = 1; i <= n - 3; i++) {
-    const a = pts[i], b = pts[i + 1];
-    if (isV(a, b)) {
-      const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-      let nx = a[0];
-      for (const o of obstacles) {
-        if (!(y0 < o.y + o.h - 2 && y1 > o.y + 2)) continue;
-        const cx = o.x + o.w / 2;
-        if (a[0] <= cx) {
-          if (o.x - a[0] < GRAZE) nx = Math.min(nx, laneOff(o.x, -1, y0, y1, true));
-        } else {
-          if (a[0] - (o.x + o.w) < GRAZE) nx = Math.max(nx, laneOff(o.x + o.w, 1, y0, y1, true));
-        }
-      }
-      if (nx !== a[0] && clipCount(false, nx, y0, y1) <= clipCount(false, a[0], y0, y1)) {
-        a[0] = nx;
-        b[0] = nx;
-      }
-    } else if (isH(a, b)) {
-      const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-      let ny = a[1];
-      for (const o of obstacles) {
-        if (!(x0 < o.x + o.w - 2 && x1 > o.x + 2)) continue;
-        const cy = o.y + o.h / 2;
-        if (a[1] <= cy) {
-          if (o.y - a[1] < GRAZE) ny = Math.min(ny, laneOff(o.y, -1, x0, x1, false));
-        } else {
-          if (a[1] - (o.y + o.h) < GRAZE) ny = Math.max(ny, laneOff(o.y + o.h, 1, x0, x1, false));
-        }
-      }
-      if (ny !== a[1] && clipCount(true, ny, x0, x1) <= clipCount(true, a[1], x0, x1)) {
-        a[1] = ny;
-        b[1] = ny;
-      }
-    }
-  }
-  return pts;
-}
-function detourAroundForeignZones(route, zones, nodeBoxes = []) {
-  const n = route.length;
-  if (n < 4 || zones.length === 0) return route;
-  const CLEAR = 24;
-  const pts = route.map((p) => [p[0], p[1]]);
-  const OVERSHOOT = 0.5;
-  const spanX = [Math.min(route[0][0], route[n - 1][0]), Math.max(route[0][0], route[n - 1][0])];
-  const spanY = [Math.min(route[0][1], route[n - 1][1]), Math.max(route[0][1], route[n - 1][1])];
-  const overshoot = (v, span) => v < span[0] - 1 || v > span[1] + 1 ? OVERSHOOT : 0;
-  const clips = (horizontal, cross, lo, hi) => {
-    let c = 0;
-    for (const o of nodeBoxes) {
-      if (horizontal) {
-        if (lo < o.x + o.w - 1 && hi > o.x + 1 && cross > o.y + 1 && cross < o.y + o.h - 1) c++;
-      } else if (lo < o.y + o.h - 1 && hi > o.y + 1 && cross > o.x + 1 && cross < o.x + o.w - 1) c++;
-    }
-    return c;
-  };
-  for (let i = 1; i <= n - 3; i++) {
-    const a = pts[i], b = pts[i + 1];
-    if (Math.abs(a[1] - b[1]) < 1.5 && Math.abs(a[0] - b[0]) > 3) {
-      const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-      const corridor = zones.filter((z) => x0 < z.x + z.w && x1 > z.x);
-      const grazes = corridor.some((z) => a[1] > z.y - 2 && a[1] < z.y + z.h + 2);
-      if (grazes && corridor.length) {
-        const up = Math.min(...corridor.map((z) => z.y)) - CLEAR;
-        const down = Math.max(...corridor.map((z) => z.y + z.h)) + CLEAR;
-        const pref = a[1] - up < (down - a[1]) * 0.75 ? up : down;
-        const pv = pts[i - 1], nv = pts[i + 2];
-        const costAt = (ny2) => {
-          let c = clips(true, ny2, x0, x1) + overshoot(ny2, spanY);
-          if (pv) c += clips(false, a[0], Math.min(pv[1], ny2), Math.max(pv[1], ny2));
-          if (nv) c += clips(false, b[0], Math.min(ny2, nv[1]), Math.max(ny2, nv[1]));
-          return c;
-        };
-        const cu = costAt(up), cd = costAt(down);
-        const ny = cu < cd ? up : cd < cu ? down : pref;
-        if (costAt(ny) <= costAt(a[1])) {
-          a[1] = ny;
-          b[1] = ny;
-        }
-      }
-    } else if (Math.abs(a[0] - b[0]) < 1.5 && Math.abs(a[1] - b[1]) > 3) {
-      const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-      const corridor = zones.filter((z) => y0 < z.y + z.h && y1 > z.y);
-      const grazes = corridor.some((z) => a[0] > z.x - 2 && a[0] < z.x + z.w + 2);
-      if (grazes && corridor.length) {
-        const left = Math.min(...corridor.map((z) => z.x)) - CLEAR;
-        const right = Math.max(...corridor.map((z) => z.x + z.w)) + CLEAR;
-        const pref = a[0] - left < (right - a[0]) * 0.75 ? left : right;
-        const pv = pts[i - 1], nv = pts[i + 2];
-        const costAt = (nx2) => {
-          let c = clips(false, nx2, y0, y1) + overshoot(nx2, spanX);
-          if (pv) c += clips(true, a[1], Math.min(pv[0], nx2), Math.max(pv[0], nx2));
-          if (nv) c += clips(true, b[1], Math.min(nx2, nv[0]), Math.max(nx2, nv[0]));
-          return c;
-        };
-        const cl = costAt(left), cr = costAt(right);
-        const nx = cl < cr ? left : cr < cl ? right : pref;
-        if (costAt(nx) <= costAt(a[0])) {
-          a[0] = nx;
-          b[0] = nx;
-        }
-      }
-    }
-  }
-  return pts;
-}
-function stepOffEndpointFaces(route, srcBox, dstBox, allBoxes) {
-  const GRAZE = 4;
-  const STEP = 22;
-  const MIN = GRAZE + 4;
-  const pts = [];
-  for (const p of route) {
-    const last2 = pts[pts.length - 1];
-    if (!last2 || Math.abs(last2[0] - p[0]) > 0.01 || Math.abs(last2[1] - p[1]) > 0.01) pts.push([p[0], p[1]]);
-  }
-  const isV = (a, b) => Math.abs(a[0] - b[0]) < 2 && Math.abs(a[1] - b[1]) > 3;
-  const isH = (a, b) => Math.abs(a[1] - b[1]) < 2 && Math.abs(a[0] - b[0]) > 3;
-  const lane = (box, dir, axis, spanLo, spanHi) => {
-    const lo = axis === "x" ? box.x : box.y;
-    const size2 = axis === "x" ? box.w : box.h;
-    const edge = dir < 0 ? lo : lo + size2;
-    let bound = dir < 0 ? -Infinity : Infinity;
-    for (const o of allBoxes) {
-      const oLo = axis === "x" ? o.x : o.y;
-      const oHi = oLo + (axis === "x" ? o.w : o.h);
-      const ocLo = axis === "x" ? o.y : o.x;
-      const ocHi = ocLo + (axis === "x" ? o.h : o.w);
-      if (ocHi <= spanLo + 1 || ocLo >= spanHi - 1) continue;
-      if (dir < 0 && oHi <= edge + 0.5) bound = Math.max(bound, oHi);
-      else if (dir > 0 && oLo >= edge - 0.5) bound = Math.min(bound, oLo);
-    }
-    if (!Number.isFinite(bound)) return edge + dir * STEP;
-    const mid = (edge + bound) / 2;
-    return dir < 0 ? Math.min(edge - MIN, Math.max(bound + MIN, mid)) : Math.max(edge + MIN, Math.min(bound - MIN, mid));
-  };
-  const clearOwn = (box, fromStart) => {
-    if (!box || pts.length < 3) return;
-    const portIdx = fromStart ? 0 : pts.length - 1;
-    const scan = fromStart ? [0, 1, 2] : [pts.length - 2, pts.length - 3, pts.length - 4];
-    for (const i of scan) {
-      if (i < 0 || i + 1 >= pts.length) continue;
-      const a = pts[i], b = pts[i + 1];
-      let nx = null;
-      let ny = null;
-      if (isV(a, b)) {
-        const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-        if (!(y0 < box.y + box.h - 2 && y1 > box.y + 2)) continue;
-        if (Math.abs(a[0] - box.x) < GRAZE) nx = lane(box, -1, "x", y0, y1);
-        else if (Math.abs(a[0] - (box.x + box.w)) < GRAZE) nx = lane(box, 1, "x", y0, y1);
-      } else if (isH(a, b)) {
-        const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-        if (!(x0 < box.x + box.w - 2 && x1 > box.x + 2)) continue;
-        if (Math.abs(a[1] - box.y) < GRAZE) ny = lane(box, -1, "y", x0, x1);
-        else if (Math.abs(a[1] - (box.y + box.h)) < GRAZE) ny = lane(box, 1, "y", x0, x1);
-      }
-      if (nx === null && ny === null) continue;
-      const touchesPort = i === portIdx || i + 1 === portIdx;
-      if (!touchesPort) {
-        if (nx !== null) {
-          a[0] = nx;
-          b[0] = nx;
-        } else {
-          a[1] = ny;
-          b[1] = ny;
-        }
-        return;
-      }
-      const port = pts[portIdx];
-      const nonPort = i === portIdx ? i + 1 : i;
-      if (nx !== null) {
-        pts[nonPort] = [nx, pts[nonPort][1]];
-        pts.splice(fromStart ? 1 : pts.length - 1, 0, [nx, port[1]]);
-      } else {
-        pts[nonPort] = [pts[nonPort][0], ny];
-        pts.splice(fromStart ? 1 : pts.length - 1, 0, [port[0], ny]);
-      }
-      return;
-    }
-  };
-  clearOwn(srcBox, true);
-  clearOwn(dstBox, false);
-  return pts;
-}
-function straightenFacingApproach(route, fromBox, toBox, foreignNodes = []) {
-  if (!fromBox || !toBox || route.length < 2) return route;
-  const p0 = route[0], pN = route[route.length - 1];
-  const EPS = 3;
-  const faceOf3 = (pt, b) => {
-    if (Math.abs(pt[0] - b.x) < EPS) return "W";
-    if (Math.abs(pt[0] - (b.x + b.w)) < EPS) return "E";
-    if (Math.abs(pt[1] - b.y) < EPS) return "N";
-    if (Math.abs(pt[1] - (b.y + b.h)) < EPS) return "S";
-    return null;
-  };
-  const fa = faceOf3(p0, fromBox), ta = faceOf3(pN, toBox);
-  const M = 8;
-  const clearRun = (horizontal, cross, lo, hi) => {
-    for (const o of foreignNodes) {
-      if (horizontal) {
-        if (lo < o.x + o.w + M && hi > o.x - M && cross > o.y - M && cross < o.y + o.h + M) return false;
-      } else if (lo < o.y + o.h + M && hi > o.y - M && cross > o.x - M && cross < o.x + o.w + M) return false;
-    }
-    return true;
-  };
-  if (fa === "E" && ta === "W" || fa === "W" && ta === "E") {
-    const lo = Math.max(fromBox.y, toBox.y), hi = Math.min(fromBox.y + fromBox.h, toBox.y + toBox.h);
-    if (hi - lo > 8 && Math.abs(p0[1] - pN[1]) > EPS) {
-      const y = Math.min(hi - 4, Math.max(lo + 4, (p0[1] + pN[1]) / 2));
-      if (clearRun(true, y, Math.min(p0[0], pN[0]), Math.max(p0[0], pN[0]))) return [[p0[0], y], [pN[0], y]];
-    }
-  }
-  if (fa === "S" && ta === "N" || fa === "N" && ta === "S") {
-    const lo = Math.max(fromBox.x, toBox.x), hi = Math.min(fromBox.x + fromBox.w, toBox.x + toBox.w);
-    if (hi - lo > 8 && Math.abs(p0[0] - pN[0]) > EPS) {
-      const x = Math.min(hi - 4, Math.max(lo + 4, (p0[0] + pN[0]) / 2));
-      if (clearRun(false, x, Math.min(p0[1], pN[1]), Math.max(p0[1], pN[1]))) return [[x, p0[1]], [x, pN[1]]];
-    }
-  }
-  return route;
-}
-function orthogonalizeApproach(route, fromBox, toBox) {
-  if (route.length < 2) return route;
-  const pts = route.map((p) => [p[0], p[1]]);
-  const EPS = 3;
-  const diag = (a, b) => Math.abs(a[0] - b[0]) > 1.5 && Math.abs(a[1] - b[1]) > 1.5;
-  const faceHorizontal = (pt, box) => {
-    if (!box) return null;
-    if (Math.abs(pt[0] - box.x) < EPS || Math.abs(pt[0] - (box.x + box.w)) < EPS) return true;
-    if (Math.abs(pt[1] - box.y) < EPS || Math.abs(pt[1] - (box.y + box.h)) < EPS) return false;
-    return null;
-  };
-  const n = pts.length;
-  if (diag(pts[n - 2], pts[n - 1])) {
-    const port = pts[n - 1], prev = pts[n - 2];
-    const corner = faceHorizontal(port, toBox) === false ? [port[0], prev[1]] : [prev[0], port[1]];
-    pts.splice(n - 1, 0, corner);
-  }
-  if (diag(pts[0], pts[1])) {
-    const port = pts[0], next = pts[1];
-    const corner = faceHorizontal(port, fromBox) === false ? [port[0], next[1]] : [next[0], port[1]];
-    pts.splice(1, 0, corner);
-  }
-  for (let i = 0; i < pts.length - 1; i++) {
-    if (diag(pts[i], pts[i + 1])) {
-      pts.splice(i + 1, 0, [pts[i + 1][0], pts[i][1]]);
-      i++;
-    }
-  }
-  return pts;
-}
-var inBox = (p, b) => p[0] > b.x && p[0] < b.x + b.w && p[1] > b.y && p[1] < b.y + b.h;
-function faceHit(outside, inside, b) {
-  if (Math.abs(outside[0] - inside[0]) < Math.abs(outside[1] - inside[1])) {
-    return [inside[0], outside[1] < inside[1] ? b.y : b.y + b.h];
-  }
-  return [outside[0] < inside[0] ? b.x : b.x + b.w, inside[1]];
-}
-function crossesCentre(a, b, box) {
-  const cx = box.x + box.w / 2, cy = box.y + box.h / 2;
-  if (Math.abs(b[1] - a[1]) < Math.abs(b[0] - a[0])) {
-    if (a[1] <= box.y || a[1] >= box.y + box.h) return false;
-    return Math.min(a[0], b[0]) < cx && Math.max(a[0], b[0]) > cx;
-  }
-  if (a[0] <= box.x || a[0] >= box.x + box.w) return false;
-  return Math.min(a[1], b[1]) < cy && Math.max(a[1], b[1]) > cy;
-}
-function clipToEndpointFaces(route, fromBox, toBox) {
-  let pts = route;
-  if (toBox && pts.length >= 2) {
-    const n = pts.length - 1;
-    const bad = crossesCentre(pts[n - 1], pts[n], toBox) || pts.slice(0, n).some((q, i) => i > 0 && inBox(q, toBox));
-    if (bad) {
-      let enter = -1;
-      for (let i = 0; i < pts.length; i++) {
-        if (!inBox(pts[i], toBox) && !(i === pts.length - 1)) {
-          enter = i;
-          continue;
-        }
-        break;
-      }
-      if (enter >= 0 && enter < pts.length - 1) {
-        pts = [...pts.slice(0, enter + 1), faceHit(pts[enter], pts[enter + 1], toBox)];
-      }
-    }
-  }
-  if (fromBox && pts.length >= 2) {
-    const bad = crossesCentre(pts[1], pts[0], fromBox) || pts.slice(1).some((q, i) => i < pts.length - 2 && inBox(q, fromBox));
-    if (bad) {
-      let exit = -1;
-      for (let i = pts.length - 1; i >= 0; i--) {
-        if (!inBox(pts[i], fromBox) && i !== 0) {
-          exit = i;
-          continue;
-        }
-        break;
-      }
-      if (exit > 0) pts = [faceHit(pts[exit], pts[exit - 1], fromBox), ...pts.slice(exit)];
-    }
-  }
-  return pts === route ? route : simplifyRoute(pts);
-}
-function simplifyRoute(pts) {
-  if (pts.length < 3) return pts;
-  const out = [pts[0]];
-  for (let i = 1; i < pts.length - 1; i++) {
-    const a = out[out.length - 1], b = pts[i], c = pts[i + 1];
-    const collinear = Math.abs(a[0] - b[0]) < 0.01 && Math.abs(b[0] - c[0]) < 0.01 || Math.abs(a[1] - b[1]) < 0.01 && Math.abs(b[1] - c[1]) < 0.01;
-    if (!collinear) out.push(b);
-  }
-  out.push(pts[pts.length - 1]);
-  return out;
-}
-function segHits(a, b, box, inset) {
-  const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-  const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-  return x1 > box.x + inset && x0 < box.x + box.w - inset && y1 > box.y + inset && y0 < box.y + box.h - inset;
-}
-function ridesFace(a, b, box) {
-  const NEAR = 2.5;
-  const MIN = 8;
-  if (Math.abs(a[1] - b[1]) < 1.5) {
-    if (Math.abs(a[1] - box.y) > NEAR && Math.abs(a[1] - (box.y + box.h)) > NEAR) return false;
-    const lo = Math.max(Math.min(a[0], b[0]), box.x);
-    const hi = Math.min(Math.max(a[0], b[0]), box.x + box.w);
-    return hi - lo > MIN;
-  }
-  if (Math.abs(a[0] - b[0]) < 1.5) {
-    if (Math.abs(a[0] - box.x) > NEAR && Math.abs(a[0] - (box.x + box.w)) > NEAR) return false;
-    const lo = Math.max(Math.min(a[1], b[1]), box.y);
-    const hi = Math.min(Math.max(a[1], b[1]), box.y + box.h);
-    return hi - lo > MIN;
-  }
-  return false;
-}
-function straightenStaircase(route, p) {
-  const blockers = [...p.foreignNodes ?? [], ...p.foreignZones ?? []];
-  const ends = [p.fromBox, p.toBox].filter((b) => !!b);
-  let pts = route;
-  for (let pass = 0; pass < 4; pass++) {
-    let changed = false;
-    for (let i = 0; i + 3 < pts.length; i++) {
-      const [a, b, c, d] = [pts[i], pts[i + 1], pts[i + 2], pts[i + 3]];
-      const abV = Math.abs(a[0] - b[0]) < 1.5, cdV = Math.abs(c[0] - d[0]) < 1.5;
-      if (abV !== cdV) continue;
-      for (const corner of [[a[0], d[1]], [d[0], a[1]]]) {
-        const okAxis = (Math.abs(a[0] - corner[0]) < 1.5 || Math.abs(a[1] - corner[1]) < 1.5) && (Math.abs(corner[0] - d[0]) < 1.5 || Math.abs(corner[1] - d[1]) < 1.5);
-        if (!okAxis) continue;
-        const vert = (p2, q) => Math.abs(p2[0] - q[0]) < 1.5;
-        if (i === 0 && vert(a, corner) !== abV) continue;
-        if (i + 3 === pts.length - 1 && vert(corner, d) !== cdV) continue;
-        const hit = blockers.some((o) => segHits(a, corner, o, 1) || segHits(corner, d, o, 1)) || ends.some((o) => i > 0 && segHits(a, corner, o, 2) || i + 3 < pts.length - 1 && segHits(corner, d, o, 2)) || ends.some((o) => ridesFace(a, corner, o) || ridesFace(corner, d, o));
-        if (hit) continue;
-        pts = [...pts.slice(0, i + 1), corner, ...pts.slice(i + 3)];
-        changed = true;
-        break;
-      }
-      if (changed) break;
-    }
-    if (!changed) break;
-  }
-  return pts === route ? route : simplifyRoute(pts);
-}
-function refineRoute(route, p) {
-  let r2 = straightenFacingApproach(route, p.fromBox, p.toBox, p.foreignNodes);
-  r2 = orthogonalizeApproach(r2, p.fromBox, p.toBox);
-  r2 = detourAroundForeignZones(r2, p.foreignZones, p.foreignNodes);
-  r2 = pushClearOfForeignNodes(r2, p.foreignNodes, p.allNodes);
-  r2 = stepOffEndpointFaces(r2, p.fromBox, p.toBox, p.allNodes);
-  r2 = clipToEndpointFaces(r2, p.fromBox, p.toBox);
-  r2 = straightenStaircase(r2, p);
-  return simplifyRoute(r2);
-}
-var sameRoute = (a, b) => a.length === b.length && a.every((q, i) => Math.abs(q[0] - b[i][0]) < 0.01 && Math.abs(q[1] - b[i][1]) < 0.01);
-function refineRouteTraced(route, p) {
-  const changedBy = [];
-  let r2 = route;
-  const step = (name, out) => {
-    if (!sameRoute(r2, out)) changedBy.push(name);
-    r2 = out;
-  };
-  step("straightenFacingApproach", straightenFacingApproach(r2, p.fromBox, p.toBox, p.foreignNodes));
-  step("orthogonalizeApproach", orthogonalizeApproach(r2, p.fromBox, p.toBox));
-  step("detourAroundForeignZones", detourAroundForeignZones(r2, p.foreignZones, p.foreignNodes));
-  step("pushClearOfForeignNodes", pushClearOfForeignNodes(r2, p.foreignNodes, p.allNodes));
-  step("stepOffEndpointFaces", stepOffEndpointFaces(r2, p.fromBox, p.toBox, p.allNodes));
-  step("clipToEndpointFaces", clipToEndpointFaces(r2, p.fromBox, p.toBox));
-  step("straightenStaircase", straightenStaircase(r2, p));
-  return { route: r2, changedBy };
-}
-function trunkRun(pts) {
-  let best = null;
-  for (let i = 2; i < pts.length - 1; i++) {
-    const [ax, ay] = pts[i - 1], [bx, by] = pts[i];
-    const dx = Math.abs(ax - bx), dy = Math.abs(ay - by);
-    const vertical = dx < 0.5;
-    if (!vertical && dy >= 0.5) continue;
-    const len = vertical ? dy : dx;
-    if (!best || len > best.len) best = { at: i, vertical, len };
-  }
-  return best ? { at: best.at, vertical: best.vertical } : null;
-}
-function separateReciprocalRoutes(routes, boxOf) {
-  const byPair = /* @__PURE__ */ new Map();
-  routes.forEach((r2, i) => {
-    if (r2.from === r2.to) return;
-    const k = r2.from < r2.to ? `${r2.from}\0${r2.to}` : `${r2.to}\0${r2.from}`;
-    byPair.set(k, [...byPair.get(k) ?? [], i]);
+// agent/boardService.ts
+var DG_BOARD_HOST = typeof process !== "undefined" && process.env?.DELTALAB_DG_HOST?.trim() || "https://deltagraph.submillisecond.com";
+async function remote(req) {
+  const res = await fetch(`${DG_BOARD_HOST.replace(/\/+$/, "")}/board`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(req)
   });
-  for (const idxs of byPair.values()) {
-    if (idxs.length !== 2) continue;
-    const [i, j] = idxs;
-    if (routes[i].from === routes[j].from) continue;
-    const a = boxOf(routes[i].from), b = boxOf(routes[i].to);
-    if (!a || !b) continue;
-    const ti = trunkRun(routes[i].pts), tj = trunkRun(routes[j].pts);
-    if (!ti || !tj || ti.vertical !== tj.vertical) continue;
-    const axis = ti.vertical ? 0 : 1;
-    const li = routes[i].pts[ti.at][axis], lj = routes[j].pts[tj.at][axis];
-    if (Math.abs(li - lj) > 1.5) continue;
-    const lo = axis === 0 ? Math.min(a.x + a.w, b.x + b.w) : Math.min(a.y + a.h, b.y + b.h);
-    const hi = axis === 0 ? Math.max(a.x, b.x) : Math.max(a.y, b.y);
-    const gap = hi - lo;
-    if (gap <= 4) continue;
-    const step = Math.min(20, Math.max(4, gap - 6)) / 2;
-    for (const [r2, t, dir] of [[routes[i], ti, -1], [routes[j], tj, 1]]) {
-      r2.pts[t.at - 1] = [...r2.pts[t.at - 1]];
-      r2.pts[t.at] = [...r2.pts[t.at]];
-      r2.pts[t.at - 1][axis] += step * dir;
-      r2.pts[t.at][axis] += step * dir;
-    }
-  }
-}
-function routeCrossings(p, q) {
-  const segs = (pts) => {
-    const o = [];
-    for (let i = 1; i < pts.length; i++) o.push([pts[i - 1], pts[i]]);
-    return o;
-  };
-  let n = 0;
-  for (const [a0, a1] of segs(p)) {
-    const av = Math.abs(a0[0] - a1[0]) < 0.5;
-    for (const [b0, b1] of segs(q)) {
-      const bv = Math.abs(b0[0] - b1[0]) < 0.5;
-      if (av === bv) continue;
-      const [v0, v1] = av ? [a0, a1] : [b0, b1];
-      const [h0, h1] = av ? [b0, b1] : [a0, a1];
-      const inV = h0[1] > Math.min(v0[1], v1[1]) + 0.5 && h0[1] < Math.max(v0[1], v1[1]) - 0.5;
-      const inH = v0[0] > Math.min(h0[0], h1[0]) + 0.5 && v0[0] < Math.max(h0[0], h1[0]) - 0.5;
-      if (inV && inH) n++;
-    }
-  }
-  return n;
-}
-function faceOf2(pt, box) {
-  const [x, y] = pt;
-  if (Math.abs(y - box.y) < 1.5) return "N";
-  if (Math.abs(y - (box.y + box.h)) < 1.5) return "S";
-  if (Math.abs(x - box.x) < 1.5) return "W";
-  if (Math.abs(x - (box.x + box.w)) < 1.5) return "E";
-  return null;
-}
-function uncrossSharedFaces(items, boxOf) {
-  const faces = /* @__PURE__ */ new Map();
-  items.forEach((it, i) => {
-    if (it.raw.length < 2) return;
-    for (const [id2, pt, end] of [
-      [it.from, it.raw[0], "a"],
-      [it.to, it.raw[it.raw.length - 1], "b"]
-    ]) {
-      const box = boxOf(id2);
-      const side = box && faceOf2(pt, box);
-      if (!side) continue;
-      const k = `${id2}:${side}:${end}`;
-      faces.set(k, [...faces.get(k) ?? [], i]);
-    }
-  });
-  const out = [];
-  for (const [key2, idxs] of faces) {
-    if (idxs.length !== 2) continue;
-    const [i, j] = idxs;
-    const a = items[i], b = items[j];
-    const before = routeCrossings(a.refined, b.refined);
-    if (!before) continue;
-    const end = key2.endsWith(":a") ? 0 : 1;
-    const horizontalFace = key2.includes(":N:") || key2.includes(":S:");
-    const axis = horizontalFace ? 0 : 1;
-    const at = (r2) => end === 0 ? 0 : r2.length - 1;
-    const ai = at(a.raw), bi = at(b.raw);
-    const pa = a.raw[ai][axis], pb = b.raw[bi][axis];
-    if (Math.abs(pa - pb) < 1e-6) continue;
-    const shifted = (r2, k, to) => {
-      const copy2 = r2.map((p) => [...p]);
-      const stub = end === 0 ? 1 : r2.length - 2;
-      copy2[k][axis] = to;
-      if (stub >= 0 && stub < copy2.length && Math.abs(r2[stub][axis] - r2[k][axis]) < 1.5) {
-        copy2[stub][axis] = to;
-      }
-      return copy2;
-    };
-    const ra = a.refine(shifted(a.raw, ai, pb));
-    const rb = b.refine(shifted(b.raw, bi, pa));
-    if (ra.length && rb.length && routeCrossings(ra, rb) < before) {
-      out.push({ index: i, route: ra }, { index: j, route: rb });
-    }
-  }
-  return out;
-}
-function absorbPortJog(route, fromBox, toBox) {
-  let pts = route.map((p) => [p[0], p[1]]);
-  const fix = (atStart, box) => {
-    if (!box || pts.length < 4) return;
-    const idx = atStart ? [0, 1, 2, 3] : [pts.length - 1, pts.length - 2, pts.length - 3, pts.length - 4];
-    const [p0, p1, p2, p3] = idx.map((k) => pts[k]);
-    const onN = Math.abs(p0[1] - box.y) < 1.5, onS = Math.abs(p0[1] - (box.y + box.h)) < 1.5;
-    const onW = Math.abs(p0[0] - box.x) < 1.5, onE = Math.abs(p0[0] - (box.x + box.w)) < 1.5;
-    const vertFace = onN || onS;
-    if (!vertFace && !onW && !onE) return;
-    const a = vertFace ? 0 : 1;
-    const perp = 1 - a;
-    const stub = Math.abs(p1[perp] - p0[perp]);
-    if (Math.abs(p1[a] - p0[a]) > 1.5 || stub < 0.5 || stub > 40) return;
-    if (Math.abs(p2[perp] - p1[perp]) > 1.5) return;
-    if (Math.abs(p3[a] - p2[a]) > 1.5) return;
-    const jog = Math.abs(p2[a] - p1[a]);
-    if (jog < 0.5) return;
-    const INSET = 6;
-    const lo = (a === 0 ? box.x : box.y) + INSET;
-    const hi = (a === 0 ? box.x + box.w : box.y + box.h) - INSET;
-    if (p2[a] < lo || p2[a] > hi) return;
-    p0[a] = p2[a];
-    p1[a] = p2[a];
-  };
-  fix(true, fromBox);
-  fix(false, toBox);
-  pts = pts.filter((p, i) => i === 0 || Math.abs(p[0] - pts[i - 1][0]) > 0.5 || Math.abs(p[1] - pts[i - 1][1]) > 0.5);
-  const out = [];
-  for (const p of pts) {
-    const n = out.length;
-    if (n >= 2) {
-      const a = out[n - 2], b = out[n - 1];
-      const collinear = Math.abs(a[0] - b[0]) < 0.5 && Math.abs(b[0] - p[0]) < 0.5 || Math.abs(a[1] - b[1]) < 0.5 && Math.abs(b[1] - p[1]) < 0.5;
-      if (collinear) out.pop();
-    }
-    out.push(p);
-  }
-  return out;
-}
-
-// ../../packages/deltagraph/src/board/layoutMetrics.ts
-var DG_LAYOUT_WEIGHTS = { violation: 10, crossing: 3, backEdge: 2, bend: 1, aspectOver3: 4 };
-function dgLayoutMetrics(doc, axis = "TB") {
-  const report = dgAnalyzeRouting(doc);
-  const debugBy = new Map((doc.diagnostics?.debug?.edges ?? []).map((e) => [e.id, e]));
-  const nodeAt = new Map(report.nodes.map((n) => [n.slug, n]));
-  const issuesBy = /* @__PURE__ */ new Map();
-  for (const v of report.violations) (issuesBy.get(v.edgeId) ?? issuesBy.set(v.edgeId, []).get(v.edgeId)).push(v);
-  const crossBy = /* @__PURE__ */ new Map();
-  let crossings = 0;
-  for (let i = 0; i < report.edges.length; i++) {
-    for (let j = i + 1; j < report.edges.length; j++) {
-      const c = routeCrossings(report.edges[i].pts, report.edges[j].pts);
-      if (!c) continue;
-      crossings += c;
-      crossBy.set(report.edges[i].id, (crossBy.get(report.edges[i].id) ?? 0) + c);
-      crossBy.set(report.edges[j].id, (crossBy.get(report.edges[j].id) ?? 0) + c);
-    }
-  }
-  const perEdge = report.edges.map((e) => {
-    let length2 = 0;
-    for (let k = 1; k < e.pts.length; k++) length2 += Math.abs(e.pts[k][0] - e.pts[k - 1][0]) + Math.abs(e.pts[k][1] - e.pts[k - 1][1]);
-    const a = e.from ? nodeAt.get(e.from) : void 0, b = e.to ? nodeAt.get(e.to) : void 0;
-    const centre = (n) => axis === "LR" ? (n.x1 + n.x2) / 2 : (n.y1 + n.y2) / 2;
-    const backward = !!(a && b && a !== b && centre(b) < centre(a) - 1);
-    const dbg = debugBy.get(e.id);
-    return {
-      id: e.id,
-      from: e.from,
-      to: e.to,
-      label: e.label === e.id ? "" : e.label,
-      bends: Math.max(0, e.pts.length - 2),
-      length: Math.round(length2),
-      crossings: crossBy.get(e.id) ?? 0,
-      backward,
-      ...dbg?.method ? { method: dbg.method } : {},
-      ...dbg?.refinedBy?.length ? { refinedBy: dbg.refinedBy } : {},
-      issues: (issuesBy.get(e.id) ?? []).map((v) => `${v.kind}${v.node ? ` (${v.node})` : ""}: ${v.detail}`)
-    };
-  });
-  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-  for (const n of report.nodes) {
-    x0 = Math.min(x0, n.x1);
-    y0 = Math.min(y0, n.y1);
-    x1 = Math.max(x1, n.x2);
-    y1 = Math.max(y1, n.y2);
-  }
-  for (const e of report.edges) for (const [px, py] of e.pts) {
-    x0 = Math.min(x0, px);
-    y0 = Math.min(y0, py);
-    x1 = Math.max(x1, px);
-    y1 = Math.max(y1, py);
-  }
-  const width = Number.isFinite(x0) ? Math.round(x1 - x0) : 0, height = Number.isFinite(y0) ? Math.round(y1 - y0) : 0;
-  const aspect = width && height ? Math.round(Math.max(width, height) / Math.min(width, height) * 100) / 100 : 1;
-  const byKind = {};
-  for (const v of report.violations) byKind[v.kind] = (byKind[v.kind] ?? 0) + 1;
-  const bends = perEdge.reduce((s, e) => s + e.bends, 0);
-  const backEdges = perEdge.filter((e) => e.backward).length;
-  const dropped = perEdge.filter((e) => e.method === "dropped").length;
-  const W2 = DG_LAYOUT_WEIGHTS;
-  const score = Math.round(
-    (report.violations.length + dropped) * W2.violation + crossings * W2.crossing + backEdges * W2.backEdge + bends * W2.bend + (report.nodes.length >= 4 ? Math.max(0, aspect - 3) * W2.aspectOver3 : 0)
-  );
-  return { nodes: report.nodes.length, edges: report.edges.length, width, height, aspect, crossings, bends, backEdges, violations: report.violations.length, byKind, dropped, score, perEdge };
-}
-
-// ../../packages/deltagraph/src/layout/networkSimplex.ts
-function networkSimplex(nodes, edges) {
-  const rank = /* @__PURE__ */ new Map();
-  if (!nodes.length) return rank;
-  const outE = new Map(nodes.map((n) => [n, []]));
-  const inE = new Map(nodes.map((n) => [n, []]));
-  edges.forEach((e, i) => {
-    outE.get(e.tail).push(i);
-    inE.get(e.head).push(i);
-  });
-  const slack = (e) => rank.get(e.head) - rank.get(e.tail) - e.minlen;
-  const indeg = new Map(nodes.map((n) => [n, inE.get(n).length]));
-  const q = nodes.filter((n) => indeg.get(n) === 0);
-  for (const n of nodes) rank.set(n, 0);
-  let qi = 0;
-  while (qi < q.length) {
-    const u = q[qi++];
-    for (const ei of outE.get(u)) {
-      const e = edges[ei];
-      if (rank.get(e.head) < rank.get(u) + e.minlen) rank.set(e.head, rank.get(u) + e.minlen);
-      indeg.set(e.head, indeg.get(e.head) - 1);
-      if (indeg.get(e.head) === 0) q.push(e.head);
-    }
-  }
-  const treeEdges = /* @__PURE__ */ new Set();
-  const treeNodes = /* @__PURE__ */ new Set([nodes[0]]);
-  const grow = () => {
-    let added = true;
-    while (added) {
-      added = false;
-      for (let ei = 0; ei < edges.length; ei++) {
-        if (treeEdges.has(ei)) continue;
-        const e = edges[ei];
-        if (treeNodes.has(e.tail) !== treeNodes.has(e.head) && slack(e) === 0) {
-          treeEdges.add(ei);
-          treeNodes.add(e.tail);
-          treeNodes.add(e.head);
-          added = true;
-        }
-      }
-    }
-  };
-  grow();
-  const treeAdj = new Map(nodes.map((n) => [n, []]));
-  const rebuildTreeAdj = () => {
-    for (const a of treeAdj.values()) a.length = 0;
-    for (const ei of treeEdges) {
-      const e = edges[ei];
-      treeAdj.get(e.tail).push(ei);
-      treeAdj.get(e.head).push(ei);
-    }
-  };
-  let spanGuard = 0;
-  while (treeNodes.size < nodes.length && spanGuard++ < nodes.length + 5) {
-    let best = -1, bestSlack = Infinity;
-    for (let ei = 0; ei < edges.length; ei++) {
-      if (treeEdges.has(ei)) continue;
-      const e = edges[ei];
-      if (treeNodes.has(e.tail) !== treeNodes.has(e.head)) {
-        const s = slack(e);
-        if (s < bestSlack) {
-          bestSlack = s;
-          best = ei;
-        }
-      }
-    }
-    if (best < 0) break;
-    const delta = treeNodes.has(edges[best].tail) ? bestSlack : -bestSlack;
-    for (const n of treeNodes) rank.set(n, rank.get(n) + delta);
-    grow();
-  }
-  rebuildTreeAdj();
-  const headComponent = (remove) => {
-    const e = edges[remove];
-    const comp = /* @__PURE__ */ new Set([e.head]);
-    const stack = [e.head];
-    while (stack.length) {
-      const u = stack.pop();
-      for (const ei of treeAdj.get(u)) {
-        if (ei === remove) continue;
-        const te2 = edges[ei];
-        const other = te2.tail === u ? te2.head : te2.tail;
-        if (!comp.has(other)) {
-          comp.add(other);
-          stack.push(other);
-        }
-      }
-    }
-    return comp;
-  };
-  const nodeIn = new Map(nodes.map((n) => [n, 0]));
-  const nodeOut = new Map(nodes.map((n) => [n, 0]));
-  for (const g of edges) {
-    nodeIn.set(g.head, nodeIn.get(g.head) + g.weight);
-    nodeOut.set(g.tail, nodeOut.get(g.tail) + g.weight);
-  }
-  const allCutValues = () => {
-    const parentEdge = /* @__PURE__ */ new Map();
-    const pre = [];
-    const seen = /* @__PURE__ */ new Set([nodes[0]]);
-    const st = [nodes[0]];
-    while (st.length) {
-      const u = st.pop();
-      pre.push(u);
-      for (const ei of treeAdj.get(u)) {
-        const te2 = edges[ei];
-        const v = te2.tail === u ? te2.head : te2.tail;
-        if (!seen.has(v)) {
-          seen.add(v);
-          parentEdge.set(v, ei);
-          st.push(v);
-        }
-      }
-    }
-    const subIn = new Map(nodeIn), subOut = new Map(nodeOut);
-    for (let k = pre.length - 1; k >= 0; k--) {
-      const v = pre[k];
-      const pe = parentEdge.get(v);
-      if (pe === void 0) continue;
-      const te2 = edges[pe];
-      const p = te2.tail === v ? te2.head : te2.tail;
-      subIn.set(p, subIn.get(p) + subIn.get(v));
-      subOut.set(p, subOut.get(p) + subOut.get(v));
-    }
-    const cv = /* @__PURE__ */ new Map();
-    for (const ei of treeEdges) {
-      const te2 = edges[ei];
-      const child = parentEdge.get(te2.head) === ei ? te2.head : te2.tail;
-      const cross = subIn.get(child) - subOut.get(child);
-      cv.set(ei, te2.head === child ? cross : -cross);
-    }
-    return cv;
-  };
-  let guard = 0;
-  while (guard++ < 500) {
-    let leave = -1;
-    const cvs = allCutValues();
-    for (const [ei, v] of cvs) if (v < 0) {
-      leave = ei;
-      break;
-    }
-    if (leave < 0) break;
-    const hc = headComponent(leave);
-    let enter = -1, bestSlack = Infinity;
-    for (let ei = 0; ei < edges.length; ei++) {
-      if (treeEdges.has(ei)) continue;
-      const e = edges[ei];
-      if (hc.has(e.tail) && !hc.has(e.head)) {
-        const s = slack(e);
-        if (s < bestSlack) {
-          bestSlack = s;
-          enter = ei;
-        }
-      }
-    }
-    if (enter < 0) break;
-    const delta = slack(edges[enter]);
-    if (delta !== 0) for (const n of hc) rank.set(n, rank.get(n) + delta);
-    treeEdges.delete(leave);
-    treeEdges.add(enter);
-    rebuildTreeAdj();
-  }
-  const minR = Math.min(...nodes.map((n) => rank.get(n)));
-  for (const n of nodes) rank.set(n, rank.get(n) - minR);
-  return rank;
-}
-
-// ../../packages/deltagraph/src/layout/layered.ts
-function layeredLayout(ids, edges, base, cellW, cellH, dim, gapX = 64, gapY = 46, clusters) {
-  const pos = /* @__PURE__ */ new Map();
-  const waypoints = /* @__PURE__ */ new Map();
-  if (!ids.length) return { pos, waypoints, layer: /* @__PURE__ */ new Map(), reversedEdges: [] };
-  const inSet = new Set(ids);
-  const rel = edges.filter((e) => inSet.has(e.from) && inSet.has(e.to) && e.from !== e.to);
-  const clusterOf = /* @__PURE__ */ new Map();
-  if (clusters?.length) {
-    for (const id2 of ids) {
-      let best = -1, bestSize = Infinity;
-      clusters.forEach((mem, ci) => {
-        if (mem.length < bestSize && mem.includes(id2)) {
-          best = ci;
-          bestSize = mem.length;
-        }
-      });
-      if (best >= 0) clusterOf.set(id2, best);
-    }
-  }
-  const clustered = clusterOf.size > 0;
-  const relAdj = new Map(ids.map((id2) => [id2, []]));
-  rel.forEach((e, i) => relAdj.get(e.from).push(i));
-  const dfsState = new Map(ids.map((id2) => [id2, 0]));
-  const reversed = /* @__PURE__ */ new Set();
-  for (const start of ids) {
-    if (dfsState.get(start) !== 0) continue;
-    dfsState.set(start, 1);
-    const stack = [{ node: start, k: 0 }];
-    while (stack.length) {
-      const top = stack[stack.length - 1];
-      const es = relAdj.get(top.node);
-      if (top.k < es.length) {
-        const i = es[top.k++];
-        const to = rel[i].to;
-        const st = dfsState.get(to);
-        if (st === 1) reversed.add(i);
-        else if (st === 0) {
-          dfsState.set(to, 1);
-          stack.push({ node: to, k: 0 });
-        }
-      } else {
-        dfsState.set(top.node, 2);
-        stack.pop();
-      }
-    }
-  }
-  const dag = rel.map((e, i) => reversed.has(i) ? { from: e.to, to: e.from, w: e.w, key: `${e.from}->${e.to}`, rev: true } : { from: e.from, to: e.to, w: e.w, key: `${e.from}->${e.to}`, rev: false });
-  const layer = new Map(ids.map((id2) => [id2, 0]));
-  for (let iter = 0; iter < ids.length; iter++) {
-    let changed = false;
-    for (const e of dag) {
-      const ls = layer.get(e.from);
-      if (layer.get(e.to) < ls + 1) {
-        layer.set(e.to, ls + 1);
-        changed = true;
-      }
-    }
-    if (!changed) break;
-  }
-  const outN = new Map(ids.map((id2) => [id2, []]));
-  const inN = new Map(ids.map((id2) => [id2, []]));
-  for (const e of dag) {
-    outN.get(e.from).push(e.to);
-    inN.get(e.to).push(e.from);
-  }
-  for (let sweep = 0; sweep < 12; sweep++) {
-    let changed = false;
-    for (const id2 of ids) {
-      const ins = inN.get(id2), outs = outN.get(id2);
-      if (!ins.length && !outs.length) continue;
-      const desires = [];
-      for (const p of ins) desires.push(layer.get(p) + 1);
-      for (const c of outs) desires.push(layer.get(c) - 1);
-      desires.sort((a, b) => a - b);
-      const lo = ins.length ? Math.max(...ins.map((p) => layer.get(p))) + 1 : 0;
-      const hi = outs.length ? Math.min(...outs.map((c) => layer.get(c))) - 1 : Number.MAX_SAFE_INTEGER;
-      const med = desires[Math.floor((desires.length - 1) / 2)];
-      const want = Math.max(lo, Math.min(Math.max(lo, hi), med));
-      if (want !== layer.get(id2)) {
-        layer.set(id2, want);
-        changed = true;
-      }
-    }
-    if (!changed) break;
-  }
-  const minL = Math.min(...ids.map((id2) => layer.get(id2)));
-  if (minL > 0) for (const id2 of ids) layer.set(id2, layer.get(id2) - minL);
-  if (clustered) {
-    const bandKey = (id2) => {
-      const c = clusterOf.get(id2);
-      return c !== void 0 ? `c${c}` : `s${id2}`;
-    };
-    const bmembers = /* @__PURE__ */ new Map();
-    for (const id2 of ids) {
-      const b = bandKey(id2);
-      (bmembers.get(b) ?? bmembers.set(b, []).get(b)).push(id2);
-    }
-    const bands = [...bmembers.keys()].map((b) => {
-      let lo = Infinity, hi = -Infinity, sum = 0;
-      for (const id2 of bmembers.get(b)) {
-        const l = layer.get(id2);
-        lo = Math.min(lo, l);
-        hi = Math.max(hi, l);
-        sum += l;
-      }
-      return { b, lo, hi, mean: sum / bmembers.get(b).length };
-    }).sort((p, q) => p.mean - q.mean || p.lo - q.lo);
-    const GAP2 = 1;
-    let offset = 0;
-    for (const bd of bands) {
-      const delta = offset - bd.lo;
-      if (delta !== 0) for (const id2 of bmembers.get(bd.b)) layer.set(id2, layer.get(id2) + delta);
-      offset = bd.hi + delta + 1 + GAP2;
-    }
-  }
-  const DUMMY_W = 14;
-  const expLayer = new Map(ids.map((id2) => [id2, layer.get(id2)]));
-  const widthOf = new Map(ids.map((id2) => [id2, dim(id2)[0]]));
-  const unit = [];
-  const chainOf = /* @__PURE__ */ new Map();
-  let dcount = 0;
-  for (const e of dag) {
-    const w = e.w ?? 1;
-    const lf = layer.get(e.from), lt = layer.get(e.to);
-    if (Math.abs(lt - lf) <= 1) {
-      unit.push([e.from, e.to, w]);
-      continue;
-    }
-    const step = lt > lf ? 1 : -1;
-    const chain = [];
-    let prev = e.from;
-    for (let l = lf + step; l !== lt; l += step) {
-      const d = `__qd${dcount++}`;
-      expLayer.set(d, l);
-      widthOf.set(d, DUMMY_W);
-      unit.push([prev, d, 1]);
-      chain.push(d);
-      prev = d;
-    }
-    unit.push([prev, e.to, 1]);
-    chainOf.set(e.key, e.rev ? chain.slice().reverse() : chain);
-  }
-  const allNodes = [...expLayer.keys()];
-  const maxL = Math.max(...allNodes.map((n) => expLayer.get(n)));
-  const rows = Array.from({ length: maxL + 1 }, () => []);
-  for (const n of allNodes) rows[expLayer.get(n)].push(n);
-  const up = new Map(allNodes.map((n) => [n, []]));
-  const down = new Map(allNodes.map((n) => [n, []]));
-  for (const [a, b] of unit) {
-    const la = expLayer.get(a), lb = expLayer.get(b);
-    if (lb === la + 1) {
-      down.get(a).push(b);
-      up.get(b).push(a);
-    } else if (la === lb + 1) {
-      down.get(b).push(a);
-      up.get(a).push(b);
-    }
-  }
-  const wOf = (id2) => widthOf.get(id2) ?? cellW;
-  const order = /* @__PURE__ */ new Map();
-  rows.forEach((row) => row.forEach((id2, i) => order.set(id2, i)));
-  const baryOrd = (id2, n) => n.length ? n.reduce((s, k) => s + order.get(k), 0) / n.length : order.get(id2);
-  for (let sweep = 0; sweep < 4; sweep++) {
-    const down0 = sweep % 2 === 0;
-    const seq = down0 ? rows.keys() : [...rows.keys()].reverse();
-    for (const l of seq) {
-      const nbr = down0 ? up : down;
-      rows[l] = [...rows[l]].sort((a, b) => baryOrd(a, nbr.get(a)) - baryOrd(b, nbr.get(b)));
-      rows[l].forEach((id2, i) => order.set(id2, i));
-    }
-  }
-  const isDummy = (id2) => id2.startsWith("__qd");
-  const nsNodes = [...allNodes];
-  const nsEdges = [];
-  for (const row of rows) {
-    for (let i = 1; i < row.length; i++) {
-      const l = row[i - 1], r2 = row[i];
-      nsEdges.push({ tail: l, head: r2, minlen: Math.round((wOf(l) + wOf(r2)) / 2 + gapX), weight: 0 });
-    }
-  }
-  const omega = (a, b) => isDummy(a) && isDummy(b) ? 8 : isDummy(a) || isDummy(b) ? 2 : 1;
-  let nsAux = 0;
-  for (const [a, b, ew] of unit) {
-    const w = omega(a, b) * ew;
-    const aux = `__ns${nsAux++}`;
-    nsNodes.push(aux);
-    nsEdges.push({ tail: aux, head: a, minlen: 0, weight: w });
-    nsEdges.push({ tail: aux, head: b, minlen: 0, weight: w });
-  }
-  const nsRank = networkSimplex(nsNodes, nsEdges);
-  const x = new Map(allNodes.map((id2) => [id2, nsRank.get(id2) ?? 0]));
-  const allX = allNodes.map((id2) => x.get(id2));
-  const shift = base[0] - (Math.min(...allX) + Math.max(...allX)) / 2;
-  const layerH = /* @__PURE__ */ new Map();
-  for (const [id2, l] of expLayer) layerH.set(l, Math.max(layerH.get(l) ?? 1, dim(id2)[1]));
-  const layerGap = /* @__PURE__ */ new Map();
-  for (const e of rel) {
-    if (!e.minGap) continue;
-    const lf = layer.get(e.from), lt = layer.get(e.to);
-    if (Math.abs(lt - lf) !== 1) continue;
-    const l = Math.min(lf, lt);
-    layerGap.set(l, Math.max(layerGap.get(l) ?? 0, e.minGap));
-  }
-  const layerCenter = /* @__PURE__ */ new Map();
-  let accY = base[1];
-  for (let l = 0; l <= maxL; l++) {
-    const h = layerH.get(l) ?? cellH;
-    layerCenter.set(l, accY + h / 2);
-    accY += h + Math.max(gapY, layerGap.get(l) ?? 0);
-  }
-  const yOf = (l) => layerCenter.get(l) ?? base[1] + l * (cellH + gapY) + cellH / 2;
-  for (const id2 of ids) {
-    const [w, h] = dim(id2);
-    pos.set(id2, [x.get(id2) + shift - w / 2, yOf(expLayer.get(id2)) - h / 2]);
-  }
-  for (const [key2, chain] of chainOf) {
-    waypoints.set(key2, chain.map((d) => [x.get(d) + shift, yOf(expLayer.get(d))]));
-  }
-  return { pos, waypoints, layer, reversedEdges: [...reversed].map((i) => ({ from: rel[i].from, to: rel[i].to })) };
-}
-
-// ../../packages/deltagraph/src/layout/route.ts
-function segHitsRect(a, b, r2, eps = 1) {
-  const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]);
-  const y0 = Math.min(a[1], b[1]), y1 = Math.max(a[1], b[1]);
-  return x1 > r2.x + eps && x0 < r2.x + r2.w - eps && y1 > r2.y + eps && y0 < r2.y + r2.h - eps;
-}
-function distToRect(px, py, r2) {
-  const dx = Math.max(r2.x - px, 0, px - (r2.x + r2.w));
-  const dy = Math.max(r2.y - py, 0, py - (r2.y + r2.h));
-  return Math.hypot(dx, dy);
-}
-var q2 = (v) => Math.round(v * 100) / 100;
-function uniqSorted(vals) {
-  return [...new Set(vals.map(q2))].sort((a, b) => a - b);
-}
-function withMidLanes(vals, minGap) {
-  const out = [];
-  for (let i = 0; i < vals.length; i++) {
-    out.push(vals[i]);
-    const next = vals[i + 1];
-    if (next !== void 0 && next - vals[i] > minGap) out.push(q2((vals[i] + next) / 2));
-  }
-  return out;
-}
-var LANE = 16;
-function usedPenalty(a, b, used) {
-  if (!used.length) return 0;
-  const band = LANE * 1.7;
-  const vert = a[0] === b[0];
-  let pen = 0;
-  for (const [u1, u2] of used) {
-    if (vert) {
-      if (u1[0] !== u2[0]) continue;
-      const off = Math.abs(a[0] - u1[0]);
-      if (off > band) continue;
-      const ov = Math.min(Math.max(a[1], b[1]), Math.max(u1[1], u2[1])) - Math.max(Math.min(a[1], b[1]), Math.min(u1[1], u2[1]));
-      if (ov <= 1) continue;
-      pen += (off < 1 ? 9 : (band - off) / band * 4) * ov;
-    } else {
-      if (u1[1] !== u2[1]) continue;
-      const off = Math.abs(a[1] - u1[1]);
-      if (off > band) continue;
-      const ov = Math.min(Math.max(a[0], b[0]), Math.max(u1[0], u2[0])) - Math.max(Math.min(a[0], b[0]), Math.min(u1[0], u2[0]));
-      if (ov <= 1) continue;
-      pen += (off < 1 ? 9 : (band - off) / band * 4) * ov;
-    }
-  }
-  return pen;
-}
-function simplify(pts) {
-  const dedup = [];
-  for (const p of pts) {
-    const last2 = dedup[dedup.length - 1];
-    if (!last2 || last2[0] !== p[0] || last2[1] !== p[1]) dedup.push(p);
-  }
-  if (dedup.length < 3) return dedup;
-  const out = [dedup[0]];
-  for (let i = 1; i < dedup.length - 1; i++) {
-    const a = out[out.length - 1], b = dedup[i], c = dedup[i + 1];
-    const collinear = a[0] === b[0] && b[0] === c[0] || a[1] === b[1] && b[1] === c[1];
-    if (!collinear) out.push(b);
-  }
-  out.push(dedup[dedup.length - 1]);
-  return out;
-}
-var sameRect = (r2, s) => r2.x === s.x && r2.y === s.y && r2.w === s.w && r2.h === s.h;
-function gridRoute(start, end, obstacles, margin, used = [], own = []) {
-  const MID = LANE * 6;
-  const xs = withMidLanes(uniqSorted([start[0], end[0], ...obstacles.flatMap((r2) => [r2.x - margin, r2.x + r2.w + margin, r2.x - margin - LANE, r2.x + r2.w + margin + LANE])]), MID);
-  const ys = withMidLanes(uniqSorted([start[1], end[1], ...obstacles.flatMap((r2) => [r2.y - margin, r2.y + r2.h + margin, r2.y - margin - LANE, r2.y + r2.h + margin + LANE])]), MID);
-  const W2 = xs.length, H2 = ys.length;
-  const si = xs.indexOf(q2(start[0])), sj = ys.indexOf(q2(start[1]));
-  const gi = xs.indexOf(q2(end[0])), gj = ys.indexOf(q2(end[1]));
-  if (si < 0 || sj < 0 || gi < 0 || gj < 0) return [start, end];
-  const id2 = (i, j) => j * W2 + i;
-  const pt = (i, j) => [xs[i], ys[j]];
-  const h = (i, j) => Math.abs(xs[i] - xs[gi]) + Math.abs(ys[j] - ys[gj]);
-  const third = obstacles.filter((r2) => !own.some((o) => sameRect(o, r2)));
-  const CLEAR = margin * 3;
-  const proxAt = new Float64Array(W2 * H2);
-  for (let j = 0; j < H2; j++) for (let i = 0; i < W2; i++) {
-    let p = 0;
-    for (const r2 of third) {
-      const d = distToRect(xs[i], ys[j], r2);
-      if (d < CLEAR) p += (CLEAR - d) * 0.35;
-    }
-    proxAt[j * W2 + i] = p;
-  }
-  const gScore = /* @__PURE__ */ new Map([[id2(si, sj), 0]]);
-  const came = /* @__PURE__ */ new Map();
-  const heap = [{ i: si, j: sj, f: h(si, sj), dir: -1 }];
-  const hpush = (n) => {
-    heap.push(n);
-    let c = heap.length - 1;
-    while (c > 0) {
-      const p = c - 1 >> 1;
-      if (heap[p].f <= heap[c].f) break;
-      [heap[p], heap[c]] = [heap[c], heap[p]];
-      c = p;
-    }
-  };
-  const hpop = () => {
-    const top = heap[0], last2 = heap.pop();
-    if (heap.length) {
-      heap[0] = last2;
-      let p = 0;
-      for (; ; ) {
-        const l = 2 * p + 1, r2 = l + 1;
-        let s = p;
-        if (l < heap.length && heap[l].f < heap[s].f) s = l;
-        if (r2 < heap.length && heap[r2].f < heap[s].f) s = r2;
-        if (s === p) break;
-        [heap[p], heap[s]] = [heap[s], heap[p]];
-        p = s;
-      }
-    }
-    return top;
-  };
-  const closed = /* @__PURE__ */ new Set();
-  let found = false;
-  let guard = 0;
-  while (heap.length && guard++ < 6e4) {
-    const cur = hpop();
-    const cid = id2(cur.i, cur.j);
-    if (closed.has(cid)) continue;
-    closed.add(cid);
-    if (cur.i === gi && cur.j === gj) {
-      found = true;
-      break;
-    }
-    const nbrs = [[cur.i + 1, cur.j, 0], [cur.i - 1, cur.j, 0], [cur.i, cur.j + 1, 1], [cur.i, cur.j - 1, 1]];
-    for (const [ni, nj, ndir] of nbrs) {
-      if (ni < 0 || ni >= W2 || nj < 0 || nj >= H2) continue;
-      const a = pt(cur.i, cur.j), b = pt(ni, nj);
-      if (obstacles.some((r2) => segHitsRect(a, b, r2))) continue;
-      const seg = Math.abs(xs[ni] - xs[cur.i]) + Math.abs(ys[nj] - ys[cur.j]);
-      const turn = cur.dir >= 0 && cur.dir !== ndir ? 30 : 0;
-      const prox = (proxAt[cid] + proxAt[id2(ni, nj)]) * 0.5;
-      const ng = (gScore.get(cid) ?? Infinity) + seg + turn + prox + usedPenalty(a, b, used);
-      if (ng < (gScore.get(id2(ni, nj)) ?? Infinity)) {
-        gScore.set(id2(ni, nj), ng);
-        came.set(id2(ni, nj), { i: cur.i, j: cur.j, dir: ndir });
-        hpush({ i: ni, j: nj, f: ng + h(ni, nj), dir: ndir });
-      }
-    }
-  }
-  if (!found && !(si === gi && sj === gj)) return [start, end];
-  const path = [];
-  let ci = gi, cj = gj;
-  for (let k = 0; k < W2 * H2 + 2; k++) {
-    path.push(pt(ci, cj));
-    if (ci === si && cj === sj) break;
-    const prev = came.get(id2(ci, cj));
-    if (!prev) break;
-    ci = prev.i;
-    cj = prev.j;
-  }
-  path.reverse();
-  return path;
-}
-var NORMAL = { N: [0, -1], S: [0, 1], E: [1, 0], W: [-1, 0] };
-function facingSides(a, b) {
-  if (b.y >= a.y + a.h) return ["S", "N"];
-  if (b.y + b.h <= a.y) return ["N", "S"];
-  if (b.x >= a.x + a.w) return ["E", "W"];
-  if (b.x + b.w <= a.x) return ["W", "E"];
-  const dx = b.x + b.w / 2 - (a.x + a.w / 2);
-  const dy = b.y + b.h / 2 - (a.y + a.h / 2);
-  if (Math.abs(dy) >= Math.abs(dx)) return dy >= 0 ? ["S", "N"] : ["N", "S"];
-  return dx >= 0 ? ["E", "W"] : ["W", "E"];
-}
-function portOn(box, side, frac, shape = "rectangle") {
-  const f = Math.min(0.85, Math.max(0.15, frac));
-  const cx = box.x + box.w / 2, cy = box.y + box.h / 2, hw = box.w / 2, hh = box.h / 2;
-  let px = side === "N" || side === "S" ? box.x + box.w * f : side === "W" ? box.x : box.x + box.w;
-  let py = side === "W" || side === "E" ? box.y + box.h * f : side === "N" ? box.y : box.y + box.h;
-  if (shape === "diamond") {
-    if (side === "N") py = box.y + Math.abs(px - cx) / hw * hh;
-    else if (side === "S") py = box.y + box.h - Math.abs(px - cx) / hw * hh;
-    else if (side === "W") px = box.x + Math.abs(py - cy) / hh * hw;
-    else px = box.x + box.w - Math.abs(py - cy) / hh * hw;
-  } else if (shape === "ellipse") {
-    if (side === "N" || side === "S") {
-      const t = Math.max(-1, Math.min(1, (px - cx) / hw));
-      py = cy + (side === "N" ? -1 : 1) * hh * Math.sqrt(1 - t * t);
-    } else {
-      const t = Math.max(-1, Math.min(1, (py - cy) / hh));
-      px = cx + (side === "W" ? -1 : 1) * hw * Math.sqrt(1 - t * t);
-    }
-  }
-  return { pt: [px, py], n: NORMAL[side] };
-}
-function edgeOut(box, side, port, margin) {
-  if (side === "N") return [port[0], box.y - margin];
-  if (side === "S") return [port[0], box.y + box.h + margin];
-  if (side === "W") return [box.x - margin, port[1]];
-  return [box.x + box.w + margin, port[1]];
-}
-function smoothOrthogonal(pts, obstacles, own) {
-  const third = obstacles.filter((r2) => !own.some((o) => sameRect(o, r2)));
-  const clear = (p, q) => !third.some((r2) => segHitsRect(p, q, r2));
-  let path = simplify(pts);
-  for (let iter = 0; iter < 8 && path.length >= 4; iter++) {
-    let changed = false;
-    for (let i = 0; i + 3 < path.length; i++) {
-      const A = path[i], B = path[i + 1], C = path[i + 2], D = path[i + 3];
-      const vert = A[0] === B[0] && C[0] === D[0] && A[0] !== C[0] && B[1] === C[1];
-      const horiz = A[1] === B[1] && C[1] === D[1] && A[1] !== C[1] && B[0] === C[0];
-      if (!vert && !horiz) continue;
-      if (i > 0) {
-        const A2 = vert ? [C[0], A[1]] : [A[0], C[1]];
-        if (clear(path[i - 1], A2) && clear(A2, D)) {
-          path = simplify([...path.slice(0, i), A2, ...path.slice(i + 3)]);
-          changed = true;
-          break;
-        }
-      }
-      if (i + 4 < path.length) {
-        const D2 = vert ? [A[0], D[1]] : [D[0], A[1]];
-        if (clear(A, D2) && clear(D2, path[i + 4])) {
-          path = simplify([...path.slice(0, i + 1), D2, ...path.slice(i + 4)]);
-          changed = true;
-          break;
-        }
-      }
-    }
-    if (!changed) break;
-  }
-  return path;
-}
-function routeAvoiding(a, b, obstacles, margin = 16, aPortOv, bPortOv, used = []) {
-  const [aSideF, bSideF] = facingSides(a, b);
-  const sideFromNormal = (n, fallback) => n[0] <= -0.5 ? "W" : n[0] >= 0.5 ? "E" : n[1] <= -0.5 ? "N" : n[1] >= 0.5 ? "S" : fallback;
-  const aSide = aPortOv ? sideFromNormal(aPortOv.n, aSideF) : aSideF;
-  const bSide = bPortOv ? sideFromNormal(bPortOv.n, bSideF) : bSideF;
-  const ap = aPortOv ?? portOn(a, aSide, 0.5);
-  const bp = bPortOv ?? portOn(b, bSide, 0.5);
-  const aOut = edgeOut(a, aSide, ap.pt, margin);
-  const bOut = edgeOut(b, bSide, bp.pt, margin);
-  const PAD9 = 420;
-  const lo0 = Math.min(a.x, b.x) - PAD9, hi0 = Math.max(a.x + a.w, b.x + b.w) + PAD9;
-  const lo1 = Math.min(a.y, b.y) - PAD9, hi1 = Math.max(a.y + a.h, b.y + b.h) + PAD9;
-  const near = obstacles.filter((r2) => r2.x < hi0 && r2.x + r2.w > lo0 && r2.y < hi1 && r2.y + r2.h > lo1);
-  const mid = gridRoute(aOut, bOut, near, margin, used, [a, b]);
-  return smoothOrthogonal([ap.pt, ...mid, bp.pt], near, [a, b]);
-}
-function polylineSegments(pts) {
-  const segs = [];
-  for (let i = 0; i < pts.length - 1; i++) segs.push([pts[i], pts[i + 1]]);
-  return segs;
-}
-function funnelRoute(src2, dst, hub, hubSide, obstacles, own, margin, extra = 0) {
-  const horizontal = hubSide === "N" || hubSide === "S";
-  let trunk = hubSide === "N" ? hub.y - margin - extra : hubSide === "S" ? hub.y + hub.h + margin + extra : hubSide === "W" ? hub.x - margin - extra : hub.x + hub.w + margin + extra;
-  const lo = horizontal ? Math.min(src2[1], dst[1]) : Math.min(src2[0], dst[0]);
-  const hi = horizontal ? Math.max(src2[1], dst[1]) : Math.max(src2[0], dst[0]);
-  if (trunk < lo - 0.5 || trunk > hi + 0.5) {
-    if (hi - lo < 4) return null;
-    trunk = (lo + hi) / 2;
-  }
-  const pts = horizontal ? [src2, [src2[0], trunk], [dst[0], trunk], dst] : [src2, [trunk, src2[1]], [trunk, dst[1]], dst];
-  const third = obstacles.filter((r2) => !own.some((o) => sameRect(o, r2)));
-  const segs = polylineSegments(pts);
-  for (const [a, b] of segs) if (third.some((r2) => segHitsRect(a, b, r2))) return null;
-  return simplify(pts);
-}
-
-// ../../packages/deltagraph/src/layout/engine.ts
-var clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-var LANE_GAP = 20;
-function dgLayoutGraph(nodes, edges, opts = {}) {
-  const method = /* @__PURE__ */ new Map();
-  const gapX = opts.gapX ?? 64;
-  const gapY = opts.gapY ?? 46;
-  const margin = opts.margin ?? 16;
-  const byId = new Map(nodes.map((n) => [n.id, n]));
-  const dim = (id2) => {
-    const n = byId.get(id2);
-    return n ? [n.w, n.h] : [1, 1];
-  };
-  const fixed = /* @__PURE__ */ new Map();
-  for (const n of nodes) if (n.fixed) fixed.set(n.id, n.fixed);
-  const autoIds = nodes.filter((n) => !n.fixed).map((n) => n.id);
-  let baseX = opts.base?.[0] ?? 80, baseY = opts.base?.[1] ?? 80;
-  if (fixed.size) {
-    baseX = Math.max(...[...fixed].map(([id2, p]) => p[0] + dim(id2)[0])) + 80;
-    baseY = Math.min(...[...fixed].map(([, p]) => p[1]));
-  }
-  const cellW = Math.max(1, ...nodes.map((n) => n.w));
-  const cellH = Math.max(1, ...nodes.map((n) => n.h));
-  const layoutEdges = edges.map((e) => ({
-    from: e.from,
-    to: e.to,
-    w: e.cls === "fast" || e.cls === "full" ? 8 : 1,
-    // Reserve flow-axis gap for a label only when it extends ALONG the flow (LR):
-    // a horizontal chip on a vertical (TB) edge overhangs sideways, not into the
-    // gap. +56 keeps the connector visible on both sides of the chip.
-    minGap: opts.direction === "LR" && e.labelW ? e.labelW + 56 : void 0
-  }));
-  const horiz = opts.direction === "LR";
-  const laid = horiz ? (() => {
-    const dimT = (id2) => {
-      const [w, h] = dim(id2);
-      return [h, w];
-    };
-    const r2 = layeredLayout(autoIds, layoutEdges, [baseY, baseX], cellH, cellW, dimT, gapY, gapX);
-    const pos = /* @__PURE__ */ new Map();
-    for (const [id2, p] of r2.pos) pos.set(id2, [p[1], p[0]]);
-    const waypoints = /* @__PURE__ */ new Map();
-    for (const [k, pts] of r2.waypoints) waypoints.set(k, pts.map(([x, y]) => [y, x]));
-    return { pos, waypoints, layer: r2.layer, reversedEdges: r2.reversedEdges };
-  })() : layeredLayout(autoIds, layoutEdges, [baseX, baseY], cellW, cellH, dim, gapX, gapY, opts.groups);
-  const positions = new Map(laid.pos);
-  if (opts.maxWidth && autoIds.length > 2 && !fixed.size) {
-    const fi = horiz ? 0 : 1, ci = horiz ? 1 : 0;
-    const dimF = (id2) => dim(id2)[fi], dimC = (id2) => dim(id2)[ci];
-    const flowGap = horiz ? gapX : gapY, crossGap = horiz ? gapY : gapX;
-    const sorted = autoIds.map((id2) => ({ id: id2, f: positions.get(id2)[fi] })).sort((a, b) => a.f - b.f);
-    const ranks = [];
-    let lastF = -Infinity;
-    for (const it of sorted) {
-      if (ranks.length && it.f - lastF < 6) ranks[ranks.length - 1].push(it.id);
-      else ranks.push([it.id]);
-      lastF = it.f;
-    }
-    const rankW = ranks.map((ids) => Math.max(...ids.map(dimF)));
-    const total = rankW.reduce((s, w) => s + w, 0) + Math.max(0, ranks.length - 1) * flowGap;
-    if (total > opts.maxWidth && ranks.length > 2) {
-      const band = [], fOff = [];
-      let b = 0, acc = 0;
-      ranks.forEach((_, i) => {
-        if (acc > 0 && acc + rankW[i] > opts.maxWidth) {
-          b++;
-          acc = 0;
-        }
-        band[i] = b;
-        fOff[i] = acc;
-        acc += rankW[i] + flowGap;
-      });
-      const bandSpan = [];
-      ranks.forEach((ids, i) => {
-        const span = Math.max(...ids.map((id2) => positions.get(id2)[ci] + dimC(id2))) - Math.min(...ids.map((id2) => positions.get(id2)[ci]));
-        bandSpan[band[i]] = Math.max(bandSpan[band[i]] ?? 0, span);
-      });
-      const bandC = [];
-      let accC = 0;
-      for (let k = 0; k <= b; k++) {
-        bandC[k] = accC;
-        accC += (bandSpan[k] ?? 0) + crossGap;
-      }
-      const baseF = horiz ? baseX : baseY, baseCo = horiz ? baseY : baseX;
-      ranks.forEach((ids, i) => {
-        const cmin = Math.min(...ids.map((id2) => positions.get(id2)[ci]));
-        for (const id2 of ids) {
-          const p = positions.get(id2);
-          const nf = baseF + fOff[i] + (rankW[i] - dimF(id2)) / 2;
-          const nc = baseCo + bandC[band[i]] + (p[ci] - cmin);
-          positions.set(id2, horiz ? [nf, nc] : [nc, nf]);
-        }
-      });
-      laid.waypoints.clear();
-    }
-  }
-  if (opts.groups?.length && !horiz) {
-    const fi = 1;
-    const need = opts.groupGap ?? 84;
-    const bands = opts.groups.map((ids) => {
-      let lo = Infinity, hi = -Infinity;
-      for (const id2 of ids) {
-        const p = positions.get(id2);
-        if (!p) continue;
-        lo = Math.min(lo, p[fi]);
-        hi = Math.max(hi, p[fi] + dim(id2)[fi]);
-      }
-      return { lo, hi };
-    }).filter((b) => b.lo <= b.hi).sort((a, b) => a.lo - b.lo);
-    const boundaries = [];
-    for (let i = 1; i < bands.length; i++) {
-      const gap = bands[i].lo - bands[i - 1].hi;
-      if (gap >= 0 && gap < need) {
-        boundaries.push({ at: (bands[i - 1].hi + bands[i].lo) / 2, delta: need - gap });
-      }
-    }
-    if (boundaries.length) {
-      const shiftAt = (f) => boundaries.reduce((s, b) => f > b.at ? s + b.delta : s, 0);
-      for (const [, p] of positions) {
-        const s = shiftAt(p[fi]);
-        if (s) p[fi] += s;
-      }
-      for (const pts of laid.waypoints.values()) {
-        for (const pt of pts) {
-          const s = shiftAt(pt[fi]);
-          if (s) pt[fi] += s;
-        }
-      }
-    }
-  }
-  if (opts.groups?.length) {
-    const ci = horiz ? 1 : 0;
-    const fdx = horiz ? 0 : 1;
-    const crossNeed = (horiz ? 36 + 20 : 18 + 18) + 12;
-    const memb = opts.groups.map((ids) => ids.filter((id2) => positions.has(id2)));
-    const sets = memb.map((ids) => new Set(ids));
-    const shares = (i, j) => {
-      for (const id2 of memb[j]) if (sets[i].has(id2)) return true;
-      return false;
-    };
-    const range = (ids, idx) => {
-      let lo = Infinity, hi = -Infinity;
-      for (const id2 of ids) {
-        const p = positions.get(id2);
-        lo = Math.min(lo, p[idx]);
-        hi = Math.max(hi, p[idx] + dim(id2)[idx]);
-      }
-      return [lo, hi];
-    };
-    for (let pass = 0; pass < 4; pass++) {
-      let moved = false;
-      for (let i = 0; i < memb.length; i++) {
-        for (let j = 0; j < memb.length; j++) {
-          if (i === j || !memb[i].length || !memb[j].length) continue;
-          if (shares(i, j)) continue;
-          const [ifl, ifh] = range(memb[i], fdx), [jfl, jfh] = range(memb[j], fdx);
-          if (!(ifl < jfh && ifh > jfl)) continue;
-          const [icl, ich] = range(memb[i], ci), [jcl] = range(memb[j], ci);
-          if (jcl < icl) continue;
-          const delta = crossNeed - (jcl - ich);
-          if (delta > 0.5) {
-            for (const id2 of memb[j]) positions.get(id2)[ci] += delta;
-            moved = true;
-          }
-        }
-      }
-      if (!moved) break;
-    }
-  }
-  const topLeft = (id2) => fixed.get(id2) ?? positions.get(id2) ?? null;
-  const boxOf = (id2) => {
-    const p = topLeft(id2);
-    if (!p) return null;
-    const [w, h] = dim(id2);
-    return { x: p[0], y: p[1], w, h };
-  };
-  const obstacles = [];
-  const obstacleOwner = /* @__PURE__ */ new Map();
-  for (const n of nodes) {
-    const b = boxOf(n.id);
-    if (!b) continue;
-    obstacles.push(b);
-    obstacleOwner.set(b, n.id);
-  }
-  const routable = edges.filter((e) => e.from !== e.to && boxOf(e.from) && boxOf(e.to));
-  const sideKey = (id2, s) => `${id2}:${s}`;
-  const edgeSides = /* @__PURE__ */ new Map();
-  routable.forEach((e, i) => edgeSides.set(i, facingSides(boxOf(e.from), boxOf(e.to))));
-  const outByNode = /* @__PURE__ */ new Map();
-  routable.forEach((e, i) => (outByNode.get(e.from) ?? outByNode.set(e.from, []).get(e.from)).push(i));
-  for (const [nid, idxs] of outByNode) {
-    if (byId.get(nid)?.shape !== "diamond" || idxs.length < 2) continue;
-    const a = boxOf(nid);
-    const acx = a.x + a.w / 2, acy = a.y + a.h / 2;
-    const below = idxs.map((i) => {
-      const b = boxOf(routable[i].to);
-      return { i, dx: b.x + b.w / 2 - acx, dy: b.y + b.h / 2 - acy };
-    }).filter((t) => t.dy > 0);
-    if (below.length < 2) continue;
-    const main = below.reduce((m, t) => Math.abs(t.dx) < Math.abs(m.dx) ? t : m);
-    for (const t of below) {
-      if (t.i === main.i) continue;
-      edgeSides.set(t.i, [t.dx >= 0 ? "E" : "W", "N"]);
-    }
-  }
-  const corridorClear = (a, b) => {
-    const x0 = Math.max(a.x, b.x), x1 = Math.min(a.x + a.w, b.x + b.w);
-    const y0 = a.y + a.h, y1 = b.y;
-    return !obstacles.some((o) => o !== a && o !== b && o.x < x1 - 1 && o.x + o.w > x0 + 1 && o.y < y1 - 1 && o.y + o.h > y0 + 1);
-  };
-  const groupOf = /* @__PURE__ */ new Map();
-  (opts.groups ?? []).forEach((mem, gi) => mem.forEach((id2) => {
-    if (!groupOf.has(id2)) groupOf.set(id2, gi);
-  }));
-  const edgePairKey = new Set(routable.map((e) => `${e.from}>${e.to}`));
-  routable.forEach((e, i) => {
-    const [as, bs] = edgeSides.get(i);
-    if (bs !== "N" && bs !== "S") return;
-    if (byId.get(e.from)?.shape === "diamond") return;
-    if (edgePairKey.has(`${e.to}>${e.from}`)) return;
-    const ga = groupOf.get(e.from), gb = groupOf.get(e.to);
-    if (ga === void 0 || gb === void 0 || ga === gb) return;
-    const a = boxOf(e.from), b = boxOf(e.to);
-    if (b.x > a.x + a.w) {
-      edgeSides.set(i, [as, "W"]);
-      return;
-    }
-    if (b.x + b.w < a.x) {
-      edgeSides.set(i, [as, "E"]);
-      return;
-    }
-    if (bs === "N") {
-      const overlap = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-      if (overlap > Math.min(a.w, b.w) * 0.25 && corridorClear(a, b)) return;
-      const members = opts.groups?.[gb] ?? [];
-      let zoneTop = Infinity;
-      for (const id2 of members) {
-        const mb = boxOf(id2);
-        if (mb && mb.y < zoneTop) zoneTop = mb.y;
-      }
-      if (Number.isFinite(zoneTop) && b.y <= zoneTop + 2) edgeSides.set(i, [as, "E"]);
-    }
-  });
-  const MIN_TWO_LANE = 2 * LANE_GAP + 8;
-  const pairedDone = /* @__PURE__ */ new Set();
-  routable.forEach((e, i) => {
-    const key2 = e.from < e.to ? `${e.from}\0${e.to}` : `${e.to}\0${e.from}`;
-    if (pairedDone.has(key2)) return;
-    const j = routable.findIndex((o, k) => k !== i && o.from === e.to && o.to === e.from);
-    if (j < 0) return;
-    pairedDone.add(key2);
-    const a = boxOf(e.from), b = boxOf(e.to);
-    const [as] = edgeSides.get(i);
-    const vertical = as === "N" || as === "S";
-    const gapOn = (axis) => axis === "y" ? Math.max(a.y, b.y) - Math.min(a.y + a.h, b.y + b.h) : Math.max(a.x, b.x) - Math.min(a.x + a.w, b.x + b.w);
-    if (gapOn(vertical ? "y" : "x") >= MIN_TWO_LANE) return;
-    if (gapOn(vertical ? "x" : "y") < MIN_TWO_LANE) return;
-    edgeSides.set(j, vertical ? b.x >= a.x + a.w ? ["W", "E"] : ["E", "W"] : b.y >= a.y + a.h ? ["N", "S"] : ["S", "N"]);
-  });
-  const tangential = (s, other) => s === "N" || s === "S" ? other.x + other.w / 2 : other.y + other.h / 2;
-  const sideGroups = /* @__PURE__ */ new Map();
-  const pushMember = (k, m) => (sideGroups.get(k) ?? sideGroups.set(k, []).get(k)).push(m);
-  routable.forEach((e, i) => {
-    const [as, bs] = edgeSides.get(i);
-    const a = boxOf(e.from), b = boxOf(e.to);
-    pushMember(sideKey(e.from, as), { i, end: "a", key: tangential(as, b) });
-    pushMember(sideKey(e.to, bs), { i, end: "b", key: tangential(bs, a) });
-  });
-  const aFrac = /* @__PURE__ */ new Map();
-  const bFrac = /* @__PURE__ */ new Map();
-  const clsOf = (i) => routable[i].cls ?? "normal";
-  const mergeGroups = /* @__PURE__ */ new Map();
-  for (const [key2, members] of sideGroups) {
-    const ci = key2.lastIndexOf(":");
-    const nodeId = key2.slice(0, ci);
-    const hub = boxOf(nodeId);
-    const side = key2.slice(ci + 1);
-    if (!hub) continue;
-    const shape = byId.get(nodeId)?.shape;
-    const round = shape === "diamond" || shape === "ellipse";
-    const loF = round ? 0.3 : 0.15;
-    const hiF = round ? 0.7 : 0.85;
-    const spanStart = side === "N" || side === "S" ? hub.x : hub.y;
-    const spanLen = Math.max(1, side === "N" || side === "S" ? hub.w : hub.h);
-    const ordered = members.slice().sort((p, q) => p.key - q.key || p.i - q.i);
-    const n = ordered.length;
-    const sameEnd = new Set(ordered.map((m) => m.end)).size === 1;
-    const sameClass = n > 1 && sameEnd && new Set(ordered.map((m) => clsOf(m.i))).size === 1;
-    if (n === 1) {
-      for (const m of ordered) (m.end === "a" ? aFrac : bFrac).set(m.i, 0.5);
-    } else if (sameClass) {
-      mergeGroups.set(key2, ordered.map((m) => m.i));
-      const proj = (m) => clamp((m.key - spanStart) / spanLen, 0, 1);
-      const aligned = ordered.filter((m) => {
-        const f = proj(m);
-        return f >= loF && f <= hiF;
-      });
-      const joinF = aligned.length ? proj(aligned.reduce((best, m) => Math.abs(proj(m) - 0.5) < Math.abs(proj(best) - 0.5) ? m : best)) : 0.5;
-      for (const m of ordered) (m.end === "a" ? aFrac : bFrac).set(m.i, joinF);
-    } else {
-      const minGap = 0.16;
-      const aimOf = (m) => clamp((m.key - spanStart) / spanLen, loF, hiF);
-      let f = -Infinity;
-      const fr = ordered.map((m) => {
-        f = Math.max(aimOf(m), f + minGap);
-        return f;
-      });
-      if (fr[fr.length - 1] > hiF + 1e-6) {
-        fr[fr.length - 1] = hiF;
-        for (let k = fr.length - 2; k >= 0; k--) fr[k] = Math.min(aimOf(ordered[k]), fr[k + 1] - minGap);
-      }
-      ordered.forEach((m, k) => (m.end === "a" ? aFrac : bFrac).set(m.i, clamp(fr[k], loF, hiF)));
-    }
-  }
-  const mergeSibling = /* @__PURE__ */ new Map();
-  for (const idxs of mergeGroups.values()) {
-    for (const i of idxs) {
-      const set = mergeSibling.get(i) ?? /* @__PURE__ */ new Set();
-      for (const j of idxs) if (j !== i) set.add(j);
-      mergeSibling.set(i, set);
-    }
-  }
-  const routeOrder = routable.map((e, i) => ({ e, i })).sort((p, q) => {
-    const ap = boxOf(p.e.from), aq = boxOf(p.e.to), bp = boxOf(q.e.from), bq = boxOf(q.e.to);
-    const dp = Math.abs(ap.x - aq.x) + Math.abs(ap.y - aq.y);
-    const dq = Math.abs(bp.x - bq.x) + Math.abs(bp.y - bq.y);
-    return dq - dp;
-  });
-  const shapeOf2 = (id2) => byId.get(id2)?.shape ?? "rectangle";
-  const ports = /* @__PURE__ */ new Map();
-  for (const { e, i } of routeOrder) {
-    const a = boxOf(e.from), b = boxOf(e.to);
-    const [as, bs] = edgeSides.get(i);
-    ports.set(i, { a, b, aPort: portOn(a, as, aFrac.get(i) ?? 0.5, shapeOf2(e.from)), bPort: portOn(b, bs, bFrac.get(i) ?? 0.5, shapeOf2(e.to)) });
-  }
-  const routeByIndex = /* @__PURE__ */ new Map();
-  const routeOne = (i, used) => {
-    const p = ports.get(i);
-    return routeAvoiding(p.a, p.b, obstacles, margin, p.aPort, p.bPort, used);
-  };
-  const waypointed = /* @__PURE__ */ new Set();
-  const channelTrace = [];
-  const pathLen = (poly) => {
-    let t = 0;
-    for (let k = 1; k < poly.length; k++) t += Math.abs(poly[k][0] - poly[k - 1][0]) + Math.abs(poly[k][1] - poly[k - 1][1]);
-    return t;
-  };
-  routable.forEach((e, i) => {
-    const wps = laid.waypoints.get(`${e.from}->${e.to}`);
-    if (!wps || !wps.length) return;
-    let channelBlocked = null;
-    const p = ports.get(i);
-    const s = p.aPort.pt, d = p.bPort.pt;
-    const sOut = [s[0] + p.aPort.n[0] * margin, s[1] + p.aPort.n[1] * margin];
-    const dOut = [d[0] + p.bPort.n[0] * margin, d[1] + p.bPort.n[1] * margin];
-    const raw = wps.reduce((a, w) => a + w[0], 0) / wps.length;
-    const lo = Math.min(s[0], d[0]), hi = Math.max(s[0], d[0]);
-    const cx = Math.abs(s[0] - d[0]) < 24 ? d[0] : raw >= lo - 8 && raw <= hi + 8 ? raw : null;
-    const chan = cx === null ? [] : [s, sOut, [cx, sOut[1]], [cx, dOut[1]], dOut, d];
-    const segHitsBoxOrtho = (p1, p2, r2) => Math.max(p1[0], p2[0]) > r2.x + 1 && Math.min(p1[0], p2[0]) < r2.x + r2.w - 1 && Math.max(p1[1], p2[1]) > r2.y + 1 && Math.min(p1[1], p2[1]) < r2.y + r2.h - 1;
-    const blocker = (poly) => {
-      for (const r2 of obstacles) {
-        const owner = obstacleOwner.get(r2);
-        if (owner === e.from || owner === e.to) continue;
-        for (let k = 1; k < poly.length; k++) if (segHitsBoxOrtho(poly[k - 1], poly[k], r2)) return owner ?? "?";
-      }
-      return null;
-    };
-    let alt = null;
-    const worthIt = (poly) => {
-      if (alt === null) alt = pathLen(routeOne(i, []));
-      return pathLen(poly) <= alt * 1.02;
-    };
-    const take = (poly, via2) => {
-      routeByIndex.set(i, simplify(poly));
-      method.set(i, "channel");
-      waypointed.add(i);
-      channelTrace.push({ edge: e.id, outcome: via2 ? "lane-chain" : "column" });
-    };
-    if (cx !== null) {
-      const hit = blocker(chan);
-      if (!hit && worthIt(chan)) {
-        take(chan, false);
-        return;
-      }
-      channelBlocked = hit;
-    }
-    const fi = horiz ? 0 : 1, ci = horiz ? 1 : 0;
-    if (p.aPort.n[fi] === 0 || p.bPort.n[fi] === 0) {
-      channelTrace.push({ edge: e.id, outcome: "rejected", blockedBy: channelBlocked ?? void 0 });
-      return;
-    }
-    const at = (c, f) => horiz ? [f, c] : [c, f];
-    const lanes = [[s[ci], s[fi]], ...wps.map((w) => [w[ci], w[fi]]), [d[ci], d[fi]]];
-    const via = [s];
-    let lane = s[ci];
-    for (let k = 1; k < lanes.length; k++) {
-      if (Math.abs(lanes[k][0] - lane) < 0.5) continue;
-      const mid = (lanes[k - 1][1] + lanes[k][1]) / 2;
-      via.push(at(lane, mid), at(lanes[k][0], mid));
-      lane = lanes[k][0];
-    }
-    via.push(d);
-    const viaHit = via.length > 2 ? blocker(via) : "?";
-    if (!viaHit && worthIt(via)) take(via, true);
-    else channelTrace.push({ edge: e.id, outcome: "rejected", blockedBy: channelBlocked ?? viaHit ?? void 0 });
-  });
-  const funnelByIndex = /* @__PURE__ */ new Map();
-  const funnelTrace = [];
-  const orderedGroups = [...sideGroups].sort((a, b) => (mergeGroups.has(b[0]) ? 1 : 0) - (mergeGroups.has(a[0]) ? 1 : 0));
-  for (const [key2, allMembers] of orderedGroups) {
-    const members = allMembers.filter((m) => !waypointed.has(m.i));
-    if (members.length < 2) continue;
-    const ci = key2.lastIndexOf(":");
-    const hub = boxOf(key2.slice(0, ci));
-    const side = key2.slice(ci + 1);
-    if (!hub) continue;
-    const horizontal = side === "N" || side === "S";
-    if (mergeGroups.has(key2)) {
-      let any2 = false;
-      let placed = 0;
-      for (const m of members) {
-        const p = ports.get(m.i);
-        const r2 = funnelRoute(p.aPort.pt, p.bPort.pt, hub, side, obstacles, [p.a, p.b], margin, 0);
-        if (r2 && !funnelByIndex.has(m.i)) {
-          funnelByIndex.set(m.i, r2);
-          any2 = true;
-          placed++;
-        }
-      }
-      if (any2) {
-        funnelTrace.push({ hub: key2.slice(0, ci), side, members: members.length, routed: placed, outcome: "merged" });
-        continue;
-      }
-    }
-    let baseExtra = 0;
-    if (members.every((m) => m.end === "a") && (side === "N" || side === "S")) {
-      const childY = side === "S" ? Math.min(...members.map((m) => ports.get(m.i).bPort.pt[1])) : Math.max(...members.map((m) => ports.get(m.i).bPort.pt[1]));
-      const hubEdge = side === "S" ? hub.y + hub.h : hub.y;
-      baseExtra = Math.max(0, Math.abs(childY - hubEdge) / 2 - margin);
-    }
-    const trunkLane = (pts, vertical) => {
-      let lane = null;
-      let longest = 0;
-      for (let i = 1; i < pts.length; i++) {
-        const a = pts[i - 1], b = pts[i];
-        const along = vertical ? Math.abs(a[0] - b[0]) : Math.abs(a[1] - b[1]);
-        const across = vertical ? Math.abs(a[1] - b[1]) : Math.abs(a[0] - b[0]);
-        if (across > 0.5 || along <= longest) continue;
-        longest = along;
-        lane = vertical ? a[1] : a[0];
-      }
-      return lane;
-    };
-    const span = (m) => {
-      const p = ports.get(m.i), s = p.aPort.pt, d = p.bPort.pt;
-      return horizontal ? [Math.min(s[0], d[0]), Math.max(s[0], d[0])] : [Math.min(s[1], d[1]), Math.max(s[1], d[1])];
-    };
-    const tryGroup = (extraOf) => {
-      const out = /* @__PURE__ */ new Map();
-      const runs = [];
-      for (const m of members) {
-        const p = ports.get(m.i);
-        const r2 = funnelRoute(p.aPort.pt, p.bPort.pt, hub, side, obstacles, [p.a, p.b], margin, extraOf(m));
-        if (!r2) return null;
-        const iv = span(m);
-        const lane = trunkLane(r2, horizontal);
-        for (const prev of runs) {
-          if (prev.lane == null || lane == null) continue;
-          if (Math.abs(prev.lane - lane) >= 1.5) continue;
-          if (Math.min(prev.iv[1], iv[1]) - Math.max(prev.iv[0], iv[0]) > 2) return null;
-        }
-        runs.push({ lane, iv });
-        out.set(m.i, r2);
-      }
-      return out;
-    };
-    let routed = tryGroup(() => baseExtra);
-    const sharedTrunk = routed !== null;
-    if (!routed) {
-      const order = [...members].sort((a, b) => span(b)[1] - span(b)[0] - (span(a)[1] - span(a)[0]));
-      const rank = new Map(order.map((m, k) => [m.i, k]));
-      routed = tryGroup((m) => baseExtra + (rank.get(m.i) ?? 0) * LANE_GAP);
-    }
-    if (routed) {
-      for (const [i, r2] of routed) if (!funnelByIndex.has(i)) funnelByIndex.set(i, r2);
-    }
-    funnelTrace.push({
-      hub: key2.slice(0, ci),
-      side,
-      members: members.length,
-      routed: routed ? routed.size : 0,
-      outcome: routed ? sharedTrunk ? "trunk" : "staggered" : "failed"
-    });
-  }
-  const fixedRoutes = (i) => funnelByIndex.has(i) || waypointed.has(i);
-  const CELL = 256, PAD9 = 420;
-  const cellKey = (cx, cy) => cx * 1000003 + cy;
-  const segBuckets = /* @__PURE__ */ new Map();
-  const indexRoute = (i, pts) => {
-    for (const s of polylineSegments(pts)) {
-      const x0 = Math.min(s[0][0], s[1][0]), x1 = Math.max(s[0][0], s[1][0]);
-      const y0 = Math.min(s[0][1], s[1][1]), y1 = Math.max(s[0][1], s[1][1]);
-      for (let cx = Math.floor(x0 / CELL); cx <= Math.floor(x1 / CELL); cx++)
-        for (let cy = Math.floor(y0 / CELL); cy <= Math.floor(y1 / CELL); cy++) {
-          const k = cellKey(cx, cy);
-          (segBuckets.get(k) ?? segBuckets.set(k, []).get(k)).push({ s, e: i });
-        }
-    }
-  };
-  const localUsed = (i) => {
-    const p = ports.get(i);
-    const sib = mergeSibling.get(i);
-    const lo0 = Math.min(p.a.x, p.b.x) - PAD9, hi0 = Math.max(p.a.x + p.a.w, p.b.x + p.b.w) + PAD9;
-    const lo1 = Math.min(p.a.y, p.b.y) - PAD9, hi1 = Math.max(p.a.y + p.a.h, p.b.y + p.b.h) + PAD9;
-    const out = [];
-    const seen = /* @__PURE__ */ new Set();
-    for (let cx = Math.floor(lo0 / CELL); cx <= Math.floor(hi0 / CELL); cx++)
-      for (let cy = Math.floor(lo1 / CELL); cy <= Math.floor(hi1 / CELL); cy++) {
-        const b = segBuckets.get(cellKey(cx, cy));
-        if (!b) continue;
-        for (const { s, e } of b) if (e !== i && !(sib && sib.has(e)) && !seen.has(s)) {
-          seen.add(s);
-          out.push(s);
-        }
-      }
-    return out;
-  };
-  for (const i of waypointed) indexRoute(i, routeByIndex.get(i));
-  for (const [i, r2] of funnelByIndex) {
-    routeByIndex.set(i, r2);
-    method.set(i, "funnel");
-    indexRoute(i, r2);
-  }
-  for (const { i } of routeOrder) {
-    if (fixedRoutes(i)) continue;
-    const route = routeOne(i, localUsed(i));
-    routeByIndex.set(i, route);
-    method.set(i, "astar");
-    indexRoute(i, route);
-  }
-  const ripupRan = routable.length <= 220;
-  if (ripupRan) {
-    for (const { i } of routeOrder) {
-      if (fixedRoutes(i)) continue;
-      routeByIndex.set(i, routeOne(i, localUsed(i)));
-      method.set(i, "ripup");
-    }
-  }
-  const routes = /* @__PURE__ */ new Map();
-  routable.forEach((e, i) => {
-    const r2 = routeByIndex.get(i);
-    if (r2) routes.set(e.id, r2);
-  });
-  const trace = opts.trace ? {
-    // An edge with no route is recorded as `dropped` rather than omitted:
-    // a missing entry reads as "not traced", and the whole point is that a
-    // silently dropped edge should be visible.
-    edges: routable.map((e, i) => ({ id: e.id, method: method.get(i) ?? "dropped" })),
-    funnels: funnelTrace,
-    channels: channelTrace,
-    layer: Object.fromEntries(laid.layer),
-    // Matched by endpoints, because the layering filters its input and so
-    // its own indices do not line up with the caller's edge list.
-    reversedEdges: laid.reversedEdges.map((r2) => routable.find((e) => e.from === r2.from && e.to === r2.to)?.id).filter((id2) => typeof id2 === "string"),
-    ripupRan,
-    edgeCount: routable.length
-  } : void 0;
-  return trace ? { positions: laid.pos, routes, trace } : { positions: laid.pos, routes };
-}
-
-// ../../packages/deltagraph/src/board/parsedGraph.ts
-var DgGraphKind = {
-  Dsl: "dsl",
-  Flowchart: "flowchart",
-  State: "state",
-  Er: "er",
-  Mindmap: "mindmap",
-  Requirement: "requirement"
-};
-
-// ../../packages/deltagraph/src/board/er.ts
-var LEFT_CARD = {
-  "||": DgErCardinality.ExactlyOne,
-  "|o": DgErCardinality.ZeroOrOne,
-  "o|": DgErCardinality.ZeroOrOne,
-  "}o": DgErCardinality.ZeroOrMany,
-  "o{": DgErCardinality.ZeroOrMany,
-  "}|": DgErCardinality.OneOrMany,
-  "|{": DgErCardinality.OneOrMany
-};
-
-// ../../packages/deltagraph/src/board/sequence.ts
-var SeqBlockKind = /* @__PURE__ */ ((SeqBlockKind3) => {
-  SeqBlockKind3["Loop"] = "loop";
-  SeqBlockKind3["Alt"] = "alt";
-  SeqBlockKind3["Opt"] = "opt";
-  SeqBlockKind3["Par"] = "par";
-  SeqBlockKind3["Break"] = "break";
-  SeqBlockKind3["Critical"] = "critical";
-  SeqBlockKind3["Rect"] = "rect";
-  return SeqBlockKind3;
-})(SeqBlockKind || {});
-var BLOCK_VALUES = new Set(Object.values(SeqBlockKind));
-var ARROW_TOKENS = [
-  // Longest first so `-->>` wins over `-->` and `->>` over `->`.
-  { token: "-->>", arrow: "return" /* Return */ },
-  { token: "->>", arrow: "sync" /* Sync */ },
-  { token: "-->", arrow: "dashed" /* Dashed */ },
-  { token: "--x", arrow: "cross" /* Cross */ },
-  { token: "-x", arrow: "cross" /* Cross */ },
-  { token: "--)", arrow: "async" /* Async */ },
-  { token: "-)", arrow: "async" /* Async */ },
-  { token: "->", arrow: "line" /* Line */ }
-];
-var ARROW_BY_TOKEN = new Map(ARROW_TOKENS.map((a) => [a.token, a.arrow]));
-var ARROW_ALT = ARROW_TOKENS.map((a) => a.token.replace(/[-)\\^$*+?.()|[\]{}]/g, "\\$&")).join("|");
-var MSG_RE = new RegExp(
-  `^([^-<>:)+]+?)\\s*(${ARROW_ALT})\\s*([+-])?\\s*([^:+-][^:]*?)\\s*(?::\\s*(.*))?$`
-);
-
-// ../../packages/deltagraph/src/board/sniff.ts
-var DgSourceKind = {
-  /** A serialized board document. */
-  Json: "json",
-  Sequence: "sequence",
-  State: "state",
-  Flowchart: "flowchart",
-  Er: "er",
-  Mindmap: "mindmap",
-  Requirement: "requirement",
-  Journey: "journey",
-  Kanban: "kanban",
-  Timeline: "timeline",
-  GitGraph: "gitgraph",
-  Quadrant: "quadrant",
-  Radar: "radar",
-  Treemap: "treemap",
-  /** The native DSL - the fallback, since it has no header of its own. */
-  Dsl: "dsl"
-};
-var FORMAT_RE = new RegExp(
-  `"format"\\s*:\\s*"(?:${DG_FORMATS_READABLE.map((f) => f.replace("/", "\\/")).join("|")})"`
-);
-var HEADERS = [
-  [/^\s*mindmap\b/i, DgSourceKind.Mindmap],
-  [/^\s*requirementDiagram\b/i, DgSourceKind.Requirement],
-  [/^\s*journey\b/i, DgSourceKind.Journey],
-  [/^\s*kanban\b/i, DgSourceKind.Kanban],
-  [/^\s*timeline\b/i, DgSourceKind.Timeline],
-  [/^\s*gitGraph\b/i, DgSourceKind.GitGraph],
-  [/^\s*quadrantChart\b/i, DgSourceKind.Quadrant],
-  [/^\s*radar(-beta)?\b/i, DgSourceKind.Radar],
-  [/^\s*treemap(-beta)?\b/i, DgSourceKind.Treemap]
-];
-var NOT_MERMAID = /* @__PURE__ */ new Set([DgSourceKind.Json, DgSourceKind.Dsl]);
-var DG_UNSUPPORTED_KINDS = [
-  { header: "gantt", useInstead: "timeline", why: "events along a dated axis; a bar per task is not drawn, a labelled point per milestone is" },
-  { header: "pie", useInstead: "treemap", why: "parts sized by value, nested if you want" },
-  { header: "classDiagram", useInstead: "erDiagram", why: "boxes with typed attributes and cardinality between them" },
-  { header: "C4Context", useInstead: "flowchart", why: "the native DSL: nested `subgraph` for boundaries, `<<aws:...>>` marks for systems" },
-  { header: "C4Container", useInstead: "flowchart", why: "as C4Context" },
-  { header: "C4Component", useInstead: "flowchart", why: "as C4Context" },
-  { header: "architecture", useInstead: "flowchart", why: "the native DSL with `<<cloud:service|label>>` marks and `subgraph` groups" },
-  { header: "block", useInstead: "flowchart", why: "boxes and arrows, laid out for you" },
-  { header: "sankey", useInstead: "flowchart", why: "edges labelled with the volume, `==>` for the heavy ones" },
-  { header: "xychart", useInstead: "radar", why: "several measures per subject; a true x/y series belongs in a chart, not a diagram" },
-  { header: "packet", useInstead: "flowchart", why: "one box per field, `-->` in wire order" },
-  { header: "zenuml", useInstead: "sequenceDiagram", why: "the same message-over-time picture" }
-];
-var UNSUPPORTED_RE = new RegExp(
-  String.raw`^\s*(${DG_UNSUPPORTED_KINDS.map((k) => k.header).join("|")})(-beta)?\b`,
-  "i"
-);
-
-// ../../packages/deltagraph/src/board/kinds/mindmap.ts
-function dgIsMindmap(src2) {
-  return /^\s*mindmap\b/m.test(src2);
-}
-var SHAPES2 = [
-  [/^\(\((.*)\)\)$/, DgElementType.Ellipse],
-  // ((circle))
-  [/^\)\)(.*)\(\($/, DgElementType.Ellipse],
-  // ))bang((
-  [/^\{\{(.*)\}\}$/, DgElementType.Diamond],
-  // {{hexagon}}
-  [/^\)(.*)\($/, DgElementType.Ellipse],
-  // )cloud(
-  [/^\((.*)\)$/, DgElementType.Rectangle],
-  // (rounded)
-  [/^\[(.*)\]$/, DgElementType.Rectangle]
-  // [square]
-];
-function readNode(raw) {
-  let s = raw.trim();
-  const idm = /^([A-Za-z0-9_-]+)([([{)].*)$/.exec(s);
-  let id2;
-  if (idm) {
-    id2 = idm[1];
-    s = idm[2];
-  }
-  for (const [re, type] of SHAPES2) {
-    const m = re.exec(s);
-    if (m) return { label: m[1].trim(), type, id: id2 };
-  }
-  return { label: s, type: DgElementType.Rectangle, id: id2 };
-}
-function dgParseMindmap(src2) {
-  const errors = [];
-  const nodes = [];
-  const edges = [];
-  const stack = [];
-  const seen = /* @__PURE__ */ new Set();
-  let auto = 0;
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i];
-    if (!raw.trim() || /^\s*mindmap\b/.test(raw)) continue;
-    if (/^\s*(::icon\(|:::)/.test(raw)) continue;
-    const indent = raw.length - raw.trimStart().length;
-    const { label, type, id: given } = readNode(raw);
-    if (!label) {
-      errors.push(`Line ${i + 1}: empty node`);
-      continue;
-    }
-    let id2 = given ?? label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "");
-    if (!id2) id2 = `n${++auto}`;
-    while (seen.has(id2)) id2 = `${id2}_${++auto}`;
-    seen.add(id2);
-    while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
-    const parent = stack[stack.length - 1];
-    nodes.push({ id: id2, label, type });
-    if (parent) edges.push({ from: parent.id, to: id2, kind: DgElementType.Line });
-    stack.push({ indent, id: id2 });
-  }
-  if (!nodes.length) errors.push("mindmap has no nodes");
-  return { kind: DgGraphKind.Mindmap, nodes, edges, errors, direction: DgLayoutDirection.LeftRight };
-}
-
-// ../../packages/deltagraph/src/board/kinds/requirement.ts
-var REQ_TYPES = [
-  "requirement",
-  "functionalRequirement",
-  "interfaceRequirement",
-  "performanceRequirement",
-  "physicalRequirement",
-  "designConstraint"
-];
-var REL_TYPES = [
-  "contains",
-  "copies",
-  "derives",
-  "satisfies",
-  "verifies",
-  "refines",
-  "traces"
-];
-var OPEN_RE = new RegExp(`^(${REQ_TYPES.join("|")}|element)\\s+(\\S+)\\s*\\{$`);
-var FIELD_RE = /^(\w+)\s*:\s*(.*?)\s*$/;
-var REL_RE = new RegExp(`^(\\S+)\\s*-\\s*(${REL_TYPES.join("|")})\\s*->\\s*(\\S+)\\s*$`);
-var REL_BACK_RE = new RegExp(`^(\\S+)\\s*<-\\s*(${REL_TYPES.join("|")})\\s*-\\s*(\\S+)\\s*$`);
-function dgIsRequirement(src2) {
-  return /^\s*requirementDiagram\b/m.test(src2);
-}
-var RISK_ROLE = { high: "err", medium: "dec", low: "out" };
-function dgParseRequirement(src2) {
-  const errors = [];
-  const nodes = [];
-  const edges = [];
-  const byId = /* @__PURE__ */ new Map();
-  let open = null;
-  const flush = () => {
-    if (!open) return;
-    const head = open.kind === "element" ? open.id : `<<${open.kind.replace(/Requirement$/, "")}>>
-${open.id}`;
-    const n = {
-      id: open.id,
-      label: [head, ...open.fields].join("\n"),
-      type: open.kind === "element" ? DgElementType.Rectangle : DgElementType.Rectangle,
-      role: open.risk ? RISK_ROLE[open.risk.toLowerCase()] : void 0
-    };
-    nodes.push(n);
-    byId.set(n.id, n);
-    open = null;
-  };
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || /^requirementDiagram\b/.test(line)) continue;
-    if (open) {
-      if (line === "}") {
-        flush();
-        continue;
-      }
-      const f = FIELD_RE.exec(line);
-      if (!f) {
-        errors.push(`Line ${i + 1}: could not parse field "${line}"`);
-        continue;
-      }
-      const [, key2, value] = f;
-      if (key2.toLowerCase() === "risk") open.risk = value;
-      open.fields.push(`${key2}: ${value.replace(/^"|"$/g, "")}`);
-      continue;
-    }
-    const o = OPEN_RE.exec(line);
-    if (o) {
-      open = { id: o[2], kind: o[1], fields: [] };
-      continue;
-    }
-    const rel = REL_RE.exec(line) ?? REL_BACK_RE.exec(line);
-    if (rel) {
-      const back = !REL_RE.test(line);
-      const [, a, verb, b] = rel;
-      edges.push({ from: back ? b : a, to: back ? a : b, kind: DgElementType.Arrow, label: verb });
-      continue;
-    }
-    errors.push(`Line ${i + 1}: could not parse "${line}"`);
-  }
-  if (open) {
-    errors.push(`Unclosed block for "${open.id}"`);
-    flush();
-  }
-  for (const e of edges) {
-    for (const id2 of [e.from, e.to]) {
-      if (!byId.has(id2)) {
-        const n = { id: id2, label: id2, type: DgElementType.Rectangle };
-        nodes.push(n);
-        byId.set(id2, n);
-      }
-    }
-  }
-  if (!nodes.length) errors.push("requirementDiagram has no requirements or elements");
-  return { kind: DgGraphKind.Requirement, nodes, edges, errors };
-}
-
-// ../../packages/deltagraph/src/board/kinds/project.ts
-var Projection = class {
-  constructor(prefix) {
-    this.prefix = prefix;
-  }
-  els = [];
-  n = 0;
-  next(key2) {
-    this.n++;
-    return {
-      id: `${this.prefix}~${key2}`,
-      z: String(1e6 + this.n).padStart(12, "0"),
-      seed: seedFrom(`${this.prefix}~${key2}`)
-    };
-  }
-  box(key2, x, y, w, h, o = {}) {
-    const style = {
-      strokeColor: o.stroke ?? "#4c8dff",
-      strokeWidth: 2,
-      opacity: o.opacity ?? 100,
-      fontSize: o.fontSize ?? 13
-    };
-    if (o.fill) style.backgroundColor = o.fill;
-    if (o.dashed) style.strokeStyle = "dashed";
-    const el = {
-      ...this.next(key2),
-      type: DgElementType.Rectangle,
-      x,
-      y,
-      w,
-      h,
-      cornerRadius: o.radius ?? 8,
-      text: o.text,
-      align: o.align ?? DgAlign.Center,
-      style,
-      version: 1
-    };
-    if (o.role) el.data = { role: o.role };
-    this.els.push(el);
-    return el;
-  }
-  ellipse(key2, x, y, w, h, o = {}) {
-    const el = this.box(key2, x, y, w, h, o);
-    el.type = DgElementType.Ellipse;
-    return el;
-  }
-  text(key2, x, y, w, h, text, o = {}) {
-    const el = {
-      ...this.next(key2),
-      type: DgElementType.Text,
-      x,
-      y,
-      w,
-      h,
-      text,
-      align: o.align ?? DgAlign.Center,
-      style: { strokeColor: o.stroke ?? "#e6e6e6", fontSize: o.fontSize ?? 13, opacity: o.opacity ?? 100 },
-      version: 1
-    };
-    this.els.push(el);
-    return el;
-  }
-  /** A polyline. `arrow` gives it a head; otherwise it is a plain rule. */
-  poly(key2, pts, o = {}) {
-    const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
-    const x = Math.min(...xs), y = Math.min(...ys);
-    const style = { strokeColor: o.stroke ?? "#8892a6", strokeWidth: o.width ?? 2, opacity: o.opacity ?? 100 };
-    if (o.dashed) style.strokeStyle = "dashed";
-    const el = {
-      ...this.next(key2),
-      type: o.arrow ? DgElementType.Arrow : DgElementType.Line,
-      x,
-      y,
-      w: Math.max(...xs) - x,
-      h: Math.max(...ys) - y,
-      points: pts.map(([px, py]) => [px - x, py - y]),
-      endArrowhead: o.arrow ? DgArrowhead.Triangle : null,
-      style,
-      version: 1
-    };
-    this.els.push(el);
-    return el;
-  }
-  line(key2, x1, y1, x2, y2, o = {}) {
-    return this.poly(key2, [[x1, y1], [x2, y2]], o);
-  }
-  doc() {
-    return { ...dgCreateEmptyBoard(), elements: this.els };
-  }
-};
-var PAD = 4;
-function charsPerLine(w, fontSize = 13) {
-  return Math.max(1, Math.floor((Math.max(1, w) - PAD * 2) / (fontSize * 0.55)));
-}
-function fitLines(text, w, fontSize = 13) {
-  const cpl = charsPerLine(w, fontSize);
-  const out = [];
-  for (const para of text.split("\n")) {
-    const words = para.split(/\s+/).filter(Boolean);
-    if (!words.length) {
-      out.push("");
-      continue;
-    }
-    let cur = "";
-    for (const word of words) {
-      if (cur && cur.length + 1 + word.length > cpl) {
-        out.push(cur);
-        cur = word;
-      } else cur = cur ? `${cur} ${word}` : word;
-    }
-    if (cur) out.push(cur);
-  }
-  return out.length ? out : [text];
-}
-function fitHeight(text, w, fontSize = 13, padY = 12) {
-  return Math.ceil(fitLines(text, w, fontSize).length * fontSize * 1.3 + padY);
-}
-function fitWidth(text, fontSize = 13, min2 = 60, max2 = 320) {
-  const longest = Math.max(...text.split("\n").map((l) => l.length), 1);
-  return Math.max(min2, Math.min(max2, Math.round(longest * fontSize * 0.55) + PAD * 2 + 6));
-}
-var SERIES_COLORS = [
-  "#4c8dff",
-  "#4fd08a",
-  "#ffb066",
-  "#b58cff",
-  "#ff6b6b",
-  "#5cc8ff",
-  "#ffce4d",
-  "#7ad9a7",
-  "#ff8fb1",
-  "#9aa7bd"
-];
-var seriesColor = (i) => SERIES_COLORS[i % SERIES_COLORS.length];
-
-// ../../packages/deltagraph/src/board/kinds/journey.ts
-var PAD2 = 24;
-var TASK_W = 150;
-var TASK_GAP = 12;
-var TITLE_H = 26;
-var SECT_H = 26;
-var TASK_H = 46;
-var BAR_H = 58;
-var MAX_SCORE = 5;
-function dgIsJourney(src2) {
-  return /^\s*journey\b/m.test(src2);
-}
-function dgParseJourney(src2) {
-  const errors = [];
-  const sections = [];
-  let title;
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || /^journey\b/.test(line)) continue;
-    const t = /^title\s+(.*)$/i.exec(line);
-    if (t) {
-      title = t[1].trim();
-      continue;
-    }
-    const s = /^section\s+(.*)$/i.exec(line);
-    if (s) {
-      sections.push({ name: s[1].trim(), tasks: [] });
-      continue;
-    }
-    const parts = line.split(":");
-    if (parts.length < 2) {
-      errors.push(`Line ${i + 1}: could not parse "${line}"`);
-      continue;
-    }
-    const score = Number(parts[1].trim());
-    if (!Number.isFinite(score)) {
-      errors.push(`Line ${i + 1}: "${parts[1].trim()}" is not a score`);
-      continue;
-    }
-    if (!sections.length) sections.push({ name: "", tasks: [] });
-    sections[sections.length - 1].tasks.push({
-      name: parts[0].trim(),
-      score,
-      actors: (parts[2] ?? "").split(",").map((a) => a.trim()).filter(Boolean)
-    });
-  }
-  if (!sections.some((s) => s.tasks.length)) errors.push("journey has no tasks");
-  return { title, sections, errors };
-}
-function scoreColor(score) {
-  const t = Math.max(0, Math.min(1, (score - 1) / (MAX_SCORE - 1)));
-  if (t >= 0.75) return "#4fd08a";
-  if (t >= 0.5) return "#ffce4d";
-  if (t >= 0.25) return "#ffb066";
-  return "#ff6b6b";
-}
-function dgBuildFromJourney(doc) {
-  const p = new Projection("journey");
-  const top = doc.title ? PAD2 + TITLE_H : PAD2;
-  if (doc.title) p.text("title", PAD2, PAD2 - 4, 420, 22, doc.title, { fontSize: 17, align: DgAlign.Left });
-  const rowH = Math.max(TASK_H, ...doc.sections.flatMap((s) => s.tasks.map((t) => fitHeight(t.name, TASK_W, 12, 16))));
-  let x = PAD2;
-  doc.sections.forEach((sect, si) => {
-    if (!sect.tasks.length) return;
-    const w = sect.tasks.length * TASK_W + (sect.tasks.length - 1) * TASK_GAP;
-    const accent = seriesColor(si);
-    if (sect.name) {
-      p.box(`sect/${si}`, x, top, w, SECT_H, { stroke: accent, opacity: 60, radius: 6 });
-      p.text(`sect/${si}/label`, x, top + 5, w, 16, sect.name, { stroke: accent, fontSize: 12 });
-    }
-    const rowY = top + (sect.name ? SECT_H + 10 : 0);
-    sect.tasks.forEach((task, ti) => {
-      const tx = x + ti * (TASK_W + TASK_GAP);
-      const col = scoreColor(task.score);
-      const taskH = rowH;
-      p.box(`task/${si}/${ti}`, tx, rowY, TASK_W, taskH, {
-        text: task.name,
-        stroke: col,
-        fontSize: 12,
-        radius: 7
-      });
-      const frac = Math.max(0, Math.min(1, task.score / MAX_SCORE));
-      const barH = Math.max(4, Math.round(BAR_H * frac));
-      p.box(`score/${si}/${ti}`, tx + TASK_W / 2 - 16, rowY + rowH + 10 + (BAR_H - barH), 32, barH, {
-        stroke: col,
-        fill: col,
-        opacity: 78,
-        radius: 3
-      });
-      p.text(
-        `score/${si}/${ti}/n`,
-        tx + TASK_W / 2 - 16,
-        rowY + rowH + 12 + BAR_H,
-        32,
-        15,
-        String(task.score),
-        { stroke: col, fontSize: 11 }
-      );
-      if (task.actors.length) {
-        p.text(
-          `actors/${si}/${ti}`,
-          tx,
-          rowY + rowH + BAR_H + 30,
-          TASK_W,
-          15,
-          task.actors.join(", "),
-          { fontSize: 11, opacity: 75 }
-        );
-      }
-    });
-    x += w + TASK_GAP * 2;
-  });
-  return p.doc();
-}
-
-// ../../packages/deltagraph/src/board/kinds/kanban.ts
-var PAD3 = 22;
-var COL_W = 210;
-var COL_GAP = 18;
-var HEAD_H = 34;
-var CARD_GAP = 10;
-var CARD_PADY = 12;
-var LINE_H = 17;
-function dgIsKanban(src2) {
-  return /^\s*kanban\b/m.test(src2);
-}
-function dgParseKanban(src2) {
-  const errors = [];
-  const columns = [];
-  let colIndent = -1;
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i];
-    if (!raw.trim() || /^\s*kanban\b/.test(raw)) continue;
-    const meta = /^\s*@\{(.*)\}\s*$/.exec(raw);
-    if (meta) {
-      const card = columns[columns.length - 1]?.cards.slice(-1)[0];
-      if (card) {
-        for (const pair of meta[1].split(",")) {
-          const eq = pair.indexOf(":");
-          if (eq < 0) {
-            errors.push(`Line ${i + 1}: metadata "${pair.trim()}" has no value`);
-            continue;
-          }
-          card.meta.push([pair.slice(0, eq).trim(), pair.slice(eq + 1).trim().replace(/^['"]|['"]$/g, "")]);
-        }
-      } else errors.push(`Line ${i + 1}: metadata before any card`);
-      continue;
-    }
-    const indent = raw.length - raw.trimStart().length;
-    const line = raw.trim();
-    const m = /^([A-Za-z0-9_-]+)?\[(.*)\]$/.exec(line);
-    if (colIndent < 0 && !m) colIndent = indent;
-    if (!m && indent <= colIndent) {
-      columns.push({ id: line.toLowerCase().replace(/[^a-z0-9]+/g, "_"), title: line, cards: [] });
-      continue;
-    }
-    const col = columns[columns.length - 1];
-    if (!col) {
-      errors.push(`Line ${i + 1}: card outside any column`);
-      continue;
-    }
-    col.cards.push(m ? { id: m[1] ?? `c${col.cards.length}`, text: m[2], meta: [] } : { id: `c${col.cards.length}`, text: line, meta: [] });
-  }
-  if (!columns.length) errors.push("kanban has no columns");
-  return { columns, errors };
-}
-function dgBuildFromKanban(parsed) {
-  const p = new Projection("kanban");
-  const widest = Math.max(COL_W, ...parsed.columns.flatMap((c) => [
-    fitWidth(`${c.title}  (${c.cards.length})`, 13, COL_W, 300),
-    ...c.cards.map((card) => Math.min(300, fitWidth(card.text, 12, COL_W, 300) + 20))
-  ]));
-  const cardW = widest - 20;
-  const cardLines = (card) => [
-    ...fitLines(card.text, cardW, 12),
-    ...card.meta.map(([k, v]) => `${k}: ${v}`)
-  ];
-  const cardH = (card) => cardLines(card).length * LINE_H + CARD_PADY * 2;
-  const bodyH = Math.max(120, ...parsed.columns.map((c) => c.cards.reduce((h, card) => h + cardH(card) + CARD_GAP, 0)));
-  parsed.columns.forEach((col, ci) => {
-    const x = PAD3 + ci * (widest + COL_GAP);
-    const accent = seriesColor(ci);
-    p.box(`col/${col.id}`, x, PAD3, widest, HEAD_H + bodyH + CARD_GAP, {
-      stroke: accent,
-      opacity: 55,
-      radius: 10
-    });
-    p.text(
-      `col/${col.id}/title`,
-      x,
-      PAD3 + 9,
-      widest,
-      18,
-      `${col.title}  (${col.cards.length})`,
-      { stroke: accent, fontSize: 13 }
-    );
-    let y = PAD3 + HEAD_H;
-    col.cards.forEach((card, i) => {
-      const lines = cardLines(card);
-      const h = lines.length * LINE_H + CARD_PADY * 2;
-      p.box(`card/${col.id}/${card.id}/${i}`, x + 10, y, cardW, h, {
-        text: lines.join("\n"),
-        stroke: accent,
-        fontSize: 12,
-        align: DgAlign.Center,
-        radius: 7
-      });
-      y += h + CARD_GAP;
-    });
-  });
-  return p.doc();
-}
-
-// ../../packages/deltagraph/src/board/kinds/timeline.ts
-var PAD4 = 24;
-var COL_W2 = 168;
-var COL_GAP2 = 16;
-var TITLE_H2 = 26;
-var SECT_H2 = 24;
-var AXIS_GAP = 26;
-var PERIOD_H = 30;
-var EVENT_H = 38;
-var EVENT_GAP = 8;
-function dgIsTimeline(src2) {
-  return /^\s*timeline\b/m.test(src2);
-}
-function dgParseTimeline(src2) {
-  const errors = [];
-  const periods = [];
-  let title;
-  let section;
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || /^timeline\b/.test(line)) continue;
-    const t = /^title\s+(.*)$/i.exec(line);
-    if (t) {
-      title = t[1].trim();
-      continue;
-    }
-    const s = /^section\s+(.*)$/i.exec(line);
-    if (s) {
-      section = s[1].trim();
-      continue;
-    }
-    const parts = line.split(":").map((x) => x.trim());
-    if (line.startsWith(":")) {
-      const last2 = periods[periods.length - 1];
-      if (!last2) {
-        errors.push(`Line ${i + 1}: event before any period`);
-        continue;
-      }
-      last2.events.push(...parts.filter(Boolean));
-      continue;
-    }
-    if (!parts[0]) {
-      errors.push(`Line ${i + 1}: could not parse "${line}"`);
-      continue;
-    }
-    periods.push({ label: parts[0], events: parts.slice(1).filter(Boolean), section });
-  }
-  if (!periods.length) errors.push("timeline has no periods");
-  return { title, periods, errors };
-}
-function dgBuildFromTimeline(doc) {
-  const p = new Projection("timeline");
-  const hasSections = doc.periods.some((x) => x.section);
-  let y = PAD4;
-  if (doc.title) {
-    p.text("title", PAD4, y - 4, 460, 22, doc.title, { fontSize: 17, align: DgAlign.Left });
-    y += TITLE_H2;
-  }
-  if (hasSections) {
-    let i = 0;
-    while (i < doc.periods.length) {
-      const name = doc.periods[i].section;
-      let j = i;
-      while (j < doc.periods.length && doc.periods[j].section === name) j++;
-      if (name) {
-        const x = PAD4 + i * (COL_W2 + COL_GAP2);
-        const w = (j - i) * COL_W2 + (j - i - 1) * COL_GAP2;
-        const accent = seriesColor(i);
-        p.box(`sect/${i}`, x, y, w, SECT_H2, { stroke: accent, opacity: 60, radius: 6 });
-        p.text(`sect/${i}/label`, x, y + 4, w, 16, name, { stroke: accent, fontSize: 12 });
-      }
-      i = j;
-    }
-    y += SECT_H2 + 10;
-  }
-  const axisY = y + PERIOD_H + AXIS_GAP / 2;
-  const totalW = doc.periods.length * COL_W2 + (doc.periods.length - 1) * COL_GAP2;
-  p.line("axis", PAD4, axisY, PAD4 + totalW, axisY, { stroke: "#8892a6", width: 2, opacity: 70 });
-  doc.periods.forEach((period, i) => {
-    const x = PAD4 + i * (COL_W2 + COL_GAP2);
-    const accent = seriesColor(i);
-    const periodH = Math.max(PERIOD_H, fitHeight(period.label, COL_W2, 13, 14));
-    p.box(`period/${i}`, x, y, COL_W2, periodH, { text: period.label, stroke: accent, fontSize: 13, radius: 6 });
-    p.line(`tick/${i}`, x + COL_W2 / 2, axisY - 5, x + COL_W2 / 2, axisY + 5, { stroke: accent, width: 2 });
-    let ey = axisY + AXIS_GAP / 2 + 8;
-    period.events.forEach((ev, k) => {
-      const lines = fitLines(ev, COL_W2, 12);
-      const h = Math.max(EVENT_H, lines.length * 17 + 18);
-      p.box(`event/${i}/${k}`, x, ey, COL_W2, h, {
-        text: lines.join("\n"),
-        stroke: accent,
-        fontSize: 12,
-        opacity: 88,
-        radius: 6
-      });
-      ey += h + EVENT_GAP;
-    });
-  });
-  return p.doc();
-}
-
-// ../../packages/deltagraph/src/board/kinds/gitgraph.ts
-var GitCommitType = { Normal: "normal", Reverse: "reverse", Highlight: "highlight" };
-var PAD5 = 30;
-var LANE_H = 66;
-var STEP_X = 104;
-var R = 13;
-var LABEL_W = 92;
-function dgIsGitGraph(src2) {
-  return /^\s*gitGraph\b/im.test(src2);
-}
-function dgParseGitGraph(src2) {
-  const errors = [];
-  const commits = [];
-  const branches = ["main"];
-  let title;
-  let cur = "main";
-  let auto = 0;
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || /^gitGraph\b/i.test(line)) continue;
-    const t = /^title\s+(.*)$/i.exec(line);
-    if (t) {
-      title = t[1].trim();
-      continue;
-    }
-    if (/^commit\b/.test(line)) {
-      const id2 = /\bid:\s*"([^"]*)"/.exec(line)?.[1] ?? `c${++auto}`;
-      const tag = /\btag:\s*"([^"]*)"/.exec(line)?.[1];
-      const raw = /\btype:\s*(\w+)/.exec(line)?.[1]?.toLowerCase();
-      const type = raw === "reverse" ? GitCommitType.Reverse : raw === "highlight" ? GitCommitType.Highlight : GitCommitType.Normal;
-      commits.push({ id: id2, branch: cur, tag, type });
-      continue;
-    }
-    const b = /^branch\s+(\S+)/.exec(line);
-    if (b) {
-      if (!branches.includes(b[1])) branches.push(b[1]);
-      cur = b[1];
-      continue;
-    }
-    const co = /^checkout\s+(\S+)/.exec(line) ?? /^switch\s+(\S+)/.exec(line);
-    if (co) {
-      if (!branches.includes(co[1])) {
-        errors.push(`Line ${i + 1}: unknown branch "${co[1]}"`);
-        continue;
-      }
-      cur = co[1];
-      continue;
-    }
-    const m = /^merge\s+(\S+)/.exec(line);
-    if (m) {
-      if (!branches.includes(m[1])) {
-        errors.push(`Line ${i + 1}: unknown branch "${m[1]}"`);
-        continue;
-      }
-      const tag = /\btag:\s*"([^"]*)"/.exec(line)?.[1];
-      commits.push({ id: `merge-${m[1]}-${++auto}`, branch: cur, merged: m[1], tag, type: GitCommitType.Normal });
-      continue;
-    }
-    if (/^(cherry-pick|checkout)\b/.test(line)) continue;
-    errors.push(`Line ${i + 1}: could not parse "${line}"`);
-  }
-  if (!commits.length) errors.push("gitGraph has no commits");
-  return { title, branches, commits, errors };
-}
-function dgBuildFromGitGraph(doc) {
-  const p = new Projection("git");
-  const top = doc.title ? PAD5 + 26 : PAD5;
-  if (doc.title) p.text("title", PAD5, PAD5 - 4, 420, 22, doc.title, { fontSize: 17, align: DgAlign.Left });
-  const laneY = (b) => top + doc.branches.indexOf(b) * LANE_H + LANE_H / 2;
-  const width = LABEL_W + doc.commits.length * STEP_X + PAD5;
-  doc.branches.forEach((b, i) => {
-    const y = laneY(b);
-    const col = seriesColor(i);
-    p.text(`branch/${b}`, PAD5, y - 9, LABEL_W - 10, 18, b, { stroke: col, fontSize: 13, align: DgAlign.Right });
-    p.line(`lane/${b}`, PAD5 + LABEL_W, y, width, y, { stroke: col, width: 2, opacity: 45 });
-  });
-  const tip = /* @__PURE__ */ new Map();
-  doc.commits.forEach((c, i) => {
-    const x = PAD5 + LABEL_W + 40 + i * STEP_X;
-    const y = laneY(c.branch);
-    const col = seriesColor(doc.branches.indexOf(c.branch));
-    if (c.merged) {
-      const from2 = tip.get(c.merged);
-      if (from2) {
-        const pts = [[from2[0], from2[1]], [x - STEP_X / 2, from2[1]], [x, y]];
-        p.poly(`merge/${i}`, pts, { stroke: seriesColor(doc.branches.indexOf(c.merged)), width: 2, arrow: true });
-      } else {
-        p.text(`merge/${i}/warn`, x - 40, y - 34, 90, 14, `merge ${c.merged}`, { fontSize: 10, opacity: 70 });
-      }
-    } else {
-      const prev = tip.get(c.branch);
-      if (prev) p.line(`link/${i}`, prev[0], prev[1], x, y, { stroke: col, width: 2 });
-    }
-    p.ellipse(`commit/${c.id}`, x - R, y - R, R * 2, R * 2, {
-      stroke: col,
-      fill: c.type === GitCommitType.Reverse ? void 0 : col,
-      opacity: c.type === GitCommitType.Highlight ? 100 : 85
-    });
-    p.text(`commit/${c.id}/id`, x - STEP_X / 2, y + R + 6, STEP_X, 15, c.id, { fontSize: 10, opacity: 80 });
-    if (c.tag) {
-      p.box(`tag/${c.id}`, x - 30, y - R - 26, 60, 19, { text: c.tag, stroke: "#ffce4d", fontSize: 10, radius: 4 });
-    }
-    tip.set(c.branch, [x, y]);
-  });
-  return p.doc();
-}
-
-// ../../packages/deltagraph/src/board/kinds/quadrant.ts
-var PAD6 = 34;
-var PLOT = 460;
-var AXIS_PAD = 30;
-var DOT = 9;
-function dgIsQuadrant(src2) {
-  return /^\s*quadrantChart\b/m.test(src2);
-}
-var axisEnds = (s) => {
-  const parts = s.split("-->");
-  return [parts[0]?.trim() ?? "", parts[1]?.trim() ?? ""];
-};
-function dgParseQuadrant(src2) {
-  const errors = [];
-  const points = [];
-  const quadrants = [void 0, void 0, void 0, void 0];
-  let title;
-  let xAxis;
-  let yAxis;
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || /^quadrantChart\b/.test(line)) continue;
-    const t = /^title\s+(.*)$/i.exec(line);
-    if (t) {
-      title = t[1].trim();
-      continue;
-    }
-    const xa = /^x-axis\s+(.*)$/i.exec(line);
-    if (xa) {
-      xAxis = axisEnds(xa[1]);
-      continue;
-    }
-    const ya = /^y-axis\s+(.*)$/i.exec(line);
-    if (ya) {
-      yAxis = axisEnds(ya[1]);
-      continue;
-    }
-    const q = /^quadrant-([1-4])\s+(.*)$/i.exec(line);
-    if (q) {
-      quadrants[Number(q[1]) - 1] = q[2].trim();
-      continue;
-    }
-    const pt = /^(.+?):\s*\[\s*([0-9.]+)\s*,\s*([0-9.]+)\s*\]$/.exec(line);
-    if (pt) {
-      const x = Number(pt[2]), y = Number(pt[3]);
-      if (!Number.isFinite(x) || !Number.isFinite(y)) {
-        errors.push(`Line ${i + 1}: bad coordinates`);
-        continue;
-      }
-      if (x < 0 || x > 1 || y < 0 || y > 1) errors.push(`Line ${i + 1}: "${pt[1].trim()}" is outside 0..1`);
-      points.push({ name: pt[1].trim(), x, y });
-      continue;
-    }
-    errors.push(`Line ${i + 1}: could not parse "${line}"`);
-  }
-  if (!points.length) errors.push("quadrantChart has no points");
-  return { title, xAxis, yAxis, quadrants, points, errors };
-}
-function dgBuildFromQuadrant(doc) {
-  const p = new Projection("quadrant");
-  const top = doc.title ? PAD6 + 28 : PAD6;
-  const left = PAD6 + AXIS_PAD;
-  if (doc.title) p.text("title", PAD6, PAD6 - 4, PLOT + AXIS_PAD * 2, 22, doc.title, { fontSize: 17 });
-  const cells = [[1, 1, 0], [0, 1, 1], [0, 0, 2], [1, 0, 3]];
-  for (const [cx, cy, qi] of cells) {
-    const x = left + cx * (PLOT / 2);
-    const y = top + (1 - cy) * (PLOT / 2);
-    const col = seriesColor(qi);
-    p.box(`quad/${qi}`, x, y, PLOT / 2, PLOT / 2, { stroke: col, opacity: 34, radius: 0 });
-    const label = doc.quadrants[qi];
-    if (label) p.text(`quad/${qi}/label`, x, y + 10, PLOT / 2, 18, label, { stroke: col, fontSize: 12 });
-  }
-  p.line("axis/v", left + PLOT / 2, top, left + PLOT / 2, top + PLOT, { stroke: "#8892a6", width: 1.5, opacity: 70 });
-  p.line("axis/h", left, top + PLOT / 2, left + PLOT, top + PLOT / 2, { stroke: "#8892a6", width: 1.5, opacity: 70 });
-  if (doc.xAxis) {
-    p.text("axis/x0", left, top + PLOT + 8, PLOT / 2, 16, doc.xAxis[0], { fontSize: 12, align: DgAlign.Left, opacity: 80 });
-    p.text("axis/x1", left + PLOT / 2, top + PLOT + 8, PLOT / 2, 16, doc.xAxis[1], { fontSize: 12, align: DgAlign.Right, opacity: 80 });
-  }
-  if (doc.yAxis) {
-    p.text("axis/y0", PAD6 - 6, top + PLOT - 20, AXIS_PAD + 40, 16, doc.yAxis[0], { fontSize: 12, opacity: 80 });
-    p.text("axis/y1", PAD6 - 6, top + 6, AXIS_PAD + 40, 16, doc.yAxis[1], { fontSize: 12, opacity: 80 });
-  }
-  doc.points.forEach((pt, i) => {
-    const cx = left + pt.x * PLOT;
-    const cy = top + (1 - pt.y) * PLOT;
-    const col = seriesColor(i);
-    p.ellipse(`pt/${i}`, cx - DOT, cy - DOT, DOT * 2, DOT * 2, { stroke: col, fill: col, opacity: 90 });
-    p.text(`pt/${i}/label`, cx + DOT + 4, cy - 9, 150, 16, pt.name, { fontSize: 11, align: DgAlign.Left });
-  });
-  return p.doc();
-}
-
-// ../../packages/deltagraph/src/board/kinds/radar.ts
-var PAD7 = 30;
-var R2 = 170;
-var RINGS = 4;
-function dgIsRadar(src2) {
-  return /^\s*radar(-beta)?\b/m.test(src2);
-}
-var stripLabel = (tok) => {
-  const m = /^[A-Za-z0-9_-]*\[\s*"?(.*?)"?\s*\]$/.exec(tok.trim());
-  return (m ? m[1] : tok).trim().replace(/^"|"$/g, "");
-};
-function dgParseRadar(src2) {
-  const errors = [];
-  const axes = [];
-  const curves = [];
-  let title;
-  let max2;
-  let min2 = 0;
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line || /^radar(-beta)?\b/.test(line)) continue;
-    const t = /^title\s+(.*)$/i.exec(line);
-    if (t) {
-      title = t[1].trim();
-      continue;
-    }
-    const mx = /^max\s+([-0-9.]+)$/i.exec(line);
-    if (mx) {
-      max2 = Number(mx[1]);
-      continue;
-    }
-    const mn = /^min\s+([-0-9.]+)$/i.exec(line);
-    if (mn) {
-      min2 = Number(mn[1]);
-      continue;
-    }
-    const ax = /^axis\s+(.*)$/i.exec(line);
-    if (ax) {
-      axes.push(...ax[1].split(",").map(stripLabel).filter(Boolean));
-      continue;
-    }
-    const cu = /^curve\s+(.*)$/i.exec(line);
-    if (cu) {
-      const braced = /^(.*?)\{(.*)\}\s*$/.exec(cu[1]);
-      const [nameTok, valueTok] = braced ? [braced[1], braced[2]] : [cu[1].split(":")[0], cu[1].split(":").slice(1).join(":")];
-      const values = valueTok.split(",").map((v) => Number(v.trim())).filter((v) => Number.isFinite(v));
-      if (!values.length) {
-        errors.push(`Line ${i + 1}: curve "${stripLabel(nameTok)}" has no values`);
-        continue;
-      }
-      curves.push({ name: stripLabel(nameTok), values });
-      continue;
-    }
-    errors.push(`Line ${i + 1}: could not parse "${line}"`);
-  }
-  if (!axes.length) errors.push("radar has no axes");
-  for (const c of curves) {
-    if (axes.length && c.values.length !== axes.length) {
-      errors.push(`curve "${c.name}" has ${c.values.length} values for ${axes.length} axes`);
-    }
-  }
-  if (!curves.length) errors.push("radar has no curves");
-  return { title, axes, curves, max: max2, min: min2, errors };
-}
-function dgBuildFromRadar(doc) {
-  const p = new Projection("radar");
-  const top = doc.title ? PAD7 + 28 : PAD7;
-  const cx = PAD7 + R2 + 60;
-  const cy = top + R2 + 20;
-  if (doc.title) p.text("title", PAD7, PAD7 - 4, (R2 + 60) * 2, 22, doc.title, { fontSize: 17 });
-  const n = Math.max(1, doc.axes.length);
-  const angle = (i) => -Math.PI / 2 + i * 2 * Math.PI / n;
-  const at = (i, r2) => [cx + Math.cos(angle(i)) * r2, cy + Math.sin(angle(i)) * r2];
-  const hi = doc.max ?? Math.max(1, ...doc.curves.flatMap((c) => c.values));
-  const span = hi - doc.min || 1;
-  for (let ring = 1; ring <= RINGS; ring++) {
-    const r2 = R2 * ring / RINGS;
-    const pts = Array.from({ length: n }, (_, i) => at(i, r2));
-    p.poly(`ring/${ring}`, [...pts, pts[0]], { stroke: "#8892a6", width: 1, opacity: ring === RINGS ? 55 : 28 });
-  }
-  doc.axes.forEach((name, i) => {
-    p.line(`spoke/${i}`, cx, cy, at(i, R2)[0], at(i, R2)[1], { stroke: "#8892a6", width: 1, opacity: 40 });
-    const [lx, ly] = at(i, R2 + 24);
-    p.text(`axis/${i}`, lx - 60, ly - 9, 120, 17, name, { fontSize: 12 });
-  });
-  doc.curves.forEach((curve, ci) => {
-    const col = seriesColor(ci);
-    const pts = curve.values.slice(0, n).map((v, i) => {
-      const frac = Math.max(0, Math.min(1, (v - doc.min) / span));
-      return at(i, R2 * frac);
-    });
-    if (pts.length < 2) return;
-    p.poly(`curve/${ci}`, [...pts, pts[0]], { stroke: col, width: 2.4 });
-    p.box(`legend/${ci}`, PAD7, top + R2 * 2 + 60 + ci * 22, 12, 12, { stroke: col, fill: col, radius: 3 });
-    p.text(
-      `legend/${ci}/label`,
-      PAD7 + 18,
-      top + R2 * 2 + 58 + ci * 22,
-      200,
-      16,
-      curve.name,
-      { fontSize: 12, align: DgAlign.Left }
-    );
-  });
-  return p.doc();
-}
-
-// ../../packages/deltagraph/src/board/kinds/treemap.ts
-var PAD8 = 26;
-var W = 620;
-var H = 400;
-var HEAD = 20;
-var GAP = 3;
-function dgIsTreemap(src2) {
-  return /^\s*treemap(-beta)?\b/m.test(src2);
-}
-function dgParseTreemap(src2) {
-  const errors = [];
-  const root = { name: "", children: [] };
-  const stack = [{ indent: -1, node: root }];
-  let title;
-  const lines = src2.replace(/^\s*%%.*$/gm, "").split(/\r?\n/);
-  for (let i = 0; i < lines.length; i++) {
-    const raw = lines[i];
-    if (!raw.trim() || /^\s*treemap(-beta)?\b/.test(raw)) continue;
-    const t = /^\s*title\s+(.*)$/i.exec(raw);
-    if (t) {
-      title = t[1].trim();
-      continue;
-    }
-    const indent = raw.length - raw.trimStart().length;
-    const line = raw.trim();
-    const m = /^"?([^":]+)"?\s*(?::\s*([-0-9.]+))?\s*$/.exec(line);
-    if (!m) {
-      errors.push(`Line ${i + 1}: could not parse "${line}"`);
-      continue;
-    }
-    const value = m[2] === void 0 ? void 0 : Number(m[2]);
-    if (m[2] !== void 0 && !Number.isFinite(value)) {
-      errors.push(`Line ${i + 1}: "${m[2]}" is not a number`);
-      continue;
-    }
-    if (value !== void 0 && value < 0) {
-      errors.push(`Line ${i + 1}: negative value has no area`);
-      continue;
-    }
-    while (stack.length > 1 && stack[stack.length - 1].indent >= indent) stack.pop();
-    const node = { name: m[1].trim(), value, children: [] };
-    stack[stack.length - 1].node.children.push(node);
-    stack.push({ indent, node });
-  }
-  if (!root.children.length) errors.push("treemap has no nodes");
-  return { title, root, errors };
-}
-function treeValue(n) {
-  if (!n.children.length) return Math.max(0, n.value ?? 0);
-  return n.children.reduce((s, c) => s + treeValue(c), 0);
-}
-function squarify(items, rect) {
-  const out = [];
-  let rest = [...items].sort((a, b) => b.value - a.value).filter((i) => i.value > 0);
-  let free = { ...rect };
-  const total = () => rest.reduce((s, i) => s + i.value, 0);
-  while (rest.length) {
-    const short2 = Math.min(free.w, free.h);
-    const area = free.w * free.h;
-    const sum = total();
-    if (sum <= 0 || area <= 0) break;
-    const scale = area / sum;
-    const row = [];
-    let rowSum = 0;
-    const worst = (candidate) => {
-      const s = (rowSum + candidate) * scale;
-      const side = s / short2;
-      const hiV = Math.max(...row.map((i) => i.value), candidate) * scale;
-      const loV = Math.min(...row.map((i) => i.value), candidate) * scale;
-      return Math.max(short2 * short2 * hiV / (s * s), s * s / (short2 * short2 * loV));
-    };
-    while (rest.length) {
-      const next = rest[0].value;
-      if (row.length && worst(next) > worstOf(row, rowSum, short2, scale)) break;
-      row.push(rest.shift());
-      rowSum += next;
-    }
-    const rowThickness = rowSum * scale / short2;
-    let cursor = 0;
-    for (const item of row) {
-      const frac = rowSum > 0 ? item.value / rowSum : 0;
-      const len = short2 * frac;
-      out.push(free.w >= free.h ? { node: item.node, rect: { x: free.x, y: free.y + cursor, w: rowThickness, h: len } } : { node: item.node, rect: { x: free.x + cursor, y: free.y, w: len, h: rowThickness } });
-      cursor += len;
-    }
-    free = free.w >= free.h ? { x: free.x + rowThickness, y: free.y, w: free.w - rowThickness, h: free.h } : { x: free.x, y: free.y + rowThickness, w: free.w, h: free.h - rowThickness };
-    if (free.w <= 0 || free.h <= 0) break;
-  }
-  return out;
-}
-function worstOf(row, rowSum, short2, scale) {
-  if (!row.length) return Infinity;
-  const s = rowSum * scale;
-  const hi = Math.max(...row.map((i) => i.value)) * scale;
-  const lo = Math.min(...row.map((i) => i.value)) * scale;
-  return Math.max(short2 * short2 * hi / (s * s), s * s / (short2 * short2 * lo));
-}
-function dgBuildFromTreemap(doc) {
-  const p = new Projection("treemap");
-  const top = doc.title ? PAD8 + 28 : PAD8;
-  if (doc.title) p.text("title", PAD8, PAD8 - 4, W, 22, doc.title, { fontSize: 17 });
-  const place = (nodes, rect, depth, path) => {
-    const items = nodes.map((node) => ({ node, value: treeValue(node) }));
-    for (const { node, rect: r2 } of squarify(items, rect)) {
-      const key2 = `${path}/${node.name}`;
-      const col = seriesColor(depth === 0 ? nodes.indexOf(node) : depth + nodes.indexOf(node));
-      const leaf = !node.children.length;
-      p.box(`cell${key2}`, r2.x, r2.y, Math.max(1, r2.w - GAP), Math.max(1, r2.h - GAP), {
-        stroke: col,
-        fill: leaf ? col : void 0,
-        // A leaf's fill is a category tint, and at 62% it stopped being one: the
-        // caption sat on a near-solid accent at 3.3:1 on night and 1.2:1 on
-        // light. 40% keeps the cells apart and puts the caption back over a tint.
-        opacity: leaf ? 40 : 100,
-        radius: 4
-      });
-      if (r2.w > 46 && r2.h > 22) {
-        const caption = leaf ? `${node.name}
-${treeValue(node)}` : node.name;
-        p.text(`label${key2}`, r2.x + 4, r2.y + 4, r2.w - 12, leaf ? 32 : 16, caption, {
-          fontSize: leaf ? 11 : 12,
-          align: leaf ? DgAlign.Center : DgAlign.Left
-        });
-      }
-      if (!leaf && r2.w > 30 && r2.h > HEAD + 12) {
-        place(node.children, { x: r2.x + GAP, y: r2.y + HEAD, w: r2.w - GAP * 2 - GAP, h: r2.h - HEAD - GAP * 2 }, depth + 1, key2);
-      }
-    }
-  };
-  place(doc.root.children, { x: PAD8, y: top, w: W, h: H }, 0, "");
-  return p.doc();
-}
-
-// ../../packages/deltagraph/src/board/kinds/build.ts
-var GRAPH_PARSERS = {
-  [DgSourceKind.Mindmap]: dgParseMindmap,
-  [DgSourceKind.Requirement]: dgParseRequirement
-};
-var PROJECTORS = {
-  [DgSourceKind.Journey]: (s) => {
-    const d = dgParseJourney(s);
-    return { doc: dgBuildFromJourney(d), errors: d.errors };
-  },
-  [DgSourceKind.Kanban]: (s) => {
-    const d = dgParseKanban(s);
-    return { doc: dgBuildFromKanban(d), errors: d.errors };
-  },
-  [DgSourceKind.Timeline]: (s) => {
-    const d = dgParseTimeline(s);
-    return { doc: dgBuildFromTimeline(d), errors: d.errors };
-  },
-  [DgSourceKind.GitGraph]: (s) => {
-    const d = dgParseGitGraph(s);
-    return { doc: dgBuildFromGitGraph(d), errors: d.errors };
-  },
-  [DgSourceKind.Quadrant]: (s) => {
-    const d = dgParseQuadrant(s);
-    return { doc: dgBuildFromQuadrant(d), errors: d.errors };
-  },
-  [DgSourceKind.Radar]: (s) => {
-    const d = dgParseRadar(s);
-    return { doc: dgBuildFromRadar(d), errors: d.errors };
-  },
-  [DgSourceKind.Treemap]: (s) => {
-    const d = dgParseTreemap(s);
-    return { doc: dgBuildFromTreemap(d), errors: d.errors };
-  }
-};
-var DG_PROJECTED_KINDS = Object.keys(PROJECTORS);
-var DG_GRAPH_KINDS = Object.keys(GRAPH_PARSERS);
-var DG_DETECTORS = {
-  [DgSourceKind.Mindmap]: dgIsMindmap,
-  [DgSourceKind.Requirement]: dgIsRequirement,
-  [DgSourceKind.Journey]: dgIsJourney,
-  [DgSourceKind.Kanban]: dgIsKanban,
-  [DgSourceKind.Timeline]: dgIsTimeline,
-  [DgSourceKind.GitGraph]: dgIsGitGraph,
-  [DgSourceKind.Quadrant]: dgIsQuadrant,
-  [DgSourceKind.Radar]: dgIsRadar,
-  [DgSourceKind.Treemap]: dgIsTreemap
-};
-
-// ../../packages/deltagraph/src/board/sequenceBoard.ts
-var MARGIN = 26;
-var HEADER_H = 40;
-var LIFELINE_TOP = MARGIN + HEADER_H;
-var STEP0 = LIFELINE_TOP + 34;
-var HEAD2 = /* @__PURE__ */ new Set(["sync" /* Sync */, "return" /* Return */, "async" /* Async */]);
-var DASHED = /* @__PURE__ */ new Set(["return" /* Return */, "dashed" /* Dashed */]);
-
-// ../../packages/deltagraph/src/board/geometry.ts
-var EDGE_LABEL_WRAP_CHARS = 26;
-function wrapEdgeLabel(text, maxChars = EDGE_LABEL_WRAP_CHARS) {
-  const out = [];
-  for (const seg of text.split("\n")) {
-    const words = seg.split(/\s+/).filter(Boolean);
-    if (!words.length) {
-      out.push(seg);
-      continue;
-    }
-    let cur = "";
-    for (const w of words) {
-      if (cur && cur.length + 1 + w.length > maxChars) {
-        out.push(cur);
-        cur = w;
-      } else cur = cur ? `${cur} ${w}` : w;
-    }
-    if (cur) out.push(cur);
-  }
-  return out.length ? out : [text];
-}
-function measureEdgeLabel(text, fontSize = 13) {
-  const lines = wrapEdgeLabel(text);
-  const maxLine = Math.max(1, ...lines.map((l) => l.length));
-  const w = Math.min(220, Math.max(fontSize * 2, maxLine * fontSize * 0.58)) + 12;
-  const h = fontSize * 1.32 * lines.length + 8;
-  return { w, h, lines };
-}
-
-// ../../packages/deltagraph/src/board/dsl.ts
-var GRAPH_TYPES = /* @__PURE__ */ new Set([DgElementType.Rectangle, DgElementType.Ellipse, DgElementType.Diamond]);
-var isGraphNode = (el) => GRAPH_TYPES.has(el.type);
-var isConnector = (el) => el.type === DgElementType.Arrow || el.type === DgElementType.Line;
-var SHAPE_OPEN = { rectangle: "[", ellipse: "(", diamond: "{" };
-var SHAPE_CLOSE = { rectangle: "]", ellipse: ")", diamond: "}" };
-function slugify(s, fallback) {
-  const base = s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
-  return base || fallback;
-}
-function center(el) {
-  return [el.x + el.w / 2, el.y + el.h / 2];
-}
-function nearestNode(nodes, px, py, maxDist = 260) {
-  let best = null;
-  let bestD = maxDist;
-  for (const n of nodes) {
-    const [cx, cy] = center(n);
-    const d = Math.hypot(cx - px, cy - py);
-    if (d < bestD) {
-      bestD = d;
-      best = n;
-    }
-  }
-  return best;
-}
-function estimateNodeSize(label, type, widget) {
-  const fs = 16;
-  const lines = label.split("\n");
-  const cols = Math.max(3, ...lines.map((l) => l.length));
-  const textW2 = cols * fs * 0.56;
-  if (widget) return [64, 64];
-  const h = Math.max(64, lines.length * 26 + 18);
-  if (type === DgElementType.Ellipse) return [Math.round(Math.min(300, Math.max(96, textW2 * 1.35 + 34))), h];
-  if (type === DgElementType.Diamond) return [Math.round(Math.min(320, Math.max(116, textW2 * 1.55 + 44))), h];
-  return [Math.round(Math.min(300, Math.max(84, textW2 + 34))), h];
-}
-function dgEmitDsl(doc) {
-  const omitted = doc.elements.filter((e) => e.type === DgElementType.Diagram);
-  const omitHeader = omitted.length ? omitted.map((d) => `# omitted: ${d.diagram?.kind ?? "diagram"} panel (no DSL form)`).join("\n") + "\n" : "";
-  const ownedByDiagram = dgDiagramOwnedIds(doc);
-  const nodes = doc.elements.filter((el) => isGraphNode(el) && !ownedByDiagram.has(el.id));
-  const idOf = /* @__PURE__ */ new Map();
-  const used = /* @__PURE__ */ new Set();
-  for (const el of nodes) {
-    const existing = typeof el.data?.dsl === "string" ? el.data.dsl : "";
-    let id2 = existing || slugify(el.text ?? "", "n");
-    let i = 2;
-    const stem = id2;
-    while (used.has(id2)) id2 = `${stem}${i++}`;
-    used.add(id2);
-    idOf.set(el.id, id2);
-  }
-  const zones = doc.elements.filter((e) => e.type === DgElementType.Zone);
-  const zoneOfNode = /* @__PURE__ */ new Map();
-  for (const n of nodes) {
-    const cx = n.x + n.w / 2, cy = n.y + n.h / 2;
-    let best = null, bestArea = Infinity;
-    for (const z of zones) {
-      const x0 = Math.min(z.x, z.x + z.w), x1 = Math.max(z.x, z.x + z.w);
-      const y0 = Math.min(z.y, z.y + z.h), y1 = Math.max(z.y, z.y + z.h);
-      if (cx > x0 && cx < x1 && cy > y0 && cy < y1 && Math.abs(z.w * z.h) < bestArea) {
-        best = z.id;
-        bestArea = Math.abs(z.w * z.h);
-      }
-    }
-    if (best) zoneOfNode.set(n.id, best);
-  }
-  const nodeLine = /* @__PURE__ */ new Map();
-  for (const el of nodes) {
-    const id2 = idOf.get(el.id);
-    const label = oneLine(el.text);
-    const widget = typeof el.data?.widget === "string" ? el.data.widget : "";
-    let line;
-    if (widget) {
-      const def = resolveWidgetLabel(widget);
-      line = `${id2}<<${widget}${label && label !== def ? `|${label}` : ""}>>`;
-    } else {
-      const [open, close] = shapeDelims(el);
-      line = `${id2}${open}${label}${close}`;
-    }
-    const size2 = typeof el.data?.pulseSize === "number" && el.data.pulseSize !== 3 ? String(el.data.pulseSize) : "";
-    line += ` @(${Math.round(el.x)},${Math.round(el.y)})${el.pinned ? "!" : ""}`;
-    if (typeof el.data?.reaction === "string") line += ` :::${el.data.reaction}${size2}`;
-    else if (typeof el.data?.role === "string") line += ` :::${el.data.role}`;
-    nodeLine.set(el.id, line);
-  }
-  const lines = [];
-  const emitted = /* @__PURE__ */ new Set();
-  for (const z of zones) {
-    const members = nodes.filter((n) => zoneOfNode.get(n.id) === z.id);
-    if (!members.length) continue;
-    lines.push(`subgraph ${(z.name ?? "").trim() || "group"}`);
-    for (const m of members) {
-      lines.push(`  ${nodeLine.get(m.id)}`);
-      emitted.add(m.id);
-    }
-    lines.push("end");
-  }
-  for (const el of nodes) if (!emitted.has(el.id)) lines.push(nodeLine.get(el.id));
-  const edges = [];
-  for (const el of doc.elements) {
-    if (!isConnector(el)) continue;
-    const pts = el.points ?? [];
-    if (pts.length < 2) continue;
-    const s = nearestNode(nodes, el.x + pts[0][0], el.y + pts[0][1]);
-    const e = nearestNode(nodes, el.x + pts[pts.length - 1][0], el.y + pts[pts.length - 1][1]);
-    if (!s || !e || s.id === e.id) continue;
-    const arrow = arrowToken(el);
-    const text = oneLine(el.text);
-    const cls = typeof el.data?.cls === "string" ? `#${el.data.cls}` : "";
-    const label = [cls, text].filter(Boolean).join(" ");
-    edges.push(`${idOf.get(s.id)} ${arrow}${label ? `|${label}|` : ""} ${idOf.get(e.id)}`);
-  }
-  const extras = [];
-  for (const el of doc.elements) {
-    if (el.type === DgElementType.Sticky) extras.push(`# note: ${oneLine(el.text) || "(empty)"}`);
-    else if (el.type === DgElementType.Text) extras.push(`# text: ${oneLine(el.text) || "(empty)"}`);
-    else if (el.type === DgElementType.Frame) extras.push(`# frame: ${(el.name ?? "").trim() || "(unnamed)"}`);
-    else if (el.type === DgElementType.Freedraw) extras.push(`# sketch (${el.ink?.length ?? 0} points)`);
-  }
-  const out = [];
-  if (doc.canvas.theme === DgTheme.Light) out.push("theme: light", "");
-  if (lines.length) out.push(...lines);
-  if (lines.length && edges.length) out.push("");
-  if (edges.length) out.push(...edges);
-  if (extras.length) {
-    if (out.length) out.push("");
-    out.push(...extras);
-  }
-  return omitHeader + out.join("\n") + (out.length ? "\n" : "");
-}
-function dgDslOmits(doc) {
-  return doc.elements.filter((e) => e.type === DgElementType.Diagram).map((e) => String(e.diagram?.kind ?? "diagram"));
-}
-var oneLine = (t) => (t ?? "").replace(/\r?\n/g, " ").trim();
-function shapeDelims(el) {
-  if (el.data?.buffer) return ["[[", "]]"];
-  switch (el.data?.arch) {
-    case DgArch.Database:
-      return ["[(", ")]"];
-    case DgArch.Stream:
-      return ["((", "))"];
-    case DgArch.Hexagon:
-      return ["{{", "}}"];
-    case DgArch.Actor:
-      return ["/", "/"];
-  }
-  return [SHAPE_OPEN[el.type] ?? "[", SHAPE_CLOSE[el.type] ?? "]"];
-}
-function arrowToken(el) {
-  if (el.data?.trigger === "full") return "=full=>";
-  if (el.type === DgElementType.Line) return "---";
-  const sp = el.data?.flowSpeed;
-  return sp === DgFlowSpeed.Fast ? "==>" : sp === DgFlowSpeed.Slow ? "-.->" : "-->";
-}
-var resolveWidgetLabel = () => void 0;
-var edgeClass = (e) => e.trigger ?? `${e.kind === DgElementType.Line ? "line" : e.speed ?? "normal"}${e.cls ? `#${e.cls}` : ""}`;
-var SHAPE = String.raw`<<[^>]*>>|\[\[[^\]]*\]\]|\[\([^)]*\)\]|\(\([^)]*\)\)|\{\{[^}]*\}\}|/[^/\n]*/|\[[^\]]*\]|\([^)]*\)|\{[^}]*\}`;
-var ARROW = String.raw`=full=>|-->|==>|-\.->|---`;
-var NODE_RE = new RegExp(`^(\\w+)\\s*(${SHAPE})\\s*(?:@\\(\\s*(-?\\d+(?:\\.\\d+)?)\\s*,\\s*(-?\\d+(?:\\.\\d+)?)\\s*\\)(!)?)?\\s*(?::::(\\w+))?\\s*$`);
-var EDGE_RE = new RegExp(`^(\\w+)\\s*(${SHAPE})?\\s*(?::::(\\w+))?\\s*(${ARROW})\\s*(?:\\|([^|]*)\\|\\s*)?(\\w+)\\s*(${SHAPE})?\\s*(?::::(\\w+))?\\s*$`);
-function lab(s) {
-  return s.replace(/<br\s*\/?>/gi, "\n").trim();
-}
-function parseShape(delims) {
-  if (delims.startsWith("<<")) {
-    const inner = delims.slice(2, -2).trim();
-    const pipe2 = inner.indexOf("|");
-    const key2 = (pipe2 >= 0 ? inner.slice(0, pipe2) : inner).trim();
-    const lbl = pipe2 >= 0 ? lab(inner.slice(pipe2 + 1)) : resolveWidgetLabel(key2) ?? key2;
-    return { type: DgElementType.Rectangle, label: lbl, buffer: false, widget: key2 };
-  }
-  const inner2 = () => lab(delims.slice(2, -2));
-  if (delims.startsWith("[[")) return { type: DgElementType.Rectangle, label: inner2(), buffer: true };
-  if (delims.startsWith("[(")) return { type: DgElementType.Rectangle, label: inner2(), buffer: false, arch: DgArch.Database };
-  if (delims.startsWith("((")) return { type: DgElementType.Rectangle, label: inner2(), buffer: false, arch: DgArch.Stream };
-  if (delims.startsWith("{{")) return { type: DgElementType.Rectangle, label: inner2(), buffer: false, arch: DgArch.Hexagon };
-  if (delims.startsWith("/")) return { type: DgElementType.Rectangle, label: lab(delims.slice(1, -1)), buffer: false, arch: DgArch.Actor };
-  const c = delims[0];
-  const type = c === "(" ? DgElementType.Ellipse : c === "{" ? DgElementType.Diamond : DgElementType.Rectangle;
-  return { type, label: lab(delims.slice(1, -1)), buffer: false };
-}
-function arrowSpeed(token) {
-  return token === "==>" ? DgFlowSpeed.Fast : token === "-.->" ? DgFlowSpeed.Slow : void 0;
-}
-function arrowTrigger(token) {
-  return token === "=full=>" ? "full" : void 0;
-}
-function normReaction(raw) {
-  if (!raw) return {};
-  const m = /^pulse([1-5])?$/.exec(raw);
-  if (m) return { reaction: "pulse", pulseSize: m[1] ? Number(m[1]) : 3 };
-  return { reaction: raw };
-}
-function dgParseDsl(dsl) {
-  const nodes = [];
-  const edges = [];
-  const errors = [];
-  const byId = /* @__PURE__ */ new Map();
-  const declared = /* @__PURE__ */ new Set();
-  const groups = [];
-  const groupStack = [];
-  const noteMember = (id2) => {
-    for (const g of groupStack) g.members.add(id2);
-  };
-  const upsert = (id2, sh, pos, reaction, pinned) => {
-    noteMember(id2);
-    declared.add(id2);
-    const role = toDgNodeRole(reaction) ?? void 0;
-    if (role) reaction = void 0;
-    const existing = byId.get(id2);
-    if (existing) {
-      existing.label = sh.label;
-      existing.type = sh.type;
-      existing.buffer = sh.buffer;
-      existing.arch = sh.arch;
-      existing.widget = sh.widget;
-      if (pos) existing.pos = pos;
-      if (pinned) existing.pinned = true;
-      if (reaction) existing.reaction = reaction;
-      if (role) existing.role = role;
-      return;
-    }
-    const n = { id: id2, label: sh.label, type: sh.type, buffer: sh.buffer, arch: sh.arch, widget: sh.widget, pos, pinned, reaction, role };
-    byId.set(id2, n);
-    nodes.push(n);
-  };
-  const ensure = (id2) => {
-    noteMember(id2);
-    if (byId.has(id2)) return;
-    const n = { id: id2, label: "", type: DgElementType.Rectangle };
-    byId.set(id2, n);
-    nodes.push(n);
-  };
-  let themeDirective;
-  let directionDirective;
-  const rawLines = dsl.split(/\r?\n/);
-  rawLines.forEach((raw, i) => {
-    const line = raw.trim();
-    if (!line || line.startsWith("#") || line.startsWith("//")) return;
-    const tm = /^theme\s*:\s*(dark|night|light)$/i.exec(line);
-    if (tm) {
-      themeDirective = tm[1].toLowerCase() === "light" ? DgTheme.Light : DgTheme.Dark;
-      return;
-    }
-    const dm = /^direction\s*:\s*([a-z_-]+)$/i.exec(line);
-    if (dm) {
-      directionDirective = dgKnownDirection(dm[1]);
-      return;
-    }
-    const sg = /^(?:subgraph|group)\b\s*(.*)$/i.exec(line);
-    if (sg) {
-      const raw2 = sg[1].trim();
-      const br = /\[(.+)\]\s*$/.exec(raw2);
-      const label = (br ? br[1] : raw2.replace(/^["']|["']$/g, "")).trim();
-      groupStack.push({ label, members: /* @__PURE__ */ new Set() });
-      return;
-    }
-    if (/^end$/i.test(line)) {
-      const g = groupStack.pop();
-      if (g) groups.push({ label: g.label, members: [...g.members] });
-      return;
-    }
-    const em = EDGE_RE.exec(line);
-    if (em) {
-      const [, from2, fromShape, fromReact, arrow, label, to, toShape, toReact] = em;
-      const endpoint = (id2, shape, reaction) => {
-        if (shape) upsert(id2, parseShape(shape), void 0, reaction);
-        else {
-          ensure(id2);
-          if (reaction) {
-            const n = byId.get(id2);
-            if (n) n.reaction = reaction;
-          }
-        }
-      };
-      endpoint(from2, fromShape, fromReact);
-      endpoint(to, toShape, toReact);
-      let lbl = label?.trim() || void 0;
-      let cls;
-      if (lbl) {
-        const cm = /^#(\w+)\s*/.exec(lbl);
-        if (cm) {
-          cls = cm[1].toLowerCase();
-          lbl = lbl.slice(cm[0].length).trim() || void 0;
-        }
-      }
-      edges.push({ from: from2, to, kind: arrow === "---" ? DgElementType.Line : DgElementType.Arrow, label: lbl, speed: arrowSpeed(arrow), trigger: arrowTrigger(arrow), cls });
-      return;
-    }
-    const nm = NODE_RE.exec(line);
-    if (nm) {
-      const [, id2, delims, px, py, pinMark, reaction] = nm;
-      const pos = px !== void 0 && py !== void 0 ? [Number(px), Number(py)] : void 0;
-      upsert(id2, parseShape(delims), pos, reaction, !!pinMark);
-      return;
-    }
-    errors.push(`Line ${i + 1}: could not parse "${line}"`);
-  });
-  for (const n of nodes) if (!n.label && !declared.has(n.id)) n.label = n.id;
-  for (const g of groupStack) groups.push({ label: g.label, members: [...g.members] });
-  return { nodes, edges, errors, theme: themeDirective, groups, direction: directionDirective };
-}
-function dgBuildFromDsl(dsl, prev, opts) {
-  const parsed = dgParseDsl(dsl);
-  return dgBuildBoard({
-    nodes: parsed.nodes,
-    edges: parsed.edges,
-    groups: parsed.groups,
-    theme: parsed.theme,
-    direction: parsed.direction,
-    prev,
-    options: { debug: opts?.debug }
-  }, parsed.errors);
-}
-var DG_BUILD_DEFAULTS = {
-  gapX: 64,
-  gapY: 40,
-  groupGap: 84,
-  padX: 18,
-  padTop: 36,
-  padBottom: 20
-};
-var DG_AUTO_LR_MARGIN = 0.9;
-function dgBuildBoard(input, errors = []) {
-  if (input.direction === DgLayoutDirection.Auto) {
-    const td = dgBuildBoard({ ...input, direction: DgLayoutDirection.TopDown }, [...errors]);
-    const lr = dgBuildBoard({ ...input, direction: DgLayoutDirection.LeftRight }, [...errors]);
-    const tdScore = dgLayoutMetrics(td.doc, "TB").score, lrScore = dgLayoutMetrics(lr.doc, "LR").score;
-    return lrScore < tdScore * DG_AUTO_LR_MARGIN ? lr : td;
-  }
-  const { nodes: pNodes, edges: pEdges, prev, theme, direction } = input;
-  const groups = input.groups ?? [];
-  const o = { ...DG_BUILD_DEFAULTS, ...input.options ?? {} };
-  const debug = o.debug ?? false;
-  const now = input.deps?.now ?? dgNowMs;
-  const buildStart = now();
-  const base = prev ?? dgCreateEmptyBoard();
-  const PHASE_CAP = 8;
-  const pAdj = /* @__PURE__ */ new Map();
-  pEdges.forEach((e, i) => (pAdj.get(e.from) ?? pAdj.set(e.from, []).get(e.from)).push(i));
-  const pstate = /* @__PURE__ */ new Map();
-  const backEdge = /* @__PURE__ */ new Set();
-  for (const n of pNodes) {
-    if (pstate.get(n.id)) continue;
-    pstate.set(n.id, 1);
-    const stack = [{ id: n.id, k: 0 }];
-    while (stack.length) {
-      const top = stack[stack.length - 1];
-      const es = pAdj.get(top.id) ?? [];
-      if (top.k < es.length) {
-        const i = es[top.k++];
-        const to = pEdges[i].to;
-        const s = pstate.get(to);
-        if (s === 1) backEdge.add(i);
-        else if (!s) {
-          pstate.set(to, 1);
-          stack.push({ id: to, k: 0 });
-        }
-      } else {
-        pstate.set(top.id, 2);
-        stack.pop();
-      }
-    }
-  }
-  const phase = new Map(pNodes.map((n) => [n.id, 0]));
-  for (let iter = 0; iter < pNodes.length; iter++) {
-    let changed = false;
-    pEdges.forEach((e, i) => {
-      if (backEdge.has(i)) return;
-      const ls = phase.get(e.from) ?? 0;
-      if ((phase.get(e.to) ?? 0) < ls + 1) {
-        phase.set(e.to, ls + 1);
-        changed = true;
-      }
-    });
-    if (!changed) break;
-  }
-  for (const [k, v] of phase) if (v > PHASE_CAP) phase.set(k, PHASE_CAP);
-  const byDslId = /* @__PURE__ */ new Map();
-  const slugQueue = /* @__PURE__ */ new Map();
-  const ownedForAdoption = dgDiagramOwnedIds(base);
-  for (const el of base.elements) {
-    if (!isGraphNode(el) || ownedForAdoption.has(el.id)) continue;
-    if (typeof el.data?.dsl === "string") byDslId.set(el.data.dsl, el);
-    else {
-      const s = slugify(el.text ?? "", "");
-      if (s) (slugQueue.get(s) ?? slugQueue.set(s, []).get(s)).push(el);
-    }
-  }
-  const takeSlug = (label, id2) => {
-    const key2 = slugify(label || id2, "");
-    const q = key2 ? slugQueue.get(key2) : void 0;
-    return q && q.length ? q.shift() : void 0;
-  };
-  const nodeEls = /* @__PURE__ */ new Map();
-  const adoptedIds = /* @__PURE__ */ new Set();
-  let zCounter = 1;
-  const zStr2 = () => String(1e6 + zCounter++).padStart(12, "0");
-  for (const pn of pNodes) {
-    const existing = byDslId.get(pn.id) ?? takeSlug(pn.label, pn.id);
-    if (existing) {
-      adoptedIds.add(existing.id);
-      nodeEls.set(pn.id, {
-        ...existing,
-        type: pn.type,
-        text: pn.label,
-        pinned: pn.pinned ?? existing.pinned,
-        x: pn.pos ? pn.pos[0] : existing.x,
-        y: pn.pos ? pn.pos[1] : existing.y,
-        data: { ...existing.data, dsl: pn.id, buffer: pn.buffer ? true : void 0, ...normReaction(pn.reaction), arch: pn.arch || void 0, widget: pn.widget || void 0, phase: (phase.get(pn.id) ?? 0) || void 0 },
-        version: (existing.version ?? 1) + 1
-      });
-    } else {
-      const [w, h] = estimateNodeSize(pn.label, pn.type, pn.widget);
-      const el = makeElement(pn.type, 0, 0, w, h, [zStr2()]);
-      el.seed = seedFrom(`node:${pn.id}`);
-      el.text = pn.label;
-      el.align = DgAlign.Center;
-      el.data = pn.buffer ? { dsl: pn.id, buffer: true } : { dsl: pn.id };
-      if (pn.role) el.data.role = pn.role;
-      const react = normReaction(pn.reaction);
-      if (react.reaction) el.data.reaction = react.reaction;
-      if (react.pulseSize) el.data.pulseSize = react.pulseSize;
-      if (pn.arch) el.data.arch = pn.arch;
-      if (pn.widget) el.data.widget = pn.widget;
-      const ph = phase.get(pn.id) ?? 0;
-      if (ph) el.data.phase = ph;
-      if (pn.pos) {
-        el.x = pn.pos[0];
-        el.y = pn.pos[1];
-      }
-      if (pn.pinned) el.pinned = true;
-      nodeEls.set(pn.id, el);
-    }
-  }
-  const shapeOf2 = (t) => t === DgElementType.Ellipse ? "ellipse" : t === DgElementType.Diamond ? "diamond" : "rectangle";
-  const qNodes = pNodes.map((pn) => {
-    const el = nodeEls.get(pn.id);
-    return { id: pn.id, w: el.w, h: el.h, shape: shapeOf2(el.type), fixed: pn.pos ? [el.x, el.y] : void 0 };
-  });
-  const qEdges = [];
-  pEdges.forEach((e, i) => {
-    if (e.from !== e.to && nodeEls.has(e.from) && nodeEls.has(e.to)) {
-      const labelW = e.label ? measureEdgeLabel(e.label).w : void 0;
-      qEdges.push({ id: `e${i}`, from: e.from, to: e.to, cls: edgeClass(e), labelW });
-    }
-  });
-  const layoutStart = now();
-  const { positions, routes, trace } = dgLayoutGraph(qNodes, qEdges, {
-    // Only in debug mode: the trace roughly doubles the result.
-    ...debug ? { trace: true } : {},
-    gapX: o.gapX,
-    gapY: o.gapY,
-    // Auto (the default) resolves to the engine's top-down axis.
-    direction: dgLayoutAxis(direction ?? DgLayoutDirection.Auto),
-    // Reserve flow-axis space between subgraph group bands so the padded frames
-    // drawn below (PADTOP 36 + PADBOT 20) plus a between-group edge label clear
-    // each other - the fix for overlapping frames in a top-down grouped layout.
-    groups: groups.length ? groups.map((g) => g.members) : void 0,
-    groupGap: o.groupGap,
-    ...o.maxWidth !== void 0 ? { maxWidth: o.maxWidth } : {}
-  });
-  const layoutMs = now() - layoutStart;
-  if (dgLayoutReversed(direction ?? DgLayoutDirection.Auto)) {
-    const horiz = dgLayoutAxis(direction ?? DgLayoutDirection.Auto) === "LR";
-    const i = horiz ? 0 : 1;
-    let lo = Infinity, hi = -Infinity;
-    for (const [id2, p] of positions) {
-      const el = nodeEls.get(id2);
-      const span = el ? horiz ? Math.abs(el.w) : Math.abs(el.h) : 0;
-      lo = Math.min(lo, p[i]);
-      hi = Math.max(hi, p[i] + span);
-    }
-    if (Number.isFinite(lo) && Number.isFinite(hi)) {
-      for (const [id2, p] of positions) {
-        const el = nodeEls.get(id2);
-        const span = el ? horiz ? Math.abs(el.w) : Math.abs(el.h) : 0;
-        p[i] = lo + hi - p[i] - span;
-      }
-      for (const [, pts] of routes) for (const pt of pts) pt[i] = lo + hi - pt[i];
-    }
-  }
-  for (const [id2, p] of positions) {
-    const el = nodeEls.get(id2);
-    if (el) {
-      el.x = p[0];
-      el.y = p[1];
-    }
-  }
-  const groupFrames = [];
-  const frameMembers = [];
-  let groupIdx = 0;
-  for (const g of groups) {
-    const members = g.members.map((id2) => nodeEls.get(id2)).filter((e) => !!e);
-    if (members.length === 0) continue;
-    const PADX = o.padX, PADTOP = o.padTop, PADBOT = o.padBottom;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const m of members) {
-      minX = Math.min(minX, m.x);
-      minY = Math.min(minY, m.y);
-      maxX = Math.max(maxX, m.x + m.w);
-      maxY = Math.max(maxY, m.y + m.h);
-    }
-    const fr = makeElement(DgElementType.Zone, minX - PADX, minY - PADTOP, maxX - minX + PADX * 2, maxY - minY + PADTOP + PADBOT, ["000000000001"]);
-    fr.seed = seedFrom(`zone:${g.label}:${g.members.join(",")}`);
-    fr.name = g.label;
-    fr.data = { dslGroup: true, groupIndex: groupIdx };
-    groupIdx++;
-    groupFrames.push(fr);
-    frameMembers.push(new Set(g.members));
-  }
-  const ALIGN_MAX = 140;
-  const connectedBands = (gi, gj) => pEdges.some((e) => frameMembers[gi].has(e.from) && frameMembers[gj].has(e.to) || frameMembers[gj].has(e.from) && frameMembers[gi].has(e.to));
-  for (let i = 0; i < groupFrames.length; i++) {
-    for (let j = 0; j < groupFrames.length; j++) {
-      if (i === j || !connectedBands(i, j)) continue;
-      const a = groupFrames[i], b = groupFrames[j];
-      if (!(a.x < b.x + b.w && a.x + a.w > b.x)) continue;
-      if (Math.abs(a.y + a.h / 2 - (b.y + b.h / 2)) < 30) continue;
-      const d = b.x + b.w - (a.x + a.w);
-      if (d > 0 && d <= ALIGN_MAX) a.w += d;
-    }
-  }
-  const allNodeBoxes = [...nodeEls.values()].map((el) => ({ el, x: el.x, y: el.y, w: Math.abs(el.w), h: Math.abs(el.h) }));
-  const zoneBoxes = groupFrames.map((f, gi) => ({ x: f.x, y: f.y, w: Math.abs(f.w), h: Math.abs(f.h), members: frameMembers[gi] }));
-  const refineStart = now();
-  const connectors = [];
-  const edgeDebug = [];
-  const refined = /* @__PURE__ */ new Map();
-  pEdges.forEach((e, i) => {
-    const rawRoute = routes.get(`e${i}`);
-    if (!rawRoute) return;
-    const fromElC = nodeEls.get(e.from), toElC = nodeEls.get(e.to);
-    const obstacles = allNodeBoxes.filter((b) => b.el !== fromElC && b.el !== toElC);
-    const foreignZones = zoneBoxes.filter((z) => !z.members.has(e.from) && !z.members.has(e.to));
-    const srcBox = fromElC && { x: fromElC.x, y: fromElC.y, w: Math.abs(fromElC.w), h: Math.abs(fromElC.h) };
-    const dstBox = toElC && { x: toElC.x, y: toElC.y, w: Math.abs(toElC.w), h: Math.abs(toElC.h) };
-    const params2 = {
-      foreignZones,
-      foreignNodes: obstacles,
-      fromBox: srcBox || void 0,
-      toBox: dstBox || void 0,
-      allNodes: allNodeBoxes
-    };
-    const t = debug ? refineRouteTraced(rawRoute, params2) : void 0;
-    refined.set(i, {
-      route: t ? t.route : refineRoute(rawRoute, params2),
-      changedBy: t?.changedBy ?? [],
-      refine: (raw) => refineRoute(raw, params2)
-    });
-  });
-  const uncrossItems = pEdges.flatMap((e, i) => {
-    const r2 = refined.get(i);
-    const raw = routes.get(`e${i}`);
-    return r2 && raw ? [{ i, from: e.from, to: e.to, raw, refined: r2.route, refine: r2.refine }] : [];
-  });
-  for (const { index, route } of uncrossSharedFaces(uncrossItems, (id2) => {
-    const el = nodeEls.get(id2);
-    return el ? { x: el.x, y: el.y, w: Math.abs(el.w), h: Math.abs(el.h) } : void 0;
-  })) {
-    const item = uncrossItems[index];
-    const r2 = refined.get(item.i);
-    if (r2) r2.route = route;
-  }
-  {
-    const all2 = pEdges.flatMap((e, i) => {
-      const r2 = refined.get(i);
-      return r2 ? [{ i, route: r2.route }] : [];
-    });
-    const against = (idx, route) => {
-      let c = 0;
-      for (const o2 of all2) if (o2.i !== idx) c += routeCrossings(route, o2.route);
-      return c;
-    };
-    for (const item of all2) {
-      const e = pEdges[item.i];
-      const fromEl = nodeEls.get(e.from), toEl = nodeEls.get(e.to);
-      const box = (el) => el ? { x: el.x, y: el.y, w: Math.abs(el.w), h: Math.abs(el.h) } : void 0;
-      const cand = absorbPortJog(item.route, box(fromEl), box(toEl));
-      if (cand.length >= item.route.length) continue;
-      if (against(item.i, cand) > against(item.i, item.route)) continue;
-      const r2 = refined.get(item.i);
-      if (r2) {
-        r2.route = cand;
-        item.route = cand;
-      }
-    }
-  }
-  separateReciprocalRoutes(
-    pEdges.flatMap((e, i) => {
-      const r2 = refined.get(i);
-      return r2 ? [{ from: e.from, to: e.to, pts: r2.route }] : [];
-    }),
-    (id2) => {
-      const el = nodeEls.get(id2);
-      return el ? { x: el.x, y: el.y, w: Math.abs(el.w), h: Math.abs(el.h) } : void 0;
-    }
-  );
-  pEdges.forEach((e, i) => {
-    const rawRoute = routes.get(`e${i}`);
-    if (!rawRoute) return;
-    const fromElC = nodeEls.get(e.from), toElC = nodeEls.get(e.to);
-    const obstacles = allNodeBoxes.filter((b) => b.el !== fromElC && b.el !== toElC);
-    const foreignZones = zoneBoxes.filter((z) => !z.members.has(e.from) && !z.members.has(e.to));
-    const srcBox = fromElC && { x: fromElC.x, y: fromElC.y, w: Math.abs(fromElC.w), h: Math.abs(fromElC.h) };
-    const dstBox = toElC && { x: toElC.x, y: toElC.y, w: Math.abs(toElC.w), h: Math.abs(toElC.h) };
-    const traced = refined.get(i);
-    const route = traced.route;
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const [px, py] of route) {
-      if (px < minX) minX = px;
-      if (py < minY) minY = py;
-      if (px > maxX) maxX = px;
-      if (py > maxY) maxY = py;
-    }
-    const sx = minX, sy = minY;
-    const ex = maxX, ey = maxY;
-    const edgeData = { dslEdge: true };
-    const fromEl = nodeEls.get(e.from), toEl = nodeEls.get(e.to);
-    if (fromEl && toEl) {
-      edgeData.fromBind = { id: fromEl.id, fx: 1, fy: 0.5 };
-      edgeData.toBind = { id: toEl.id, fx: 0, fy: 0.5 };
-    }
-    if (e.trigger) edgeData.trigger = e.trigger;
-    if (e.speed) edgeData.flowSpeed = e.speed;
-    const clsColor = e.cls ? EDGE_CLASS_COLORS[e.cls] : void 0;
-    if (clsColor) edgeData.cls = e.cls;
-    const srcReaction = pNodes.find((n) => n.id === e.from)?.reaction;
-    if (!e.trigger && srcReaction?.startsWith("pulse")) edgeData.burst = true;
-    const eph = phase.get(e.from) ?? 0;
-    if (eph) edgeData.phase = eph;
-    if (e.fromCard) edgeData.fromCard = e.fromCard;
-    if (e.toCard) edgeData.toCard = e.toCard;
-    const connId = newElementId();
-    connectors.push({
-      id: connId,
-      type: e.kind,
-      x: sx,
-      y: sy,
-      w: ex - sx,
-      h: ey - sy,
-      z: zStr2(),
-      // Keyed on the edge itself, not the element id: a generated edge must seed
-      // identically on every build or the rendered SVG changes without the
-      // source changing.
-      seed: seedFrom(`${e.from}>${e.to}:${e.label ?? ""}`),
-      points: route.map(([px, py]) => [px - sx, py - sy]),
-      endArrowhead: e.toCard ? null : e.kind === DgElementType.Arrow ? DgArrowhead.Triangle : null,
-      text: e.label,
-      align: DgAlign.Center,
-      style: { strokeColor: clsColor ?? (e.trigger ? DG_COLORS.edgeTrigger : DG_COLORS.connectorStroke), strokeWidth: e.speed === DgFlowSpeed.Fast || e.trigger || clsColor ? 2.6 : 2 },
-      data: edgeData,
-      version: 1
-    });
-    if (traced) {
-      const round = (pts) => pts.map(([px, py]) => [Math.round(px), Math.round(py)]);
-      const method = trace?.edges.find((t) => t.id === `e${i}`)?.method;
-      edgeDebug.push({
-        id: connId,
-        from: e.from,
-        to: e.to,
-        label: e.label ?? "",
-        raw: round(rawRoute),
-        refined: round(route),
-        refinedBy: traced.changedBy,
-        ...method ? { method } : {}
-      });
-    }
-  });
-  const adoptedPrevNodes = base.elements.filter((el) => isGraphNode(el) && adoptedIds.has(el.id));
-  const isGraphEdge = (el) => {
-    if (el.data?.dslEdge === true) return true;
-    const pts = el.points ?? [];
-    if (pts.length < 2) return false;
-    const s = nearestNode(adoptedPrevNodes, el.x + pts[0][0], el.y + pts[0][1]);
-    const e = nearestNode(adoptedPrevNodes, el.x + pts[pts.length - 1][0], el.y + pts[pts.length - 1][1]);
-    return !!(s && e && s.id !== e.id);
-  };
-  const ownedByDiagram = dgDiagramOwnedIds(base);
-  const preserved = base.elements.filter((el) => {
-    if (ownedByDiagram.has(el.id) || el.type === DgElementType.Diagram) return true;
-    if (isGraphNode(el)) return !adoptedIds.has(el.id) && typeof el.data?.dsl !== "string";
-    if (isConnector(el)) return !isGraphEdge(el);
-    if (el.type === DgElementType.Zone) return false;
-    return true;
-  });
-  const elements = [...preserved, ...groupFrames, ...nodeEls.values(), ...connectors];
-  const canvas = theme ? { ...base.canvas, theme } : base.canvas;
-  const refineMs = now() - refineStart;
-  const doc = { ...base, canvas, elements };
-  const debugInfo = debug ? {
-    nodes: [...nodeEls.values()].map((el) => ({
-      slug: el.data?.dsl ?? el.id,
-      shape: String(el.type),
-      box: { x: el.x, y: el.y, w: Math.abs(el.w), h: Math.abs(el.h) }
-    })),
-    edges: edgeDebug,
-    // A fan that half-bundles is the hardest routing fault to see: the
-    // members that reached the trunk look right, the ones that fell through
-    // to A* look like a different bug, and the page connects neither.
-    ...trace?.funnels.length ? { funnels: trace.funnels.map((f) => ({ ...f })) } : {}
-  } : void 0;
-  doc.diagnostics = { ...dgBuildDiagnostics(doc, { layoutMs, refineMs, buildMs: now() - buildStart }, debugInfo, now), axis: dgLayoutAxis(direction ?? DgLayoutDirection.Auto) };
-  return { doc, errors };
-}
-
-// ../../packages/deltaboard/src/bindings.ts
-function facingPortPairs(a, b) {
-  const dx = b.x + b.w / 2 - (a.x + a.w / 2), dy = b.y + b.h / 2 - (a.y + a.h / 2);
-  const horiz = [{ fx: dx > 0 ? 1 : 0, fy: 0.5 }, { fx: dx > 0 ? 0 : 1, fy: 0.5 }];
-  const vert = [{ fx: 0.5, fy: dy > 0 ? 1 : 0 }, { fx: 0.5, fy: dy > 0 ? 0 : 1 }];
-  const gapX = Math.max(b.x - (a.x + a.w), a.x - (b.x + b.w));
-  const gapY = Math.max(b.y - (a.y + a.h), a.y - (b.y + b.h));
-  const useH = gapX <= 0 && gapY <= 0 ? Math.abs(dx) >= Math.abs(dy) : gapX >= gapY;
-  return useH ? [horiz, vert] : [vert, horiz];
-}
-var FRACS = [0.25, 0.5, 0.75];
-var ANCHORS = [
-  ...FRACS.map((f) => ({ fx: 0, fy: f })),
-  ...FRACS.map((f) => ({ fx: 1, fy: f })),
-  ...FRACS.map((f) => ({ fx: f, fy: 0 })),
-  ...FRACS.map((f) => ({ fx: f, fy: 1 })),
-  { fx: 0, fy: 0 },
-  { fx: 1, fy: 0 },
-  { fx: 0, fy: 1 },
-  { fx: 1, fy: 1 }
-  // corners
-];
-var BINDABLE_TYPES = /* @__PURE__ */ new Set([
-  DgElementType.Rectangle,
-  DgElementType.Ellipse,
-  DgElementType.Diamond,
-  DgElementType.Sticky,
-  DgElementType.Timer,
-  DgElementType.Poll,
-  DgElementType.Text,
-  DgElementType.Image,
-  DgElementType.Frame,
-  DgElementType.Zone,
-  DgElementType.Code,
-  DgElementType.Markdown,
-  DgElementType.Grid,
-  DgElementType.Notebook,
-  DgElementType.Embed,
-  DgElementType.Video,
-  DgElementType.Workspace
-]);
-function anchorBox(el) {
-  const b = elementAabb(el);
-  if (el.type === DgElementType.Rectangle && el.data?.widget) {
-    const W2 = b.w, H2 = b.h;
-    const tile = Math.max(24, Math.min(W2, H2, 64));
-    return { x: b.x + (W2 - tile) / 2, y: b.y, w: tile, h: tile };
-  }
-  return b;
-}
-function anchorPoint(el, fx, fy) {
-  const b = anchorBox(el);
-  return [b.x + fx * b.w, b.y + fy * b.h];
-}
-function anchorNormal(fx, fy) {
-  if (fx === 0) return [-1, 0];
-  if (fx === 1) return [1, 0];
-  if (fy === 0) return [0, -1];
-  if (fy === 1) return [0, 1];
-  return [0, 0];
-}
-function orthoWaypoints(s, sN, e, eN) {
-  const hS = sN[0] !== 0, hE = eN[0] !== 0;
-  if (hS && hE) {
-    const mx = (s[0] + e[0]) / 2;
-    return [s, [mx, s[1]], [mx, e[1]], e];
-  }
-  if (!hS && !hE) {
-    const my = (s[1] + e[1]) / 2;
-    return [s, [s[0], my], [e[0], my], e];
-  }
-  return hS ? [s, [e[0], s[1]], e] : [s, [s[0], e[1]], e];
-}
-function tidy(pts) {
-  const JOG = 3;
-  const g = pts.map((p) => [p[0], p[1]]);
-  for (let i = 1; i < g.length - 1; i++) {
-    if (Math.abs(g[i][0] - g[i - 1][0]) < JOG) g[i][0] = g[i - 1][0];
-    if (Math.abs(g[i][1] - g[i - 1][1]) < JOG) g[i][1] = g[i - 1][1];
-  }
-  const out = [];
-  for (const p of g) {
-    const l = out[out.length - 1];
-    if (!l || Math.abs(l[0] - p[0]) > 0.01 || Math.abs(l[1] - p[1]) > 0.01) out.push(p);
-  }
-  for (let i = 1; i < out.length - 1; ) {
-    const a = out[i - 1], b = out[i], c = out[i + 1];
-    const collinear = Math.abs(a[0] - b[0]) < 0.01 && Math.abs(b[0] - c[0]) < 0.01 || Math.abs(a[1] - b[1]) < 0.01 && Math.abs(b[1] - c[1]) < 0.01;
-    if (collinear) out.splice(i, 1);
-    else i++;
-  }
-  return out;
-}
-function steppedAvoid(s, sN, e, eN, obstacles, clr = 18) {
-  const STUB = 28;
-  const turnStub = (from2, dir, edgePos, edgeNeg) => {
-    const boxEdge = dir > 0 ? edgePos : edgeNeg;
-    const room = (boxEdge - from2) * dir;
-    if (room >= STUB + 10) return from2 + dir * STUB;
-    const near = boxEdge - dir * 8;
-    return dir > 0 ? Math.max(from2 + 3, near) : Math.min(from2 - 3, near);
-  };
-  const horizontal = sN[0] !== 0;
-  const naive = orthoWaypoints(s, sN, e, eN);
-  const blocking = obstacles.filter((o) => {
-    for (let i = 1; i < naive.length; i++) if (segHitsBox(naive[i - 1], naive[i], o)) return true;
-    return false;
-  });
-  if (blocking.length === 0) return naive;
-  let ux0 = Infinity, uy0 = Infinity, ux1 = -Infinity, uy1 = -Infinity;
-  for (const o of blocking) {
-    ux0 = Math.min(ux0, o.x);
-    uy0 = Math.min(uy0, o.y);
-    ux1 = Math.max(ux1, o.x + o.w);
-    uy1 = Math.max(uy1, o.y + o.h);
-  }
-  ux0 -= clr;
-  uy0 -= clr;
-  ux1 += clr;
-  uy1 += clr;
-  let path;
-  if (horizontal) {
-    const clearsY = (y) => y <= uy0 || y >= uy1;
-    const laneY = clearsY(e[1]) ? e[1] : clearsY(s[1]) ? s[1] : Math.abs(uy0 - s[1]) + Math.abs(uy0 - e[1]) <= Math.abs(uy1 - s[1]) + Math.abs(uy1 - e[1]) ? uy0 : uy1;
-    const sx = turnStub(s[0], sN[0], ux0 + clr, ux1 - clr);
-    const ex = turnStub(e[0], eN[0], ux0 + clr, ux1 - clr);
-    path = [s, [sx, s[1]], [sx, laneY], [ex, laneY], [ex, e[1]], e];
-  } else {
-    const clearsX = (x) => x <= ux0 || x >= ux1;
-    const laneX = clearsX(e[0]) ? e[0] : clearsX(s[0]) ? s[0] : Math.abs(ux0 - s[0]) + Math.abs(ux0 - e[0]) <= Math.abs(ux1 - s[0]) + Math.abs(ux1 - e[0]) ? ux0 : ux1;
-    const sy = turnStub(s[1], sN[1], uy0 + clr, uy1 - clr);
-    const ey = turnStub(e[1], eN[1], uy0 + clr, uy1 - clr);
-    path = [s, [s[0], sy], [laneX, sy], [laneX, ey], [e[0], ey], e];
-  }
-  path = tidy(path);
-  for (const o of obstacles) for (let i = 1; i < path.length; i++) if (segHitsBox(path[i - 1], path[i], o)) return null;
-  return path;
-}
-var OBSTACLE_TYPES = /* @__PURE__ */ new Set([DgElementType.Rectangle, DgElementType.Ellipse, DgElementType.Diamond]);
-function segHitsBox(a, b, r2, pad = 6) {
-  const x0 = r2.x - pad, y0 = r2.y - pad, x1 = r2.x + r2.w + pad, y1 = r2.y + r2.h + pad;
-  const dx = b[0] - a[0], dy = b[1] - a[1];
-  const p = [-dx, dx, -dy, dy];
-  const q = [a[0] - x0, x1 - a[0], a[1] - y0, y1 - a[1]];
-  let t0 = 0, t1 = 1;
-  for (let i = 0; i < 4; i++) {
-    if (p[i] === 0) {
-      if (q[i] < 0) return false;
-    } else {
-      const t = q[i] / p[i];
-      if (p[i] < 0) {
-        if (t > t1) return false;
-        if (t > t0) t0 = t;
-      } else {
-        if (t < t0) return false;
-        if (t < t1) t1 = t;
-      }
-    }
-  }
-  return t0 <= t1;
-}
-function applyBindings(doc) {
-  const byId = new Map(doc.elements.map((e) => [e.id, e]));
-  const ownedByDiagram = dgDiagramOwnedIds(doc);
-  const obstacleList = doc.elements.filter((e) => !e.hidden && !ownedByDiagram.has(e.id) && (OBSTACLE_TYPES.has(e.type) || e.type === DgElementType.Diagram)).map((e) => ({ id: e.id, box: elementAabb(e) }));
-  const allNodeBoxes = obstacleList.map((o) => o.box);
-  let changed = false;
-  const elements = doc.elements.map((el) => {
-    if (el.type !== DgElementType.Arrow && el.type !== DgElementType.Line) return el;
-    if (ownedByDiagram.has(el.id)) return el;
-    const fb = el.data?.fromBind;
-    const tb = el.data?.toBind;
-    if (!fb && !tb) return el;
-    const pts = el.points ?? [[0, 0], [el.w, el.h]];
-    let start = [el.x + pts[0][0], el.y + pts[0][1]];
-    let end = [el.x + pts[pts.length - 1][0], el.y + pts[pts.length - 1][1]];
-    if (fb && byId.has(fb.id)) start = anchorPoint(byId.get(fb.id), fb.fx, fb.fy);
-    if (tb && byId.has(tb.id)) end = anchorPoint(byId.get(tb.id), tb.fx, tb.fy);
-    changed = true;
-    const A = fb && byId.has(fb.id) ? byId.get(fb.id) : void 0;
-    const B = tb && byId.has(tb.id) ? byId.get(tb.id) : void 0;
-    if (el.data?.manual && Array.isArray(el.data.waypoints)) {
-      const interior = el.data.waypoints.filter((w) => Array.isArray(w) && w.length === 2);
-      const world = [start, ...interior.map((w) => [w[0], w[1]]), end];
-      const ox = world[0][0], oy = world[0][1];
-      return { ...el, x: ox, y: oy, w: end[0] - ox, h: end[1] - oy, points: world.map((p) => [p[0] - ox, p[1] - oy]) };
-    }
-    const line2 = (data) => ({ ...el, x: start[0], y: start[1], w: end[0] - start[0], h: end[1] - start[1], points: [[0, 0], [end[0] - start[0], end[1] - start[1]]], ...data ? { data } : {} });
-    if (fb && tb && A && B && fb.id === tb.id) {
-      const b = anchorBox(A);
-      const R3 = b.x + b.w, D = b.y + b.h;
-      const makeLoop = (side2, L) => {
-        if (side2 === "right") return { fp: { fx: 1, fy: 0.32 }, tp: { fx: 1, fy: 0.68 }, wp: [[R3, b.y + b.h * 0.32], [R3 + L, b.y + b.h * 0.32], [R3 + L, b.y + b.h * 0.68], [R3, b.y + b.h * 0.68]] };
-        if (side2 === "bottom") return { fp: { fx: 0.68, fy: 1 }, tp: { fx: 0.32, fy: 1 }, wp: [[b.x + b.w * 0.68, D], [b.x + b.w * 0.68, D + L], [b.x + b.w * 0.32, D + L], [b.x + b.w * 0.32, D]] };
-        if (side2 === "top") return { fp: { fx: 0.32, fy: 0 }, tp: { fx: 0.68, fy: 0 }, wp: [[b.x + b.w * 0.32, b.y], [b.x + b.w * 0.32, b.y - L], [b.x + b.w * 0.68, b.y - L], [b.x + b.w * 0.68, b.y]] };
-        return { fp: { fx: 0, fy: 0.68 }, tp: { fx: 0, fy: 0.32 }, wp: [[b.x, b.y + b.h * 0.68], [b.x - L, b.y + b.h * 0.68], [b.x - L, b.y + b.h * 0.32], [b.x, b.y + b.h * 0.32]] };
-      };
-      const others = obstacleList.filter((o) => o.id !== A.id).map((o) => o.box);
-      const shapeClear = (wp2) => {
-        for (let i = 1; i < wp2.length; i++) if (others.some((o) => segHitsBox(wp2[i - 1], wp2[i], o))) return false;
-        return true;
-      };
-      const busy = /* @__PURE__ */ new Set();
-      let loopIdx = 0, seenSelf = false;
-      for (const e of doc.elements) {
-        if (e.id === el.id) {
-          seenSelf = true;
-          continue;
-        }
-        if (e.type !== DgElementType.Arrow && e.type !== DgElementType.Line) continue;
-        const efb = e.data?.fromBind, etb = e.data?.toBind;
-        const selfOnA = efb?.id === A.id && etb?.id === A.id;
-        if (selfOnA) {
-          if (!seenSelf) loopIdx++;
-          continue;
-        }
-        for (const bind of [efb, etb]) {
-          if (!bind || bind.id !== A.id) continue;
-          if (bind.fx === 1) busy.add("right");
-          else if (bind.fx === 0) busy.add("left");
-          else if (bind.fy === 0) busy.add("top");
-          else if (bind.fy === 1) busy.add("bottom");
-        }
-      }
-      const SIDES = ["right", "bottom", "top", "left"];
-      const clearS = SIDES.filter((s) => shapeClear(makeLoop(s, 16).wp));
-      const openS = clearS.filter((s) => !busy.has(s));
-      const pool = openS.length ? openS : clearS.length ? clearS : SIDES;
-      const side = pool[loopIdx % pool.length];
-      const nest = Math.floor(loopIdx / pool.length);
-      const loop = makeLoop(side, 16 + nest * 22);
-      const wp = loop.wp;
-      const ox = wp[0][0], oy = wp[0][1], last2 = wp[wp.length - 1];
-      const data = {
-        ...el.data,
-        fromBind: { id: fb.id, fx: loop.fp.fx, fy: loop.fp.fy },
-        toBind: { id: tb.id, fx: loop.tp.fx, fy: loop.tp.fy }
-      };
-      changed = true;
-      return { ...el, x: ox, y: oy, w: last2[0] - ox, h: last2[1] - oy, points: wp.map((p) => [p[0] - ox, p[1] - oy]), data };
-    }
-    if (fb && tb && A && B) {
-      const ba = anchorBox(A), bb = anchorBox(B);
-      const obstacles = obstacleList.filter((o) => o.id !== A.id && o.id !== B.id).map((o) => o.box);
-      const orthoOf = (fp, tp) => {
-        const s = anchorPoint(A, fp.fx, fp.fy), e = anchorPoint(B, tp.fx, tp.fy);
-        return orthoWaypoints(s, anchorNormal(fp.fx, fp.fy), e, anchorNormal(tp.fx, tp.fy));
-      };
-      const segsClear = (wp) => {
-        for (let i = 1; i < wp.length; i++) if (obstacles.some((o) => segHitsBox(wp[i - 1], wp[i], o))) return false;
-        return true;
-      };
-      const pairs = facingPortPairs(ba, bb);
-      let pick = null, pickIdx = -1;
-      for (let i = 0; i < pairs.length; i++) {
-        const [fp, tp] = pairs[i];
-        if (segsClear(orthoOf(fp, tp))) {
-          pick = [fp, tp];
-          pickIdx = i;
-          break;
-        }
-      }
-      const [fPort, tPort] = pick ?? pairs[0];
-      start = anchorPoint(A, fPort.fx, fPort.fy);
-      end = anchorPoint(B, tPort.fx, tPort.fy);
-      const data = {
-        ...el.data,
-        fromBind: { id: fb.id, fx: fPort.fx, fy: fPort.fy },
-        toBind: { id: tb.id, fx: tPort.fx, fy: tPort.fy }
-      };
-      const sN = anchorNormal(fPort.fx, fPort.fy), eN = anchorNormal(tPort.fx, tPort.fy);
-      const END_GAP = 0;
-      const gapStart = !!el.startArrowhead, gapEnd = el.endArrowhead !== null;
-      const pullBack = (p, toward, gap) => {
-        const dx = toward[0] - p[0], dy = toward[1] - p[1];
-        const len = Math.hypot(dx, dy);
-        if (len < 1e-3) return p;
-        const d = Math.min(gap, len * 0.45);
-        return [p[0] + dx / len * d, p[1] + dy / len * d];
-      };
-      const gapEnds = (wp) => {
-        if (wp.length < 2) return wp;
-        const g = wp.map((p) => [p[0], p[1]]);
-        const n = g.length - 1;
-        if (gapStart) g[0] = pullBack(g[0], g[1], END_GAP);
-        if (gapEnd) g[n] = pullBack(g[n], g[n - 1], END_GAP);
-        return g;
-      };
-      const stepped = (wp0) => {
-        const refined = refineRoute(wp0, {
-          foreignZones: [],
-          foreignNodes: obstacles,
-          fromBox: ba,
-          toBox: bb,
-          allNodes: allNodeBoxes
-        });
-        const wp = gapEnds(refined);
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (const [px, py] of wp) {
-          if (px < minX) minX = px;
-          if (py < minY) minY = py;
-          if (px > maxX) maxX = px;
-          if (py > maxY) maxY = py;
-        }
-        return { ...el, x: minX, y: minY, w: maxX - minX, h: maxY - minY, points: wp.map((p) => [p[0] - minX, p[1] - minY]), data };
-      };
-      if (!pick) {
-        let wp = steppedAvoid(start, sN, end, eN, obstacles, 18);
-        if (!wp) {
-          wp = orthoWaypoints(start, sN, end, eN);
-          try {
-            const routed = routeAvoiding(ba, bb, obstacles, 18, { pt: start, n: sN }, { pt: end, n: eN });
-            if (routed && routed.length >= 2) wp = routed;
-          } catch {
-          }
-        }
-        return stepped(wp);
-      }
-      return stepped(orthoOf(fPort, tPort));
-    }
-    return line2();
-  });
-  return changed ? { ...doc, elements } : doc;
-}
-
-// ../../packages/deltagraph/src/text/graph.ts
-function parseGraph(source) {
-  const p = dgParseDsl(source);
-  return {
-    graph: { direction: p.direction, theme: p.theme, nodes: p.nodes, edges: p.edges, groups: p.groups ?? [] },
-    errors: p.errors
-  };
-}
-var esc = (label) => label.replace(/\|/g, "/").replace(/\n/g, "<br/>");
-function nodeSyntax(n) {
-  const l = esc(n.label || n.id);
-  let shape;
-  if (n.widget) shape = `<<${n.widget}|${l}>>`;
-  else if (n.buffer) shape = `[[${l}]]`;
-  else if (n.arch === DgArch.Database) shape = `[(${l})]`;
-  else if (n.arch === DgArch.Stream) shape = `((${l}))`;
-  else if (n.arch === DgArch.Hexagon) shape = `{{${l}}}`;
-  else if (n.arch === DgArch.Actor) shape = `/${l}/`;
-  else if (n.type === DgElementType.Ellipse) shape = `(${l})`;
-  else if (n.type === DgElementType.Diamond) shape = `{${l}}`;
-  else shape = `[${l}]`;
-  const tail = n.reaction ? ` :::${n.reaction}` : n.role ? `:::${n.role}` : "";
-  return `${n.id}${shape}${tail}`;
-}
-function edgeSyntax(e) {
-  const arrow = e.kind === DgElementType.Line ? "---" : e.trigger === "full" ? "=full=>" : e.speed === DgFlowSpeed.Fast ? "==>" : e.speed === DgFlowSpeed.Slow ? "-.->" : "-->";
-  const label = [e.cls ? `#${e.cls}` : "", e.label ? esc(e.label) : ""].filter(Boolean).join(" ");
-  return `${e.from} ${arrow}${label ? `|${label}|` : ""} ${e.to}`;
-}
-var MERMAID_DIR = {
-  [DgLayoutDirection.TopDown]: "TD",
-  [DgLayoutDirection.BottomTop]: "BT",
-  [DgLayoutDirection.LeftRight]: "LR",
-  [DgLayoutDirection.RightLeft]: "RL"
-};
-
-// ../../packages/deltagraph/src/text/edit.ts
-var DgShape = {
-  Box: "box",
-  Round: "round",
-  Decision: "decision",
-  Queue: "queue",
-  Stream: "stream",
-  Engine: "engine",
-  Store: "store",
-  Actor: "actor"
-};
-var DgArrow = { Normal: "-->", Hot: "==>", Slow: "-.->", Line: "---", Full: "=full=>" };
-var SHAPE2 = String.raw`<<[^>]*>>|\[\[[^\]]*\]\]|\[\([^)]*\)\]|\(\([^)]*\)\)|\{\{[^}]*\}\}|/[^/\n]*/|\[[^\]]*\]|\([^)]*\)|\{[^}]*\}`;
-var ARROW2 = String.raw`=full=>|-->|==>|-\.->|---`;
-var ID2 = String.raw`[A-Za-z0-9_]+`;
-var declRe = (id2) => new RegExp(String.raw`(^|[^A-Za-z0-9_])(${id2})\s*(${SHAPE2})`);
-var edgeRe = new RegExp(String.raw`^\s*(${ID2})\s*(?:${SHAPE2})?\s*(?::::\w+)?\s*(${ARROW2})\s*(?:\|[^|]*\|\s*)?(${ID2})`);
-function shapeOf(id2, label, shape, widget) {
-  const l = label.replace(/\|/g, "/");
-  if (widget) return `${id2}<<${widget}|${l}>>`;
-  switch (shape) {
-    case DgShape.Round:
-      return `${id2}(${l})`;
-    case DgShape.Decision:
-      return `${id2}{${l}}`;
-    case DgShape.Queue:
-      return `${id2}[[${l}]]`;
-    case DgShape.Stream:
-      return `${id2}((${l}))`;
-    case DgShape.Engine:
-      return `${id2}{{${l}}}`;
-    case DgShape.Store:
-      return `${id2}[(${l})]`;
-    case DgShape.Actor:
-      return `${id2}/${l}/`;
-    default:
-      return `${id2}[${l}]`;
-  }
-}
-function groupEnd(lines, label) {
-  const open = lines.findIndex((l) => new RegExp(String.raw`^\s*(?:subgraph|group)\s+(?:\w+\[)?${label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\]?\s*$`, "i").test(l));
-  if (open < 0) return -1;
-  let depth = 0;
-  for (let i = open; i < lines.length; i++) {
-    if (/^\s*(subgraph|group)\b/i.test(lines[i])) depth++;
-    else if (/^\s*end\s*$/i.test(lines[i])) {
-      depth--;
-      if (depth === 0) return i;
-    }
-  }
-  return -1;
-}
-function removeDeclaration(lines, id2) {
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (edgeRe.test(line)) continue;
-    const m = declRe(id2).exec(line);
-    if (m && /^\s*[A-Za-z0-9_]+\s*(?:<<|\[|\(|\{|\/)/.test(line)) {
-      const removed = line.trim();
-      lines.splice(i, 1);
-      return removed;
-    }
-  }
-  return null;
-}
-function applyEdits(source, ops) {
-  const errors = [];
-  const lines = source.replace(/\r\n/g, "\n").split("\n");
-  let applied = 0;
-  const known = () => new Set(parseGraph(lines.join("\n")).graph.nodes.map((n) => n.id));
-  const nodeOf = (id2) => parseGraph(lines.join("\n")).graph.nodes.find((n) => n.id === id2);
-  for (const op of ops) {
-    switch (op.op) {
-      case "add_node": {
-        if (!/^[A-Za-z0-9_]+$/.test(op.id)) {
-          errors.push(`add_node: id "${op.id}" must be letters, digits or underscore`);
-          break;
-        }
-        if (known().has(op.id)) {
-          errors.push(`add_node: "${op.id}" already exists`);
-          break;
-        }
-        const decl = `${shapeOf(op.id, op.label, op.shape, op.widget)}${op.pulse ? " :::pulse" : op.role ? `:::${op.role}` : ""}`;
-        if (op.group) {
-          const end = groupEnd(lines, op.group);
-          if (end < 0) {
-            errors.push(`add_node: no group "${op.group}"`);
-            break;
-          }
-          lines.splice(end, 0, `  ${decl}`);
-        } else {
-          lines.push(decl);
-        }
-        applied++;
-        break;
-      }
-      case "remove_node": {
-        if (!known().has(op.id)) {
-          errors.push(`remove_node: no node "${op.id}"`);
-          break;
-        }
-        removeDeclaration(lines, op.id);
-        for (let i = lines.length - 1; i >= 0; i--) {
-          const m = edgeRe.exec(lines[i]);
-          if (m && (m[1] === op.id || m[3] === op.id)) lines.splice(i, 1);
-        }
-        applied++;
-        break;
-      }
-      case "rename": {
-        const n = nodeOf(op.id);
-        if (!n) {
-          errors.push(`rename: no node "${op.id}"`);
-          break;
-        }
-        const fresh = nodeSyntax({ ...n, label: op.label, reaction: void 0, role: void 0 }).slice(op.id.length);
-        let done = false;
-        for (let i = 0; i < lines.length && !done; i++) {
-          const m = declRe(op.id).exec(lines[i]);
-          if (!m) continue;
-          lines[i] = lines[i].replace(m[0], `${m[1]}${op.id}${fresh}`);
-          done = true;
-        }
-        if (!done) {
-          errors.push(`rename: "${op.id}" has no declaration to rename (a bare id takes its label from the id)`);
-          break;
-        }
-        applied++;
-        break;
-      }
-      case "add_edge": {
-        const ids = known();
-        for (const id2 of [op.from, op.to]) if (!ids.has(id2)) {
-          errors.push(`add_edge: no node "${id2}"`);
-        }
-        if (!ids.has(op.from) || !ids.has(op.to)) break;
-        lines.push(edgeSyntax({ from: op.from, to: op.to, kind: op.arrow === DgArrow.Line ? "line" : "arrow", label: op.label, cls: op.cls, speed: op.arrow === DgArrow.Hot ? "fast" : op.arrow === DgArrow.Slow ? "slow" : void 0, trigger: op.arrow === DgArrow.Full ? "full" : void 0 }));
-        applied++;
-        break;
-      }
-      case "remove_edge": {
-        let removed = 0;
-        for (let i = lines.length - 1; i >= 0; i--) {
-          const m = edgeRe.exec(lines[i]);
-          if (m && m[1] === op.from && m[3] === op.to) {
-            lines.splice(i, 1);
-            removed++;
-          }
-        }
-        if (!removed) {
-          errors.push(`remove_edge: no edge ${op.from} -> ${op.to}`);
-          break;
-        }
-        applied++;
-        break;
-      }
-      case "set_direction": {
-        const i = lines.findIndex((l) => /^\s*direction\s*:/i.test(l));
-        if (i >= 0) lines[i] = `direction: ${op.direction}`;
-        else lines.unshift(`direction: ${op.direction}`, "");
-        applied++;
-        break;
-      }
-      case "move_to_group": {
-        const n = nodeOf(op.id);
-        if (!n) {
-          errors.push(`move_to_group: no node "${op.id}"`);
-          break;
-        }
-        const end = groupEnd(lines, op.group);
-        if (end < 0) {
-          errors.push(`move_to_group: no group "${op.group}"`);
-          break;
-        }
-        const decl = removeDeclaration(lines, op.id) ?? nodeSyntax(n);
-        const end2 = groupEnd(lines, op.group);
-        lines.splice(end2, 0, `  ${decl}`);
-        applied++;
-        break;
-      }
-      case "add_group": {
-        if (groupEnd(lines, op.label) >= 0) {
-          errors.push(`add_group: group "${op.label}" already exists`);
-          break;
-        }
-        const decls = [];
-        for (const id2 of op.members ?? []) {
-          const n = nodeOf(id2);
-          if (!n) {
-            errors.push(`add_group: no node "${id2}"`);
-            continue;
-          }
-          decls.push(`  ${removeDeclaration(lines, id2) ?? nodeSyntax(n)}`);
-        }
-        lines.push("", `subgraph ${op.label}`, ...decls, "end");
-        applied++;
-        break;
-      }
-      default:
-        errors.push(`unknown op ${JSON.stringify(op.op)}`);
-    }
-  }
-  const source2 = lines.join("\n").replace(/\n{3,}/g, "\n\n").trim() + "\n";
-  const check = parseGraph(source2);
-  errors.push(...check.errors.map((e) => `result: ${e}`));
-  return { source: source2, applied, errors };
-}
-
-// editor/collab/agents/boardDiagram.ts
-var boardOf = (elements) => ({ ...dgCreateEmptyBoard(), elements });
-function boardDiagramSource(elements) {
-  return dgEmitDsl(boardOf(elements));
-}
-function boardDiagramOmits(elements) {
-  return dgDslOmits(boardOf(elements));
-}
-var slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 48) || "x";
-var isEdge = (e) => e.data?.dslEdge === true;
-var isBuilt = (e) => typeof e.data?.dsl === "string" || e.data?.dslEdge === true || e.data?.dslGroup === true;
-var isZone = (e) => e.type === DgElementType.Zone && e.data?.dslGroup === true;
-var bindId = (e, end) => e.data?.[end]?.id;
-function applyDiagramSource(elements, source) {
-  const prev = boardOf(elements);
-  const built = dgBuildFromDsl(source, prev);
-  const next = applyBindings(built.doc).elements;
-  const prevById = new Map(elements.map((e) => [e.id, e]));
-  const rename = /* @__PURE__ */ new Map();
-  const taken = new Set(next.map((e) => e.id).filter((id2) => prevById.has(id2)));
-  const claim = (want) => {
-    let id2 = want, i = 2;
-    while (taken.has(id2)) id2 = `${want}_${i++}`;
-    taken.add(id2);
-    return id2;
-  };
-  const dslOf = /* @__PURE__ */ new Map();
-  for (const e of next) {
-    if (typeof e.data?.dsl !== "string") continue;
-    dslOf.set(e.id, e.data.dsl);
-    if (!prevById.has(e.id)) rename.set(e.id, claim(`dg_n_${slug(e.data.dsl)}`));
-  }
-  const nodeKey = (id2) => id2 ? dslOf.get(id2) ?? dslOf.get(rename.get(id2) ?? "") ?? id2 : "?";
-  const oldEdgeByKey = /* @__PURE__ */ new Map();
-  for (const e of elements) {
-    if (!isEdge(e)) continue;
-    const prevDsl = (id2) => id2 ? prevById.get(id2)?.data?.dsl ?? id2 : "?";
-    const k = `${prevDsl(bindId(e, "fromBind"))}->${prevDsl(bindId(e, "toBind"))}`;
-    (oldEdgeByKey.get(k) ?? oldEdgeByKey.set(k, []).get(k)).push(e.id);
-  }
-  for (const e of next) {
-    if (!isEdge(e) || prevById.has(e.id)) continue;
-    const from2 = nodeKey(bindId(e, "fromBind")), to = nodeKey(bindId(e, "toBind"));
-    const reuse = oldEdgeByKey.get(`${from2}->${to}`)?.shift();
-    rename.set(e.id, reuse && !taken.has(reuse) ? (taken.add(reuse), reuse) : claim(`dg_e_${slug(from2)}_${slug(to)}`));
-  }
-  const oldZoneByName = new Map(elements.filter(isZone).map((z) => [(z.name ?? "").trim(), z.id]));
-  for (const z of next) {
-    if (!isZone(z) || prevById.has(z.id)) continue;
-    const name = (z.name ?? "").trim();
-    const reuse = oldZoneByName.get(name);
-    rename.set(z.id, reuse && !taken.has(reuse) ? (taken.add(reuse), reuse) : claim(`dg_z_${slug(name || "group")}`));
-  }
-  for (const e of next) if (!prevById.has(e.id) && !rename.has(e.id)) rename.set(e.id, claim(`dg_x_${slug(e.type)}`));
-  const remap = (e) => {
-    if (!rename.size) return e;
-    let json = JSON.stringify(e);
-    for (const [from2, to] of rename) if (json.includes(from2)) json = json.split(`"${from2}"`).join(`"${to}"`);
-    return JSON.parse(json);
-  };
-  const r1 = (n) => Math.round(n);
-  const settle = (e) => {
-    const p = prevById.get(e.id);
-    const geo = { x: r1(e.x), y: r1(e.y), w: r1(e.w), h: r1(e.h), ...e.points ? { points: e.points.map(([px, py]) => [r1(px), r1(py)]) } : {} };
-    return { ...e, ...geo, ...p ? { z: p.z } : {} };
-  };
-  const out = next.map(remap).map((e) => prevById.has(e.id) && !isBuilt(e) ? e : settle(e));
-  const same = (a, b) => {
-    const norm = (e) => {
-      const { updatedAt: _u, version: _v, seed: _s, ...rest } = e;
-      const o = rest;
-      for (const k of Object.keys(o)) if (o[k] === void 0 || k === "pinned" && o[k] === false) delete o[k];
-      return JSON.stringify(o, Object.keys(o).sort());
-    };
-    return norm(a) === norm(b);
-  };
-  const upserts = out.filter((e) => {
-    const p = prevById.get(e.id);
-    return !p || !same(p, e);
-  });
-  const keep = new Set(out.map((e) => e.id));
-  const removes = elements.filter((e) => !keep.has(e.id)).map((e) => e.id);
-  return { upserts, removes, source: dgEmitDsl(boardOf(out)), errors: built.errors };
-}
-function applyDiagramEdits(elements, ops) {
-  const before = boardDiagramSource(elements);
-  const r2 = applyEdits(before, ops);
-  if (!r2.applied) return { upserts: [], removes: [], source: before, errors: r2.errors, applied: 0 };
-  const delta = applyDiagramSource(elements, r2.source);
-  return { ...delta, errors: [...r2.errors, ...delta.errors], applied: r2.applied };
-}
-function relayoutDiagram(elements) {
-  const source = boardDiagramSource(elements).replace(/ @\(-?\d+,-?\d+\)(?!!)/g, "");
-  return applyDiagramSource(elements, source);
+  if (!res.ok) throw new Error(`the deltagraph worker answered ${res.status}: ${(await res.text()).slice(0, 160)}`);
+  return await res.json();
+}
+var service = remote;
+function boardService() {
+  return service;
 }
 
 // ../../packages/deltagraph/src/text/link.ts
@@ -14588,13 +9764,13 @@ function relayFor(link, override) {
   throw new Error("cannot infer the relay from the link; pass --relay");
 }
 var COLORS = ["#39c5cf", "#4fa3e8", "#2fb3a3", "#7c9cff", "#5bc0be", "#58a6ff", "#3ddc97"];
-function slug2(s) {
+function slug(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 20);
 }
 async function identity(name, i, runBy) {
   const kp = await generateKeyPair();
   const pub = await exportPublicKey(kp.publicKey);
-  const id2 = `bot_${slug2(name)}_${Math.random().toString(36).slice(2, 7)}`;
+  const id2 = `bot_${slug(name)}_${Math.random().toString(36).slice(2, 7)}`;
   return { name, id: id2, kp, pub, color: COLORS[i % COLORS.length], runBy };
 }
 function presenceUser(me2) {
@@ -14618,7 +9794,7 @@ async function joinWith(payload, me2, relay, opts = {}) {
   const wireDoc = new Doc();
   const wire = wireDoc.getArray("env");
   const roomKey = payload.roomKey ? await roomKeyFromFragment(payload.roomKey) ?? void 0 : void 0;
-  const bridge = bridgeAuthorizedSync(doc, wire, {
+  const access = {
     docId: payload.docKey,
     ownerPublicKey: payload.ownerKey ?? "",
     myPublicKey: me2.pub,
@@ -14626,8 +9802,12 @@ async function joinWith(payload, me2, relay, opts = {}) {
     myCapability: payload.cap ?? null,
     me: { id: me2.id, name: me2.name },
     roomKey,
-    modes: wireDoc.getArray("mode")
-  }, () => log(`${me2.name}: dropped an envelope that did not authorize`));
+    modes: wireDoc.getArray("mode"),
+    // Honour the owner's revocations like a browser does, and let an owner bot
+    // issue them.
+    revocations: wireDoc.getArray("revoke")
+  };
+  const bridge = bridgeAuthorizedSync(doc, wire, access, () => log(`${me2.name}: dropped an envelope that did not authorize`));
   const awareness = new Awareness(wireDoc);
   const shown = { ...presenceUser(me2), ...opts.userId ? { id: opts.userId } : {}, ...opts.claimPub ? { pubKey: opts.claimPub } : {} };
   awareness.setLocalStateField("user", shown);
@@ -14644,7 +9824,21 @@ async function joinWith(payload, me2, relay, opts = {}) {
     WebSocketPolyfill: WebSocket
   });
   const control = [];
-  answerChallenges(ws, me2, !!opts.owner, control);
+  answerChallenges(ws, me2, !!opts.owner, control, (blob) => void acceptGrant(blob));
+  const acceptGrant = async (blob) => {
+    const json = await openAnswer(blob, me2.pub, await ecdhPrivateKey(me2.kp.privateKey), GRANT_CONTEXT);
+    if (!json) return;
+    let cap = null;
+    try {
+      cap = JSON.parse(json).cap ?? null;
+    } catch {
+      return;
+    }
+    if (!cap || cap.cap.subject !== me2.pub || !await verifyCapability(cap, access.ownerPublicKey, access.docId)) return;
+    access.myCapability = cap;
+    hubAw.setLocalStateField("perm", hubPerm());
+    log(`${me2.name}: the owner granted ${cap.cap.permission}`);
+  };
   ws.on("status", (e) => log(`${me2.name}: ${e.status}`));
   const closes = [];
   ws.on("connection-close", (e) => {
@@ -14655,7 +9849,7 @@ async function joinWith(payload, me2, relay, opts = {}) {
   });
   const hubDoc = new Doc();
   const hubAw = new Awareness(hubDoc);
-  hubAw.setLocalState({ user: presenceUser(me2), docKey: payload.docKey, perm: payload.cap ? "editor" : "viewer", viewFrac: null, ping: Date.now() });
+  hubAw.setLocalState({ user: presenceUser(me2), docKey: payload.docKey, perm: opts.owner ? "owner" : payload.cap ? "editor" : "viewer", viewFrac: null, ping: Date.now() });
   const hub = new WebsocketProvider(relay, "subms-y-presence", hubDoc, {
     awareness: hubAw,
     WebSocketPolyfill: WebSocket
@@ -14670,12 +9864,14 @@ async function joinWith(payload, me2, relay, opts = {}) {
     if (t) log(`${me2.name}: the owner changed the type to ${t.kind} (${t.filename})`);
   });
   const permission = () => {
-    const p = payload.cap?.cap.permission;
+    const cap = access.myCapability;
+    if (!cap || bridge.isRevoked(me2.pub, cap.sig)) return "view";
+    const p = cap.cap.permission;
     if (p === "suggest") return "suggest";
     if (p !== "edit") return "view";
     return bridge.docMode() === "review" ? "suggest" : "edit";
   };
-  const hubPerm = () => permission() === "edit" ? "editor" : permission() === "suggest" ? "reviewer" : "viewer";
+  const hubPerm = () => opts.owner ? "owner" : permission() === "edit" ? "editor" : permission() === "suggest" ? "reviewer" : "viewer";
   hubAw.setLocalStateField("perm", hubPerm());
   bridge.onDocMode(() => {
     hubAw.setLocalStateField("perm", hubPerm());
@@ -14696,6 +9892,11 @@ async function joinWith(payload, me2, relay, opts = {}) {
     closes,
     control,
     permission,
+    revokeAuthor: opts.owner ? async (author) => {
+      const list = await Promise.all([...bridge.usage(author)].map(([capSig, n]) => issueRevocation(me2.kp.privateKey, payload.docKey, author, capSig, n)));
+      if (list.length) access.revocations.push(list);
+      return list.length;
+    } : void 0,
     leave: () => {
       clearInterval(beat);
       stopWorking(bot);
@@ -14713,7 +9914,7 @@ async function joinWith(payload, me2, relay, opts = {}) {
   if (!isBoard(bot)) setTimeout(() => park(bot), 3e3).unref();
   return bot;
 }
-function answerChallenges(ws, me2, owner, control) {
+function answerChallenges(ws, me2, owner, control, onGrant) {
   const handlers = ws.messageHandlers;
   const stock = handlers[3];
   handlers[3] = (encoder, decoder, ...rest) => {
@@ -14740,6 +9941,10 @@ function answerChallenges(ws, me2, owner, control) {
       } catch {
       }
       ws.emit("connection-close", [{ code: ev.code, reason: "evicted" }, ws]);
+      return;
+    }
+    if (msg.action === "grant" /* Grant */ && "blob" in msg) {
+      onGrant(msg.blob);
       return;
     }
     if (msg.action !== "challenge" /* Challenge */ || !msg.nonce) return;
@@ -14797,7 +10002,7 @@ async function knockFor(code, me2, relay) {
     };
   });
 }
-var sleep = (ms) => new Promise((r2) => setTimeout(r2, ms));
+var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 function showCursor(b, index) {
   const rel = createRelativePositionFromTypeIndex(b.text, index);
   b.awareness.setLocalStateField("cursor", { anchor: rel, head: rel });
@@ -14932,8 +10137,8 @@ function listen(bots, inbox, quietMs = 6e3) {
   b.text.observe((e) => {
     const tr = e.transaction;
     let human = false;
-    for (const [client, clock2] of tr.afterState) {
-      if (clock2 > (tr.beforeState.get(client) ?? 0) && !ours.has(client)) human = true;
+    for (const [client, clock] of tr.afterState) {
+      if (clock > (tr.beforeState.get(client) ?? 0) && !ours.has(client)) human = true;
     }
     const bulk = e.delta.reduce((n, d) => n + (typeof d.insert === "string" ? d.insert.length : 0), 0) > 300;
     if (!human || bulk) {
@@ -15043,8 +10248,8 @@ function addSticky(b, text, opts = {}) {
   } else if (els.length) {
     const onPage = els.filter((e) => (opts.page ? e.page === opts.page : true) && e.createdBy !== b.id);
     const boxes = (onPage.length ? onPage : els).map(elementAabb);
-    const maxX = Math.max(...boxes.map((r2) => r2.x + r2.w));
-    const minY = Math.min(...boxes.map((r2) => r2.y));
+    const maxX = Math.max(...boxes.map((r) => r.x + r.w));
+    const minY = Math.min(...boxes.map((r) => r.y));
     x = maxX + 80 + mine % 2 * 230;
     y = minY + Math.floor(mine / 2) * 150;
   }
@@ -15184,7 +10389,7 @@ function watchThreads(b, map3, inbox, where) {
   const mark = () => {
     for (const c of map3.values()) {
       seen.add(c.id);
-      for (const r2 of c.replies ?? []) seen.add(r2.id);
+      for (const r of c.replies ?? []) seen.add(r.id);
     }
   };
   mark();
@@ -15202,14 +10407,15 @@ function watchThreads(b, map3, inbox, where) {
         seen.add(c.id);
         fresh.push(c);
       }
-      for (const r2 of c.replies ?? []) if (!seen.has(r2.id)) {
-        seen.add(r2.id);
-        replyParent.set(r2.id, c.id);
-        fresh.push(r2);
+      for (const r of c.replies ?? []) if (!seen.has(r.id)) {
+        seen.add(r.id);
+        replyParent.set(r.id, c.id);
+        fresh.push(r);
       }
       if (!w) continue;
       for (const m of fresh) {
-        if (m.author.id.startsWith("bot_")) continue;
+        if (m.author.id === b.id) continue;
+        if (m.author.id.startsWith("bot_") && addressFor(b.name, m.body).addressed !== "you" /* You */) continue;
         deliverFor(b, inbox, { id: m.id, at: m.createdAt, author: m.author.name, text: m.body, ...w });
         log(`inbox ${m.id} from ${m.author.name} (${w.kind}): ${short(m.body, 80)}`);
       }
@@ -15260,14 +10466,13 @@ function writeDelta(b, d, what) {
   for (const e of d.errors) log(`${b.name}: ${e}`);
   log(`${b.name}: ${what}: ${d.upserts.length} written, ${d.removes.length} removed`);
 }
-function diagramSource(b) {
-  const els = boardElements(b);
-  const omits = boardDiagramOmits(els);
-  return (omits.length ? `# also on the board, not editable as text: ${omits.join(", ")}
-` : "") + boardDiagramSource(els);
+async function diagramSource(b) {
+  const r = await boardService()({ action: "source" /* Source */, elements: boardElements(b) });
+  return (r.omits.length ? `# also on the board, not editable as text: ${r.omits.join(", ")}
+` : "") + r.source;
 }
 async function diagramLink(b, title) {
-  const src2 = boardDiagramSource(boardElements(b)).replace(/ @\(-?\d+,-?\d+\)!?/g, "").replace(/^# .*\n/gm, "");
+  const src2 = (await boardService()({ action: "source" /* Source */, elements: boardElements(b) })).source.replace(/ @\(-?\d+,-?\d+\)!?/g, "").replace(/^# .*\n/gm, "");
   return deltagraphHref(src2.trim(), VIEWER, title ? { title } : {});
 }
 async function setDiagram(b, sourceOrLink) {
@@ -15276,11 +10481,11 @@ async function setDiagram(b, sourceOrLink) {
     log(`${b.name}: no diagram in that input`);
     return false;
   }
-  writeDelta(b, applyDiagramSource(boardElements(b), src2), "set the diagram");
+  writeDelta(b, await boardService()({ action: "set" /* Set */, elements: boardElements(b), source: src2 }), "set the diagram");
   return true;
 }
-function editDiagram(b, ops) {
-  const d = applyDiagramEdits(boardElements(b), ops);
+async function editDiagram(b, ops) {
+  const d = await boardService()({ action: "edit" /* Edit */, elements: boardElements(b), ops });
   if (!d.applied) {
     for (const e of d.errors) log(`${b.name}: ${e}`);
     log(`${b.name}: no edit applied`);
@@ -15289,8 +10494,8 @@ function editDiagram(b, ops) {
   writeDelta(b, d, `applied ${d.applied} of ${ops.length} edits`);
   return true;
 }
-function relayout(b) {
-  writeDelta(b, relayoutDiagram(boardElements(b)), "relaid out the diagram");
+async function relayout(b) {
+  writeDelta(b, await boardService()({ action: "relayout" /* Relayout */, elements: boardElements(b) }), "relaid out the diagram");
 }
 
 // agent/mcp/rooms.ts
@@ -15323,11 +10528,11 @@ var Rooms = class {
   /** A room by handle, or the one most recently joined when none is named. */
   get(handle) {
     const h = handle?.trim() || this.latest;
-    const r2 = h ? this.rooms.get(h) : void 0;
-    if (!r2) {
+    const r = h ? this.rooms.get(h) : void 0;
+    if (!r) {
       throw new Error(this.rooms.size ? `no room "${handle}". Open rooms: ${[...this.rooms.keys()].join(", ")}` : "not in any room yet: call deltalab_join with a share link or code first");
     }
-    return r2;
+    return r;
   }
   /** The live participant in a room, or a reason it cannot act. */
   live(handle) {
@@ -15418,24 +10623,24 @@ var Rooms = class {
     room.state = "closed" /* Closed */;
     room.reason = "the agent left";
     if (this.latest === room.handle) {
-      const open = this.list().filter((r2) => r2.state === "live" /* Live */ || r2.state === "waiting" /* Waiting */);
+      const open = this.list().filter((r) => r.state === "live" /* Live */ || r.state === "waiting" /* Waiting */);
       this.latest = open.length ? open[open.length - 1].handle : room.handle;
     }
     return room;
   }
   leaveAll() {
-    for (const r2 of this.rooms.values()) if (r2.bot && r2.state !== "closed" /* Closed */) r2.bot.leave();
+    for (const r of this.rooms.values()) if (r.bot && r.state !== "closed" /* Closed */) r.bot.leave();
   }
   /** Messages a person wrote since the last call, waiting up to `waitMs` for
    *  the first one. Across every room when no handle is given. */
   async inbox(handle, waitMs) {
     const rooms2 = handle ? [this.get(handle)] : this.list();
-    const take = () => rooms2.flatMap((r2) => {
-      const fresh = r2.inbox.slice(r2.delivered).map((m) => ({ ...m, room: r2.handle }));
-      r2.delivered = r2.inbox.length;
+    const take = () => rooms2.flatMap((r) => {
+      const fresh = r.inbox.slice(r.delivered).map((m) => ({ ...m, room: r.handle }));
+      r.delivered = r.inbox.length;
       return fresh;
     });
-    const pending = () => rooms2.some((r2) => r2.inbox.length > r2.delivered);
+    const pending = () => rooms2.some((r) => r.inbox.length > r.delivered);
     if (!pending() && waitMs > 0) {
       await new Promise((resolve) => {
         const check = () => {
@@ -15458,21 +10663,21 @@ var Rooms = class {
 };
 
 // agent/mcp/tools.ts
-var BoardAction = /* @__PURE__ */ ((BoardAction2) => {
-  BoardAction2["Sticky"] = "sticky";
-  BoardAction2["SetText"] = "set_text";
-  BoardAction2["Vote"] = "vote";
-  BoardAction2["Unvote"] = "unvote";
-  BoardAction2["Comment"] = "comment";
-  BoardAction2["Say"] = "say";
-  BoardAction2["SetDiagram"] = "set_diagram";
-  BoardAction2["EditDiagram"] = "edit_diagram";
-  BoardAction2["Relayout"] = "relayout";
-  BoardAction2["Move"] = "move";
-  BoardAction2["Resize"] = "resize";
-  return BoardAction2;
-})(BoardAction || {});
-var BOARD_ACTIONS = Object.values(BoardAction);
+var BoardAction2 = /* @__PURE__ */ ((BoardAction3) => {
+  BoardAction3["Sticky"] = "sticky";
+  BoardAction3["SetText"] = "set_text";
+  BoardAction3["Vote"] = "vote";
+  BoardAction3["Unvote"] = "unvote";
+  BoardAction3["Comment"] = "comment";
+  BoardAction3["Say"] = "say";
+  BoardAction3["SetDiagram"] = "set_diagram";
+  BoardAction3["EditDiagram"] = "edit_diagram";
+  BoardAction3["Relayout"] = "relayout";
+  BoardAction3["Move"] = "move";
+  BoardAction3["Resize"] = "resize";
+  return BoardAction3;
+})(BoardAction2 || {});
+var BOARD_ACTIONS = Object.values(BoardAction2);
 function toBoardAction(v) {
   return typeof v === "string" && BOARD_ACTIONS.includes(v) ? v : null;
 }
@@ -15492,10 +10697,11 @@ var ROOM_RULES = [
 ];
 var WORKING_TOGETHER = [
   "Use the conversation to coordinate. Before a large change, say what you plan and ask for objections. When you disagree with a request or with another agent's work, say so, give the reason, and propose what you would do.",
+  "Write in the room like a colleague in a team chat, in plain English: one point per message, two or three sentences, lead with the decision, change or question. No praise, thanks, greetings, sign-offs or introducing yourself. Say what changed and what you need next. Share work only through the room (a viewer link, the board, the document), never a file on disk, even when the other agent runs on the same machine. Before building on someone's work, ask them to confirm it is final.",
   "Settle the direction in the conversation first, then change the work in small steps and say what changed after each, so people can steer between steps.",
   "Other agents may be in the room. Agree who takes which part before you start, keep to your part, and review each other's work with suggestions or comments.",
-  "The chat is one room for people and agents. Every message reaches every agent, marked with who it was for: to you (tagged by your name), to every agent (@Agent-Smith-All or @agents), to everyone (@all), to someone else, or open (no tag). Answer what is to you, to every agent or to everyone. Leave a message tagged to someone else to them unless you hold something they need. Answer open talk when you are the only agent, or when it is plainly about your part.",
-  "Tag people and agents by their handle, as typed in the chat (@Agent-Smith-B, @Ada-Lovelace), when you ask something or hand work over; your own handle is your name."
+  "The chat is one room for people and agents. Every message from a person reaches every agent; a message from another agent reaches you only when it tags you by name, so tag an agent's handle to hand it work. Each is marked with who it was for: to you (tagged by your name), to every agent (@agent-valkyrie-all or @agents), to everyone (@all), to someone else, or open (no tag). Answer what is to you, to every agent or to everyone. Leave a message tagged to someone else to them unless you hold something they need. Answer open talk when you are the only agent, or when it is plainly about your part.",
+  "Tag people and agents by their handle, as typed in the chat (@agent-valkyrie-uruz, @Ada-Lovelace), when you ask something or hand work over; your own handle is your name."
 ];
 var BY_KIND = [
   "Boards: talk in the board discussion (deltalab_board say) and comment on the element you mean; votes show which options have support. Evolve the diagram with edit_diagram, one change at a time, and read the board again before each change, because others edit it too.",
@@ -15623,7 +10829,7 @@ function toolList() {
     {
       name: "deltalab_say" /* Say */,
       title: "Say something in the chat",
-      description: "Post a message in the room's chat: the document's discussion, or the board's. Tag someone with @ and their handle (@Agent-Smith-B, @Agent-Smith-All, @all) to ask them or hand work over. For an answer to an inbox message use deltalab_reply.",
+      description: "Post a message in the room's chat: the document's discussion, or the board's. Tag someone with @ and their handle (@agent-valkyrie-uruz, @agent-valkyrie-all, @all) to ask them or hand work over. For an answer to an inbox message use deltalab_reply.",
       inputSchema: {
         type: "object",
         properties: { room: ROOM_PROP, text: { type: "string" } },
@@ -15723,15 +10929,20 @@ ${next}`);
       }
       case "deltalab_status" /* Status */: {
         const all2 = rooms2.list();
-        for (const r2 of all2) rooms2.refresh(r2);
+        for (const r of all2) rooms2.refresh(r);
         return ok(all2.length ? all2.map(describeRoom).join("\n\n") : "Not in any room. Call deltalab_join with a share link or code.");
       }
       case "deltalab_read" /* Read */: {
         const { room, bot } = rooms2.live(str(args2.room));
         if (isBoard(bot)) {
-          const src2 = diagramSource(bot);
-          const link = src2.trim() ? await diagramLink(bot, room.title) : "";
-          return ok([boardSummary(bot), "--- diagram (deltagraph DSL) ---", src2.trim() || "(no diagram)", link ? `viewer: ${link}` : ""].filter(Boolean).join("\n"));
+          let src2 = "", link = "", unreachable = "";
+          try {
+            src2 = await diagramSource(bot);
+            link = src2.trim() ? await diagramLink(bot, room.title) : "";
+          } catch (e) {
+            unreachable = `(the diagram could not be read: ${e?.message ?? e})`;
+          }
+          return ok([boardSummary(bot), "--- diagram (deltagraph DSL) ---", unreachable || src2.trim() || "(no diagram)", link ? `viewer: ${link}` : ""].filter(Boolean).join("\n"));
         }
         return ok(`${describeRoom(room)}
 
@@ -15804,10 +11015,10 @@ ${text.replace(/\n*$/, "")}`);
           }
           case "edit_diagram" /* EditDiagram */: {
             if (!Array.isArray(args2.ops) || !args2.ops.length) return fail("edit_diagram needs ops");
-            return editDiagram(bot, args2.ops) ? ok(`applied the edits`) : fail("no edit applied: check the node ids against deltalab_read");
+            return await editDiagram(bot, args2.ops) ? ok(`applied the edits`) : fail("no edit applied: check the node ids against deltalab_read");
           }
           case "relayout" /* Relayout */:
-            relayout(bot);
+            await relayout(bot);
             return ok("relaid out the diagram");
           case "move" /* Move */: {
             const x = num(args2.x), y = num(args2.y);
@@ -15923,7 +11134,7 @@ if (typeof globalThis.WebSocket !== "function" || typeof globalThis.crypto?.subt
 setAgentLog((line) => process.stderr.write(`deltalab: ${line}
 `));
 var serial = Math.floor(Math.random() * 999) + 1;
-var NAME = mentionHandle(process.env.DELTALAB_AGENT_NAME?.trim() || "") || agentHandle(Math.floor(Math.random() * 26));
+var NAME = mentionHandle(process.env.DELTALAB_AGENT_NAME?.trim() || "") || agentHandle(Math.floor(Math.random() * VALKYRIE_RUNES.length));
 var RUN_BY = process.env.DELTALAB_RUN_BY?.trim() || (() => {
   try {
     return userInfo().username;
