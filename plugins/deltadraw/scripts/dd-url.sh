@@ -3,7 +3,7 @@
 # dd-url.sh <file|-> [--title T] [--theme light|dark] [--replay] [--edit] [--compress] [--base URL]
 set -eu
 
-BASE="https://www.submillisecond.com/deltadraw"
+BASE="https://deltadraw.submillisecond.com/"
 FILE=""; TITLE=""; THEME=""; REPLAY=0; EDIT=0; COMPRESS=0
 while [ $# -gt 0 ]; do
   case "$1" in

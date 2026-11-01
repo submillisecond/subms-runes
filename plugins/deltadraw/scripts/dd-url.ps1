@@ -8,7 +8,7 @@ param(
   [switch] $Replay,
   [switch] $Edit,
   [switch] $Compress,
-  [string] $Base = "https://www.submillisecond.com/deltadraw"
+  [string] $Base = "https://deltadraw.submillisecond.com/"
 )
 
 $ErrorActionPreference = "Stop"

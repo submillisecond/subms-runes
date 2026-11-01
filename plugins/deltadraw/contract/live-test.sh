@@ -12,7 +12,7 @@ command -v curl >/dev/null 2>&1 || { echo "live-test: curl is required"; exit 2;
 MCP="$(sed -n 's/.*"url": *"\([^"]*\)".*/\1/p' "$PACK/.mcp.json" | head -1)"
 HOST="${MCP%/mcp}"
 [ "${1:-}" = "--host" ] && HOST="${2:-$HOST}"
-VIEWER="https://www.submillisecond.com/deltadraw"
+VIEWER="https://deltadraw.submillisecond.com/"
 echo "host: $HOST"
 
 echo "== 1. every tool the pack names is served =="

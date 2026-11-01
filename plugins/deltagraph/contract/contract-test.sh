@@ -39,7 +39,7 @@ fi
 echo "== 1. output shape, both backends =="
 OUT_SH="$($SH "$FIX")"
 eq "sh: two lines" "$(printf '%s\n' "$OUT_SH" | wc -l | tr -d ' ')" "2"
-has "sh: URL line" "$OUT_SH" '^URL=https://www\.submillisecond\.com/deltagraph#dsl='
+has "sh: URL line" "$OUT_SH" '^URL=https://deltagraph\.submillisecond\.com/#dsl='
 has "sh: LENGTH line" "$OUT_SH" '^LENGTH=[0-9]+$'
 URL_SH="$(printf '%s\n' "$OUT_SH" | sed -n 's/^URL=//p')"
 eq "sh: LENGTH matches" "$(printf '%s\n' "$OUT_SH" | sed -n 's/^LENGTH=//p')" "${#URL_SH}"
@@ -62,7 +62,7 @@ eq "CRLF reads as LF" "$(pdecode "$($SH "$CRLF" | sed -n 's/^URL=.*#dsl=//p')")"
 
 echo "== 3. compressed form: d1, base64url, inflates to the fixture =="
 C_SH="$($SH "$FIX" --compress | sed -n 's/^URL=//p')"
-has "sh: d1 key" "$C_SH" '^https://www\.submillisecond\.com/deltagraph#d1=[A-Za-z0-9_-]+$'
+has "sh: d1 key" "$C_SH" '^https://deltagraph\.submillisecond\.com/#d1=[A-Za-z0-9_-]+$'
 if [ -n "$INFLATE" ]; then
   eq "sh: d1 inflates to the fixture" "$(inflate "${C_SH#*#d1=}")" "$EXPECTED_SRC"
 else

@@ -1,13 +1,13 @@
 ---
 name: dg
-description: This skill should be used whenever a diagram is wanted or would help - "draw this", "diagram", "flowchart", "sequence diagram", "architecture diagram", "state machine", "ERD", "mind map", "timeline", "kanban", "show me how X flows", "/dg", or any moment you would otherwise write a mermaid fence - and whenever a deltagraph link does not render, renders wrong, or reads badly ("why is this diagram broken", "tidy this diagram", "the arrows are a mess", "debug this deltagraph"). Produces a submillisecond.com/deltagraph URL that renders the diagram laid out and routed, checked through the real engine via the bundled deltagraph MCP server, and debugs a failing or tangled one down to the line and rule. Carries the per-kind table, the native DSL essentials, the hard rules and the substitutes for mermaid kinds the engine does not draw; fetches the generated spec for anything beyond that.
+description: This skill should be used whenever a diagram is wanted or would help - "draw this", "diagram", "flowchart", "sequence diagram", "architecture diagram", "state machine", "ERD", "mind map", "timeline", "kanban", "show me how X flows", "/dg", or any moment you would otherwise write a mermaid fence - and whenever a deltagraph link does not render, renders wrong, or reads badly ("why is this diagram broken", "tidy this diagram", "the arrows are a mess", "debug this deltagraph"). Produces a deltagraph.submillisecond.com URL that renders the diagram laid out and routed, checked through the real engine via the bundled deltagraph MCP server, and debugs a failing or tangled one down to the line and rule. Carries the per-kind table, the native DSL essentials, the hard rules and the substitutes for mermaid kinds the engine does not draw; fetches the generated spec for anything beyond that.
 version: 1.0.0
 ---
 
 # dg - draw a diagram as a deltagraph URL instead of a mermaid fence
 
 A deltagraph link IS the diagram: the source rides in the URL fragment and the
-viewer at `https://www.submillisecond.com/deltagraph` lays it out, routes it and
+viewer at `https://deltagraph.submillisecond.com/` lays it out, routes it and
 draws it. A mermaid fence renders nowhere a terminal reader looks; a URL renders
 for anyone who clicks it. So: never a mermaid fence. A URL.
 
@@ -102,7 +102,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/scripts/dg-debug.sh" diagram.dg --review review.svg
 ```
 
 Without the scripts either, percent-encode the source and build
-`https://www.submillisecond.com/deltagraph#dsl=<encoded>`; `&` MUST be
+`https://deltagraph.submillisecond.com/#dsl=<encoded>`; `&` MUST be
 encoded. The worker also answers plain HTTP: `/check`, `/debug`, `/svg`,
 `/png?d1=<compressed>` (a picture for a README) and `/s?d1=<compressed>&title=`
 (a share link that previews as the diagram on LinkedIn, Slack and X), all on

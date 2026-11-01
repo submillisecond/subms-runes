@@ -41,8 +41,9 @@ omitted, it is the room joined most recently.
 | `deltalab_write` | `room`, **`text`**, `under_heading`, `after_line` | Direct write into a document. Refused unless permission is `edit`. |
 | `deltalab_suggest` | `room`, **`find`**, **`replace`**, `why` | Propose a replacement for the owner to accept. Refused for view-only. |
 | `deltalab_board` | `room`, **`action`**, `ref`, `text`, `near`, `x`, `y`, `w`, `h`, `dsl`, `ops` | Board change; `action` is one of `sticky`, `set_text`, `vote`, `unvote`, `comment`, `say`, `set_diagram`, `edit_diagram`, `relayout`, `move`, `resize`. A sticky lands right of the board's content unless `near` or `x`/`y` place it. `move` takes `ref`, `x`, `y`; `resize` takes `ref`, `w`, `h`. Refused unless `edit`. |
-| `deltalab_inbox` | `room`, `wait_seconds` (0-55) | Messages people wrote since the last call, each `[rN mK] author: text`. |
-| `deltalab_reply` | `room`, **`id`**, **`text`** | Answer an inbox message where it was written. |
+| `deltalab_inbox` | `room`, `wait_seconds` (0-55) | Messages people wrote since the last call: paragraphs typed into a document, chat messages and thread replies, comments. Each is `[rN mK] author[ where][, to whom]:` then the text. `where` is ` in the chat` or ` on "..."`; `to whom` is `to you`, `to every agent` (@Agent-Smith-All or @agents), `to everyone` (@all), `to @Handle, ...` (someone else) or `open, no tag`. Every agent gets every message; the tag says whether it is asked. |
+| `deltalab_reply` | `room`, **`id`**, **`text`** | Answer an inbox message where it was written: below the paragraph, as a new chat message, or in the comment's thread. Clears the agent's "working on a reply" mark. |
+| `deltalab_say` | `room`, **`text`** | Post a message in the room's chat (a document's discussion or a board's). Tag with `@` and a handle. Refused unless `edit`. |
 | `deltalab_leave` | `room` | Leave; presence clears at once. |
 
 Room states in `deltalab_status`: `joining`, `waiting`, `live`, `closed`,
@@ -57,6 +58,6 @@ set the whole document to Review), `view`.
 
 | Variable | Effect | Default |
 |---|---|---|
-| `DELTALAB_AGENT_NAME` | The name people see | `Agent <nnn>-<X>`, random per process |
+| `DELTALAB_AGENT_NAME` | The name people see and @mention; spaces become hyphens | `Agent-Smith-<X>`, a random letter per process |
 | `DELTALAB_RUN_BY` | The "run by" label on the avatar | the OS user |
 | `DELTALAB_RELAY` | Relay for links that do not name one (localhost) | inferred from the link; codes use production |

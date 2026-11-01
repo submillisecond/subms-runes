@@ -13,16 +13,16 @@ var copy = (m) => {
   });
   return r2;
 };
-var setIfUndefined = (map3, key, createT) => {
-  let set = map3.get(key);
+var setIfUndefined = (map3, key2, createT) => {
+  let set = map3.get(key2);
   if (set === void 0) {
-    map3.set(key, set = createT());
+    map3.set(key2, set = createT());
   }
   return set;
 };
 var any = (m, f) => {
-  for (const [key, value] of m) {
-    if (f(value, key)) {
+  for (const [key2, value] of m) {
+    if (f(value, key2)) {
       return true;
     }
   }
@@ -418,9 +418,9 @@ var writeAny = (encoder, data) => {
         const keys2 = Object.keys(data);
         writeVarUint(encoder, keys2.length);
         for (let i = 0; i < keys2.length; i++) {
-          const key = keys2[i];
-          writeVarString(encoder, key);
-          writeAny(encoder, data[key]);
+          const key2 = keys2[i];
+          writeVarString(encoder, key2);
+          writeAny(encoder, data[key2]);
         }
       }
       break;
@@ -694,8 +694,8 @@ var readAnyLookupTable = [
     const len = readVarUint(decoder);
     const obj = {};
     for (let i = 0; i < len; i++) {
-      const key = readVarString(decoder);
-      obj[key] = readAny(decoder);
+      const key2 = readVarString(decoder);
+      obj[key2] = readAny(decoder);
     }
     return obj;
   },
@@ -854,14 +854,14 @@ var VarStoragePolyfill = class {
    * @param {string} key
    * @param {any} newValue
    */
-  setItem(key, newValue) {
-    this.map.set(key, newValue);
+  setItem(key2, newValue) {
+    this.map.set(key2, newValue);
   }
   /**
    * @param {string} key
    */
-  getItem(key) {
-    return this.map.get(key);
+  getItem(key2) {
+    return this.map.get(key2);
   }
 };
 var _localStorage = new VarStoragePolyfill();
@@ -893,14 +893,14 @@ var equals = (a, b) => a === b || !!a?.[EqualityTraitSymbol]?.(b) || false;
 var assign = Object.assign;
 var keys = Object.keys;
 var forEach = (obj, f) => {
-  for (const key in obj) {
-    f(obj[key], key);
+  for (const key2 in obj) {
+    f(obj[key2], key2);
   }
 };
 var map = (obj, f) => {
   const results = [];
-  for (const key in obj) {
-    results.push(f(obj[key], key));
+  for (const key2 in obj) {
+    results.push(f(obj[key2], key2));
   }
   return results;
 };
@@ -912,21 +912,21 @@ var isEmpty = (obj) => {
   return true;
 };
 var every = (obj, f) => {
-  for (const key in obj) {
-    if (!f(obj[key], key)) {
+  for (const key2 in obj) {
+    if (!f(obj[key2], key2)) {
       return false;
     }
   }
   return true;
 };
-var hasProperty = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
-var equalFlat = (a, b) => a === b || size(a) === size(b) && every(a, (val, key) => (val !== void 0 || hasProperty(b, key)) && equals(b[key], val));
+var hasProperty = (obj, key2) => Object.prototype.hasOwnProperty.call(obj, key2);
+var equalFlat = (a, b) => a === b || size(a) === size(b) && every(a, (val, key2) => (val !== void 0 || hasProperty(b, key2)) && equals(b[key2], val));
 var freeze = Object.freeze;
 var deepFreeze = (o) => {
-  for (const key in o) {
-    const c = o[key];
+  for (const key2 in o) {
+    const c = o[key2];
     if (typeof c === "object" || typeof c === "function") {
-      deepFreeze(o[key]);
+      deepFreeze(o[key2]);
     }
   }
   return freeze(o);
@@ -986,8 +986,8 @@ var equalityDeep = (a, b) => {
       if (a.size !== b.size) {
         return false;
       }
-      for (const key of a.keys()) {
-        if (!b.has(key) || !equalityDeep(a.get(key), b.get(key))) {
+      for (const key2 of a.keys()) {
+        if (!b.has(key2) || !equalityDeep(a.get(key2), b.get(key2))) {
           return false;
         }
       }
@@ -998,8 +998,8 @@ var equalityDeep = (a, b) => {
       if (size(a) !== size(b)) {
         return false;
       }
-      for (const key in a) {
-        if (!hasProperty(a, key) || !equalityDeep(a[key], b[key])) {
+      for (const key2 in a) {
+        if (!hasProperty(a, key2) || !equalityDeep(a[key2], b[key2])) {
           return false;
         }
       }
@@ -1056,9 +1056,9 @@ var computeParams = () => {
       params = create();
       (location.search || "?").slice(1).split("&").forEach((kv) => {
         if (kv.length !== 0) {
-          const [key, value] = kv.split("=");
-          params.set(`--${fromCamelCase(key, "-")}`, value);
-          params.set(`-${fromCamelCase(key, "-")}`, value);
+          const [key2, value] = kv.split("=");
+          params.set(`--${fromCamelCase(key2, "-")}`, value);
+          params.set(`-${fromCamelCase(key2, "-")}`, value);
         }
       });
     } else {
@@ -1657,8 +1657,8 @@ var Doc = class _Doc extends ObservableV2 {
    */
   toJSON() {
     const doc = {};
-    this.share.forEach((value, key) => {
-      doc[key] = value.toJSON();
+    this.share.forEach((value, key2) => {
+      doc[key2] = value.toJSON();
     });
     return doc;
   }
@@ -1926,9 +1926,9 @@ var UpdateDecoderV2 = class extends DSDecoderV2 {
     if (keyClock < this.keys.length) {
       return this.keys[keyClock];
     } else {
-      const key = this.stringDecoder.read();
-      this.keys.push(key);
-      return key;
+      const key2 = this.stringDecoder.read();
+      this.keys.push(key2);
+      return key2;
     }
   }
 };
@@ -2029,8 +2029,8 @@ var UpdateEncoderV1 = class extends DSEncoderV1 {
   /**
    * @param {string} key
    */
-  writeKey(key) {
-    writeVarString(this.restEncoder, key);
+  writeKey(key2) {
+    writeVarString(this.restEncoder, key2);
   }
 };
 var DSEncoderV2 = class {
@@ -2175,11 +2175,11 @@ var UpdateEncoderV2 = class extends DSEncoderV2 {
    *
    * @param {string} key
    */
-  writeKey(key) {
-    const clock2 = this.keyMap.get(key);
+  writeKey(key2) {
+    const clock2 = this.keyMap.get(key2);
     if (clock2 === void 0) {
       this.keyClockEncoder.write(this.keyClock++);
-      this.stringEncoder.write(key);
+      this.stringEncoder.write(key2);
     } else {
       this.keyClockEncoder.write(clock2);
     }
@@ -2527,9 +2527,9 @@ var ID = class {
 var compareIDs = (a, b) => a === b || a !== null && b !== null && a.client === b.client && a.clock === b.clock;
 var createID = (client, clock2) => new ID(client, clock2);
 var findRootTypeKey = (type) => {
-  for (const [key, value] of type.doc.share.entries()) {
+  for (const [key2, value] of type.doc.share.entries()) {
     if (value === type) {
-      return key;
+      return key2;
     }
   }
   throw unexpectedCase();
@@ -3406,11 +3406,11 @@ var YEvent = class {
         /** @type Set<string|null> */
         this.transaction.changed.get(target)
       );
-      changed.forEach((key) => {
-        if (key !== null) {
+      changed.forEach((key2) => {
+        if (key2 !== null) {
           const item = (
             /** @type {Item} */
-            target._map.get(key)
+            target._map.get(key2)
           );
           let action;
           let oldValue;
@@ -3446,7 +3446,7 @@ var YEvent = class {
               return;
             }
           }
-          keys2.set(key, { action, oldValue });
+          keys2.set(key2, { action, oldValue });
         }
       });
       this._keys = keys2;
@@ -4067,14 +4067,14 @@ var typeListDelete = (transaction, parent, index, length2) => {
     );
   }
 };
-var typeMapDelete = (transaction, parent, key) => {
-  const c = parent._map.get(key);
+var typeMapDelete = (transaction, parent, key2) => {
+  const c = parent._map.get(key2);
   if (c !== void 0) {
     c.delete(transaction);
   }
 };
-var typeMapSet = (transaction, parent, key, value) => {
-  const left = parent._map.get(key) || null;
+var typeMapSet = (transaction, parent, key2, value) => {
+  const left = parent._map.get(key2) || null;
   const doc = transaction.doc;
   const ownClientId = doc.clientID;
   let content;
@@ -4111,37 +4111,37 @@ var typeMapSet = (transaction, parent, key, value) => {
         }
     }
   }
-  new Item(createID(ownClientId, getState(doc.store, ownClientId)), left, left && left.lastId, null, null, parent, key, content).integrate(transaction, 0);
+  new Item(createID(ownClientId, getState(doc.store, ownClientId)), left, left && left.lastId, null, null, parent, key2, content).integrate(transaction, 0);
 };
-var typeMapGet = (parent, key) => {
+var typeMapGet = (parent, key2) => {
   parent.doc ?? warnPrematureAccess();
-  const val = parent._map.get(key);
+  const val = parent._map.get(key2);
   return val !== void 0 && !val.deleted ? val.content.getContent()[val.length - 1] : void 0;
 };
 var typeMapGetAll = (parent) => {
   const res = {};
   parent.doc ?? warnPrematureAccess();
-  parent._map.forEach((value, key) => {
+  parent._map.forEach((value, key2) => {
     if (!value.deleted) {
-      res[key] = value.content.getContent()[value.length - 1];
+      res[key2] = value.content.getContent()[value.length - 1];
     }
   });
   return res;
 };
-var typeMapHas = (parent, key) => {
+var typeMapHas = (parent, key2) => {
   parent.doc ?? warnPrematureAccess();
-  const val = parent._map.get(key);
+  const val = parent._map.get(key2);
   return val !== void 0 && !val.deleted;
 };
 var typeMapGetAllSnapshot = (parent, snapshot) => {
   const res = {};
-  parent._map.forEach((value, key) => {
+  parent._map.forEach((value, key2) => {
     let v = value;
     while (v !== null && (!snapshot.sv.has(v.id.client) || v.id.clock >= (snapshot.sv.get(v.id.client) || 0))) {
       v = v.left;
     }
     if (v !== null && isVisible(v, snapshot)) {
-      res[key] = v.content.getContent()[v.length - 1];
+      res[key2] = v.content.getContent()[v.length - 1];
     }
   });
   return res;
@@ -4415,8 +4415,8 @@ var YMap = class _YMap extends AbstractType {
    */
   _integrate(y, item) {
     super._integrate(y, item);
-    this._prelimContent.forEach((value, key) => {
-      this.set(key, value);
+    this._prelimContent.forEach((value, key2) => {
+      this.set(key2, value);
     });
     this._prelimContent = null;
   }
@@ -4435,8 +4435,8 @@ var YMap = class _YMap extends AbstractType {
    */
   clone() {
     const map3 = new _YMap();
-    this.forEach((value, key) => {
-      map3.set(key, value instanceof AbstractType ? (
+    this.forEach((value, key2) => {
+      map3.set(key2, value instanceof AbstractType ? (
         /** @type {typeof value} */
         value.clone()
       ) : value);
@@ -4460,10 +4460,10 @@ var YMap = class _YMap extends AbstractType {
   toJSON() {
     this.doc ?? warnPrematureAccess();
     const map3 = {};
-    this._map.forEach((item, key) => {
+    this._map.forEach((item, key2) => {
       if (!item.deleted) {
         const v = item.content.getContent()[item.length - 1];
-        map3[key] = v instanceof AbstractType ? v.toJSON() : v;
+        map3[key2] = v instanceof AbstractType ? v.toJSON() : v;
       }
     });
     return map3;
@@ -4522,9 +4522,9 @@ var YMap = class _YMap extends AbstractType {
    */
   forEach(f) {
     this.doc ?? warnPrematureAccess();
-    this._map.forEach((item, key) => {
+    this._map.forEach((item, key2) => {
       if (!item.deleted) {
-        f(item.content.getContent()[item.length - 1], key, this);
+        f(item.content.getContent()[item.length - 1], key2, this);
       }
     });
   }
@@ -4541,13 +4541,13 @@ var YMap = class _YMap extends AbstractType {
    *
    * @param {string} key The key of the element to remove.
    */
-  delete(key) {
+  delete(key2) {
     if (this.doc !== null) {
       transact(this.doc, (transaction) => {
-        typeMapDelete(transaction, this, key);
+        typeMapDelete(transaction, this, key2);
       });
     } else {
-      this._prelimContent.delete(key);
+      this._prelimContent.delete(key2);
     }
   }
   /**
@@ -4558,19 +4558,19 @@ var YMap = class _YMap extends AbstractType {
    * @param {VAL} value The value of the element to add
    * @return {VAL}
    */
-  set(key, value) {
+  set(key2, value) {
     if (this.doc !== null) {
       transact(this.doc, (transaction) => {
         typeMapSet(
           transaction,
           this,
-          key,
+          key2,
           /** @type {any} */
           value
         );
       });
     } else {
-      this._prelimContent.set(key, value);
+      this._prelimContent.set(key2, value);
     }
     return value;
   }
@@ -4580,10 +4580,10 @@ var YMap = class _YMap extends AbstractType {
    * @param {string} key
    * @return {MapType|undefined}
    */
-  get(key) {
+  get(key2) {
     return (
       /** @type {any} */
-      typeMapGet(this, key)
+      typeMapGet(this, key2)
     );
   }
   /**
@@ -4592,8 +4592,8 @@ var YMap = class _YMap extends AbstractType {
    * @param {string} key The key to test.
    * @return {boolean}
    */
-  has(key) {
-    return typeMapHas(this, key);
+  has(key2) {
+    return typeMapHas(this, key2);
   }
   /**
    * Removes all elements from this YMap.
@@ -4601,8 +4601,8 @@ var YMap = class _YMap extends AbstractType {
   clear() {
     if (this.doc !== null) {
       transact(this.doc, (transaction) => {
-        this.forEach(function(_value, key, map3) {
-          typeMapDelete(transaction, map3, key);
+        this.forEach(function(_value, key2, map3) {
+          typeMapDelete(transaction, map3, key2);
         });
       });
     } else {
@@ -4715,21 +4715,21 @@ var insertNegatedAttributes = (transaction, parent, currPos, negatedAttributes) 
   }
   const doc = transaction.doc;
   const ownClientId = doc.clientID;
-  negatedAttributes.forEach((val, key) => {
+  negatedAttributes.forEach((val, key2) => {
     const left = currPos.left;
     const right = currPos.right;
-    const nextFormat = new Item(createID(ownClientId, getState(doc.store, ownClientId)), left, left && left.lastId, right, right && right.id, parent, null, new ContentFormat(key, val));
+    const nextFormat = new Item(createID(ownClientId, getState(doc.store, ownClientId)), left, left && left.lastId, right, right && right.id, parent, null, new ContentFormat(key2, val));
     nextFormat.integrate(transaction, 0);
     currPos.right = nextFormat;
     currPos.forward();
   });
 };
 var updateCurrentAttributes = (currentAttributes, format) => {
-  const { key, value } = format;
+  const { key: key2, value } = format;
   if (value === null) {
-    currentAttributes.delete(key);
+    currentAttributes.delete(key2);
   } else {
-    currentAttributes.set(key, value);
+    currentAttributes.set(key2, value);
   }
 };
 var minimizeAttributeChanges = (currPos, attributes) => {
@@ -4754,13 +4754,13 @@ var insertAttributes = (transaction, parent, currPos, attributes) => {
   const doc = transaction.doc;
   const ownClientId = doc.clientID;
   const negatedAttributes = /* @__PURE__ */ new Map();
-  for (const key in attributes) {
-    const val = attributes[key];
-    const currentVal = currPos.currentAttributes.get(key) ?? null;
+  for (const key2 in attributes) {
+    const val = attributes[key2];
+    const currentVal = currPos.currentAttributes.get(key2) ?? null;
     if (!equalAttrs(currentVal, val)) {
-      negatedAttributes.set(key, currentVal);
+      negatedAttributes.set(key2, currentVal);
       const { left, right } = currPos;
-      currPos.right = new Item(createID(ownClientId, getState(doc.store, ownClientId)), left, left && left.lastId, right, right && right.id, parent, null, new ContentFormat(key, val));
+      currPos.right = new Item(createID(ownClientId, getState(doc.store, ownClientId)), left, left && left.lastId, right, right && right.id, parent, null, new ContentFormat(key2, val));
       currPos.right.integrate(transaction, 0);
       currPos.forward();
     }
@@ -4768,9 +4768,9 @@ var insertAttributes = (transaction, parent, currPos, attributes) => {
   return negatedAttributes;
 };
 var insertText = (transaction, parent, currPos, text, attributes) => {
-  currPos.currentAttributes.forEach((_val, key) => {
-    if (attributes[key] === void 0) {
-      attributes[key] = null;
+  currPos.currentAttributes.forEach((_val, key2) => {
+    if (attributes[key2] === void 0) {
+      attributes[key2] = null;
     }
   });
   const doc = transaction.doc;
@@ -4801,23 +4801,23 @@ var formatText = (transaction, parent, currPos, length2, attributes) => {
     if (!currPos.right.deleted) {
       switch (currPos.right.content.constructor) {
         case ContentFormat: {
-          const { key, value } = (
+          const { key: key2, value } = (
             /** @type {ContentFormat} */
             currPos.right.content
           );
-          const attr = attributes[key];
+          const attr = attributes[key2];
           if (attr !== void 0) {
             if (equalAttrs(attr, value)) {
-              negatedAttributes.delete(key);
+              negatedAttributes.delete(key2);
             } else {
               if (length2 === 0) {
                 break iterationLoop;
               }
-              negatedAttributes.set(key, value);
+              negatedAttributes.set(key2, value);
             }
             currPos.right.delete(transaction);
           } else {
-            currPos.currentAttributes.set(key, value);
+            currPos.currentAttributes.set(key2, value);
           }
           break;
         }
@@ -4865,19 +4865,19 @@ var cleanupFormattingGap = (transaction, start, curr, startAttributes, currAttri
       const content = start.content;
       switch (content.constructor) {
         case ContentFormat: {
-          const { key, value } = (
+          const { key: key2, value } = (
             /** @type {ContentFormat} */
             content
           );
-          const startAttrValue = startAttributes.get(key) ?? null;
-          if (endFormats.get(key) !== content || startAttrValue === value) {
+          const startAttrValue = startAttributes.get(key2) ?? null;
+          if (endFormats.get(key2) !== content || startAttrValue === value) {
             start.delete(transaction);
             cleanups++;
-            if (!reachedCurr && (currAttributes.get(key) ?? null) === value && startAttrValue !== value) {
+            if (!reachedCurr && (currAttributes.get(key2) ?? null) === value && startAttrValue !== value) {
               if (startAttrValue === null) {
-                currAttributes.delete(key);
+                currAttributes.delete(key2);
               } else {
-                currAttributes.set(key, startAttrValue);
+                currAttributes.set(key2, startAttrValue);
               }
             }
           }
@@ -4904,14 +4904,14 @@ var cleanupContextlessFormattingGap = (transaction, item) => {
   const attrs = /* @__PURE__ */ new Set();
   while (item && (item.deleted || !item.countable)) {
     if (!item.deleted && item.content.constructor === ContentFormat) {
-      const key = (
+      const key2 = (
         /** @type {ContentFormat} */
         item.content.key
       );
-      if (attrs.has(key)) {
+      if (attrs.has(key2)) {
         item.delete(transaction);
       } else {
-        attrs.add(key);
+        attrs.add(key2);
       }
     }
     item = item.left;
@@ -5110,9 +5110,9 @@ var YTextEvent = class extends YEvent {
                   op = { insert };
                   if (currentAttributes.size > 0) {
                     op.attributes = {};
-                    currentAttributes.forEach((value, key) => {
+                    currentAttributes.forEach((value, key2) => {
                       if (value !== null) {
-                        op.attributes[key] = value;
+                        op.attributes[key2] = value;
                       }
                     });
                   }
@@ -5183,47 +5183,47 @@ var YTextEvent = class extends YEvent {
               }
               break;
             case ContentFormat: {
-              const { key, value } = (
+              const { key: key2, value } = (
                 /** @type {ContentFormat} */
                 item.content
               );
               if (this.adds(item)) {
                 if (!this.deletes(item)) {
-                  const curVal = currentAttributes.get(key) ?? null;
+                  const curVal = currentAttributes.get(key2) ?? null;
                   if (!equalAttrs(curVal, value)) {
                     if (action === "retain") {
                       addOp();
                     }
-                    if (equalAttrs(value, oldAttributes.get(key) ?? null)) {
-                      delete attributes[key];
+                    if (equalAttrs(value, oldAttributes.get(key2) ?? null)) {
+                      delete attributes[key2];
                     } else {
-                      attributes[key] = value;
+                      attributes[key2] = value;
                     }
                   } else if (value !== null) {
                     item.delete(transaction);
                   }
                 }
               } else if (this.deletes(item)) {
-                oldAttributes.set(key, value);
-                const curVal = currentAttributes.get(key) ?? null;
+                oldAttributes.set(key2, value);
+                const curVal = currentAttributes.get(key2) ?? null;
                 if (!equalAttrs(curVal, value)) {
                   if (action === "retain") {
                     addOp();
                   }
-                  attributes[key] = curVal;
+                  attributes[key2] = curVal;
                 }
               } else if (!item.deleted) {
-                oldAttributes.set(key, value);
-                const attr = attributes[key];
+                oldAttributes.set(key2, value);
+                const attr = attributes[key2];
                 if (attr !== void 0) {
                   if (!equalAttrs(attr, value)) {
                     if (action === "retain") {
                       addOp();
                     }
                     if (value === null) {
-                      delete attributes[key];
+                      delete attributes[key2];
                     } else {
-                      attributes[key] = value;
+                      attributes[key2] = value;
                     }
                   } else if (attr !== null) {
                     item.delete(transaction);
@@ -5407,9 +5407,9 @@ var YText = class _YText extends AbstractType {
       if (str2.length > 0) {
         const attributes = {};
         let addAttributes = false;
-        currentAttributes.forEach((value, key) => {
+        currentAttributes.forEach((value, key2) => {
           addAttributes = true;
-          attributes[key] = value;
+          attributes[key2] = value;
         });
         const op = { insert: str2 };
         if (addAttributes) {
@@ -5455,8 +5455,8 @@ var YText = class _YText extends AbstractType {
                   {}
                 );
                 op.attributes = attrs;
-                currentAttributes.forEach((value, key) => {
-                  attrs[key] = value;
+                currentAttributes.forEach((value, key2) => {
+                  attrs[key2] = value;
                 });
               }
               ops.push(op);
@@ -6055,8 +6055,8 @@ var YXmlElement = class _YXmlElement extends YXmlFragment {
   _integrate(y, item) {
     super._integrate(y, item);
     /** @type {Map<string, any>} */
-    this._prelimAttrs.forEach((value, key) => {
-      this.setAttribute(key, value);
+    this._prelimAttrs.forEach((value, key2) => {
+      this.setAttribute(key2, value);
     });
     this._prelimAttrs = null;
   }
@@ -6078,9 +6078,9 @@ var YXmlElement = class _YXmlElement extends YXmlFragment {
   clone() {
     const el = new _YXmlElement(this.nodeName);
     const attrs = this.getAttributes();
-    forEach(attrs, (value, key) => {
+    forEach(attrs, (value, key2) => {
       el.setAttribute(
-        key,
+        key2,
         /** @type {any} */
         value
       );
@@ -6101,14 +6101,14 @@ var YXmlElement = class _YXmlElement extends YXmlFragment {
     const attrs = this.getAttributes();
     const stringBuilder = [];
     const keys2 = [];
-    for (const key in attrs) {
-      keys2.push(key);
+    for (const key2 in attrs) {
+      keys2.push(key2);
     }
     keys2.sort();
     const keysLen = keys2.length;
     for (let i = 0; i < keysLen; i++) {
-      const key = keys2[i];
-      stringBuilder.push(key + '="' + attrs[key] + '"');
+      const key2 = keys2[i];
+      stringBuilder.push(key2 + '="' + attrs[key2] + '"');
     }
     const nodeName = this.nodeName.toLocaleLowerCase();
     const attrsString = stringBuilder.length > 0 ? " " + stringBuilder.join(" ") : "";
@@ -6212,10 +6212,10 @@ var YXmlElement = class _YXmlElement extends YXmlFragment {
   toDOM(_document = document, hooks = {}, binding) {
     const dom = _document.createElement(this.nodeName);
     const attrs = this.getAttributes();
-    for (const key in attrs) {
-      const value = attrs[key];
+    for (const key2 in attrs) {
+      const value = attrs[key2];
       if (typeof value === "string") {
-        dom.setAttribute(key, value);
+        dom.setAttribute(key2, value);
       }
     }
     typeListForEach(this, (yxml) => {
@@ -6284,8 +6284,8 @@ var YXmlHook = class _YXmlHook extends YMap {
    */
   clone() {
     const el = new _YXmlHook(this.hookName);
-    this.forEach((value, key) => {
-      el.set(key, value);
+    this.forEach((value, key2) => {
+      el.set(key2, value);
     });
     return el;
   }
@@ -6397,8 +6397,8 @@ var YXmlText = class _YXmlText extends YText {
       const nestedNodes = [];
       for (const nodeName in delta.attributes) {
         const attrs = [];
-        for (const key in delta.attributes[nodeName]) {
-          attrs.push({ key, value: delta.attributes[nodeName][key] });
+        for (const key2 in delta.attributes[nodeName]) {
+          attrs.push({ key: key2, value: delta.attributes[nodeName][key2] });
         }
         attrs.sort((a, b) => a.key < b.key ? -1 : 1);
         nestedNodes.push({ nodeName, attrs });
@@ -6862,8 +6862,8 @@ var ContentFormat = class _ContentFormat {
    * @param {string} key
    * @param {Object} value
    */
-  constructor(key, value) {
-    this.key = key;
+  constructor(key2, value) {
+    this.key = key2;
     this.value = value;
   }
   /**
@@ -8143,7 +8143,7 @@ var applyAwarenessUpdate = (awareness, update, origin) => {
 };
 
 // ../../node_modules/.pnpm/lib0@0.2.117/node_modules/lib0/url.js
-var encodeQueryParams = (params2) => map(params2, (val, key) => `${encodeURIComponent(key)}=${encodeURIComponent(val)}`).join("&");
+var encodeQueryParams = (params2) => map(params2, (val, key2) => `${encodeURIComponent(key2)}=${encodeURIComponent(val)}`).join("&");
 
 // ../../node_modules/.pnpm/y-websocket@2.1.0_bufferutil@4.1.0_yjs@13.6.31/node_modules/y-websocket/src/y-websocket.js
 var messageSync = 0;
@@ -8535,11 +8535,21 @@ async function generateKeyPair() {
   const kp = await subtle2().generateKey(ALG, true, ["sign", "verify"]);
   return { publicKey: kp.publicKey, privateKey: kp.privateKey };
 }
-async function exportPublicKey(key) {
-  return toB64(await subtle2().exportKey("raw", key));
+async function exportPublicKey(key2) {
+  return toB64(await subtle2().exportKey("raw", key2));
 }
 async function importPublicKey(b64) {
   return subtle2().importKey("raw", src(fromB64(b64)), ALG, true, ["verify"]);
+}
+var pubKeys = /* @__PURE__ */ new Map();
+function cachedPublicKey(b64) {
+  let k = pubKeys.get(b64);
+  if (!k) {
+    k = importPublicKey(b64);
+    k.catch(() => pubKeys.delete(b64));
+    pubKeys.set(b64, k);
+  }
+  return k;
 }
 async function sign(priv, data) {
   return toB64(await subtle2().sign(SIGN, priv, src(data)));
@@ -8550,20 +8560,32 @@ async function verify(pub, sig, data) {
 function capBytes(c) {
   return utf8(JSON.stringify([c.docId, c.subject, c.permission, c.iat, c.exp ?? 0]));
 }
+var capVerdicts = /* @__PURE__ */ new Map();
+var CAP_VERDICTS_MAX = 4096;
 async function verifyCapability(sc, ownerPublicKeyB64, docId, now = Date.now()) {
   if (!sc?.cap || sc.cap.docId !== docId) return false;
   if (sc.cap.exp != null && now > sc.cap.exp) return false;
+  if (sc.via && sc.via.cap?.exp != null && now > sc.via.cap.exp) return false;
+  const key2 = JSON.stringify([ownerPublicKeyB64, sc.sig, sc.cap, sc.via ? [sc.via.sig, sc.via.cap] : null]);
+  let v = capVerdicts.get(key2);
+  if (!v) {
+    if (capVerdicts.size >= CAP_VERDICTS_MAX) capVerdicts.clear();
+    v = verifyCapabilitySigs(sc, ownerPublicKeyB64, docId).catch(() => false);
+    capVerdicts.set(key2, v);
+  }
+  return v;
+}
+async function verifyCapabilitySigs(sc, ownerPublicKeyB64, docId) {
   if (sc.via) {
     if (sc.cap.permission === "own" /* Own */) return false;
     const d = sc.via;
     if (!d?.cap || d.cap.docId !== docId || d.cap.permission !== "own" /* Own */) return false;
-    if (d.cap.exp != null && now > d.cap.exp) return false;
-    const rootPub = await importPublicKey(ownerPublicKeyB64);
+    const rootPub = await cachedPublicKey(ownerPublicKeyB64);
     if (!await verify(rootPub, d.sig, capBytes(d.cap))) return false;
-    const delegatedPub = await importPublicKey(d.cap.subject);
+    const delegatedPub = await cachedPublicKey(d.cap.subject);
     return verify(delegatedPub, sc.sig, capBytes(sc.cap));
   }
-  const ownerPub = await importPublicKey(ownerPublicKeyB64);
+  const ownerPub = await cachedPublicKey(ownerPublicKeyB64);
   return verify(ownerPub, sc.sig, capBytes(sc.cap));
 }
 function updateBytes(docId, updateB64) {
@@ -8585,7 +8607,7 @@ async function authorizeUpdate(env, ownerPublicKeyB64, docId, now = Date.now()) 
   if (subject !== WILDCARD_SUBJECT && subject !== env.author) return null;
   if (env.cap.cap.permission !== "edit" /* Edit */ && env.cap.cap.permission !== "suggest" /* Suggest */) return null;
   if (!await verifyCapability(env.cap, ownerPublicKeyB64, docId, now)) return null;
-  const authorPub = await importPublicKey(env.author);
+  const authorPub = await cachedPublicKey(env.author);
   if (!await verify(authorPub, env.sig, updateBytes(env.docId, env.update))) return null;
   return fromB64(env.update);
 }
@@ -8644,24 +8666,24 @@ async function roomKeyFromFragment(fragment) {
   }
 }
 var te = new TextEncoder();
-async function sealUpdate2(key, plaintext, aad) {
+async function sealUpdate2(key2, plaintext, aad) {
   const iv = crypto.getRandomValues(new Uint8Array(IV_LEN));
   const params2 = { name: "AES-GCM", iv: ab(iv) };
   if (aad) params2.additionalData = ab(aad);
-  const ct = new Uint8Array(await crypto.subtle.encrypt(params2, key, ab(plaintext)));
+  const ct = new Uint8Array(await crypto.subtle.encrypt(params2, key2, ab(plaintext)));
   const out = new Uint8Array(IV_LEN + ct.length);
   out.set(iv, 0);
   out.set(ct, IV_LEN);
   return out;
 }
-async function openUpdate(key, framed, aad) {
+async function openUpdate(key2, framed, aad) {
   if (framed.length < IV_LEN + 16) return null;
   const iv = framed.subarray(0, IV_LEN);
   const ct = framed.subarray(IV_LEN);
   const params2 = { name: "AES-GCM", iv: ab(iv) };
   if (aad) params2.additionalData = ab(aad);
   try {
-    return new Uint8Array(await crypto.subtle.decrypt(params2, key, ab(ct)));
+    return new Uint8Array(await crypto.subtle.decrypt(params2, key2, ab(ct)));
   } catch {
     return null;
   }
@@ -8713,6 +8735,7 @@ function touchesOnlySuggestions(doc, update) {
 
 // editor/collab/access/authorizedSync.ts
 var ORIGIN = "authorized-sync";
+var REPLAY_CHUNK = 256;
 function bridgeAuthorizedSync(appDoc, wire, ctx, onReject) {
   const applied = /* @__PURE__ */ new Set();
   const pairKey = (author, capSig) => `${author}|${capSig}`;
@@ -8747,40 +8770,60 @@ function bridgeAuthorizedSync(appDoc, wire, ctx, onReject) {
     })();
   };
   appDoc.on("update", onLocal);
-  const consume = async (envs) => {
-    for (const env of envs) {
-      if (!env || applied.has(env.sig)) continue;
-      const payload = await authorizeUpdate(env, ctx.ownerPublicKey, ctx.docId);
-      if (!payload) {
-        onReject?.(env);
-        continue;
+  const queued = /* @__PURE__ */ new Set();
+  let tail = Promise.resolve();
+  const open = async (env) => {
+    const payload = await authorizeUpdate(env, ctx.ownerPublicKey, ctx.docId);
+    if (!payload) return null;
+    return ctx.roomKey ? await openUpdate(ctx.roomKey, payload, aad) : payload;
+  };
+  const applyChunk = (envs, updates) => {
+    appDoc.transact(() => {
+      envs.forEach((env, i) => {
+        const update = updates[i];
+        if (!update || applied.has(env.sig)) {
+          if (!update) onReject?.(env);
+          return;
+        }
+        if (env.cap.cap.permission === "suggest" /* Suggest */ && !touchesOnlySuggestions(appDoc, update)) {
+          onReject?.(env);
+          return;
+        }
+        if (!position.has(env.sig)) {
+          const k = pairKey(env.author, env.cap.sig);
+          const n = (counts.get(k) ?? 0) + 1;
+          counts.set(k, n);
+          position.set(env.sig, n);
+        }
+        if (isCut(env.author, env.cap.sig, position.get(env.sig))) {
+          onReject?.(env);
+          return;
+        }
+        if (env.cap.cap.permission === "edit" /* Edit */ && !isOwnerKey(env.author) && modeAt(modes, pairKey(env.author, env.cap.sig), position.get(env.sig)) === "review" /* Review */ && !touchesOnlySuggestions(appDoc, update)) {
+          onReject?.(env);
+          return;
+        }
+        applied.add(env.sig);
+        applyUpdate(appDoc, update, ORIGIN);
+      });
+    }, ORIGIN);
+  };
+  const consume = (envs) => {
+    const fresh = envs.filter((e) => e && !applied.has(e.sig) && !queued.has(e.sig));
+    for (const e of fresh) queued.add(e.sig);
+    const run = tail.then(async () => {
+      try {
+        for (let i = 0; i < fresh.length; i += REPLAY_CHUNK) {
+          const chunk = fresh.slice(i, i + REPLAY_CHUNK);
+          applyChunk(chunk, await Promise.all(chunk.map((e) => open(e).catch(() => null))));
+        }
+      } finally {
+        for (const e of fresh) queued.delete(e.sig);
       }
-      const update = ctx.roomKey ? await openUpdate(ctx.roomKey, payload, aad) : payload;
-      if (!update) {
-        onReject?.(env);
-        continue;
-      }
-      if (env.cap.cap.permission === "suggest" /* Suggest */ && !touchesOnlySuggestions(appDoc, update)) {
-        onReject?.(env);
-        continue;
-      }
-      if (!position.has(env.sig)) {
-        const k = pairKey(env.author, env.cap.sig);
-        const n = (counts.get(k) ?? 0) + 1;
-        counts.set(k, n);
-        position.set(env.sig, n);
-      }
-      if (isCut(env.author, env.cap.sig, position.get(env.sig))) {
-        onReject?.(env);
-        continue;
-      }
-      if (env.cap.cap.permission === "edit" /* Edit */ && !isOwnerKey(env.author) && modeAt(modes, pairKey(env.author, env.cap.sig), position.get(env.sig)) === "review" /* Review */ && !touchesOnlySuggestions(appDoc, update)) {
-        onReject?.(env);
-        continue;
-      }
-      applied.add(env.sig);
-      applyUpdate(appDoc, update, ORIGIN);
-    }
+    });
+    tail = run.catch(() => {
+    });
+    return run;
   };
   const onWire = (event) => {
     const added = [];
@@ -8871,7 +8914,7 @@ function isLockedSecrets(x) {
 }
 
 // editor/collab/share/shareLink.ts
-var SHARE_TTL_MS = 12 * 60 * 60 * 1e3;
+var SHARE_TTL_MS = 24 * 60 * 60 * 1e3;
 function b64urlEncode(s) {
   const bytes = new TextEncoder().encode(s);
   let bin = "";
@@ -9009,8 +9052,8 @@ async function openAnswer(sealed, myPublicKey, myEcdhKey, context = ANSWER_CONTE
   try {
     const epkRaw = unb64(copy2.epk);
     const epk = await crypto.subtle.importKey("raw", epkRaw, ECDH, false, []);
-    const key = await aesKey(myEcdhKey, epk, epkRaw, "decrypt", context);
-    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(copy2.iv) }, key, unb64(copy2.ct));
+    const key2 = await aesKey(myEcdhKey, epk, epkRaw, "decrypt", context);
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(copy2.iv) }, key2, unb64(copy2.ct));
     return new TextDecoder().decode(plain);
   } catch {
     return null;
@@ -9021,6 +9064,7 @@ async function openAnswer(sealed, myPublicKey, myEcdhKey, context = ANSWER_CONTE
 var RelayAction = /* @__PURE__ */ ((RelayAction2) => {
   RelayAction2["RegisterCode"] = "registerCode";
   RelayAction2["SetInviteOnly"] = "setInviteOnly";
+  RelayAction2["SetDeadline"] = "setDeadline";
   RelayAction2["Admit"] = "admit";
   RelayAction2["Deny"] = "deny";
   RelayAction2["AdmitLobby"] = "admitLobby";
@@ -9099,6 +9143,63 @@ function suggestText(doc, range, after, by, extra = {}) {
   };
   map2(doc).set(s.id, s);
   return s;
+}
+
+// editor/collab/mentions/mentionTargets.ts
+var MentionGroup = /* @__PURE__ */ ((MentionGroup2) => {
+  MentionGroup2["AgentSmithAll"] = "Agent-Smith-All";
+  MentionGroup2["Agents"] = "agents";
+  MentionGroup2["All"] = "all";
+  return MentionGroup2;
+})(MentionGroup || {});
+function agentHandle(i) {
+  let n = Math.max(0, Math.floor(i)) + 1;
+  let s = "";
+  while (n > 0) {
+    const r2 = (n - 1) % 26;
+    s = String.fromCharCode(65 + r2) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return `Agent-Smith-${s}`;
+}
+function mentionHandle(name) {
+  return name.trim().replace(/@/g, "").replace(/\s+/g, "-");
+}
+var key = (handle) => mentionHandle(handle).toLowerCase();
+function parseMentions(body) {
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const m of body.matchAll(/(^|[^\w@])@([^\s@]+)/g)) {
+    const h = m[2].replace(/[.,!?;:)\]}'"]+$/, "");
+    if (!h || seen.has(h.toLowerCase())) continue;
+    seen.add(h.toLowerCase());
+    out.push(h);
+  }
+  return out;
+}
+function toMentionGroup(handle) {
+  const k = key(handle);
+  return Object.values(MentionGroup).find((g) => g.toLowerCase() === k);
+}
+function addressingOf(body) {
+  const to = [];
+  let agents = false;
+  let everyone = false;
+  for (const h of parseMentions(body)) {
+    const g = toMentionGroup(h);
+    if (g === "all" /* All */) everyone = true;
+    else if (g) agents = true;
+    else to.push(h);
+  }
+  return { to, agents, everyone };
+}
+function isAddressedTo(a, name, isAgent) {
+  if (a.everyone || isAgent && a.agents) return true;
+  const k = key(name);
+  return a.to.some((h) => key(h) === k);
+}
+function namesAnyone(a) {
+  return a.everyone || a.agents || a.to.length > 0;
 }
 
 // ../../packages/deltagraph/src/board/palette.ts
@@ -9382,10 +9483,10 @@ function newElementId() {
 function newSeed() {
   return Math.floor(Math.random() * 2 ** 31);
 }
-function seedFrom(key) {
+function seedFrom(key2) {
   let h = 2166136261;
-  for (let i = 0; i < key.length; i++) {
-    h ^= key.charCodeAt(i);
+  for (let i = 0; i < key2.length; i++) {
+    h ^= key2.charCodeAt(i);
     h = Math.imul(h, 16777619);
   }
   return (h >>> 0) % 2 ** 31;
@@ -9471,17 +9572,63 @@ function elFromY(v) {
   if (typeof v.get("id") !== "string") return null;
   const out = {};
   let votes = null;
+  let data = null;
+  let style = null;
+  const entries = {};
+  let fileOrder = null;
+  const fileBodies = /* @__PURE__ */ new Map();
   for (const [k, x] of v.entries()) {
     if (k.startsWith(VOTE_KEY)) {
       if (typeof x === "number" && x > 0) (votes ??= {})[k.slice(VOTE_KEY.length)] = x;
       continue;
     }
+    if (k.startsWith(FILE_KEY)) {
+      fileBodies.set(k.slice(FILE_KEY.length), typeof x === "string" ? x : String(x ?? ""));
+      continue;
+    }
+    if (k === FILE_ORDER) {
+      if (Array.isArray(x)) fileOrder = x.filter((p) => typeof p === "string");
+      continue;
+    }
+    if (k.startsWith(DATA)) {
+      const rest = k.slice(DATA.length);
+      const dot = rest.indexOf(".");
+      const name = dot < 0 ? rest : rest.slice(0, dot);
+      if (dot >= 0 && ENTRY_MAPS.has(name)) (entries[name] ??= {})[rest.slice(dot + 1)] = x;
+      else (data ??= {})[rest] = x;
+      continue;
+    }
+    if (k === "text" && x instanceof YText) {
+      out.text = x.toString();
+      continue;
+    }
+    if (k.startsWith(STYLE)) {
+      (style ??= {})[k.slice(STYLE.length)] = x;
+      continue;
+    }
     out[k] = x;
   }
   if (votes) out.votes = votes;
+  if (data || Object.keys(entries).length || fileOrder) {
+    const d = { ...isPlain(out.data) ? out.data : {}, ...data ?? {} };
+    for (const [name, m] of Object.entries(entries)) d[name] = { ...isPlain(d[name]) ? d[name] : {}, ...m };
+    if (fileOrder) {
+      const order = [...fileOrder.filter((p) => fileBodies.has(p)), ...[...fileBodies.keys()].filter((p) => !fileOrder.includes(p))];
+      d.files = order.map((path) => ({ path, content: fileBodies.get(path) }));
+    }
+    out.data = d;
+  }
+  if (style) out.style = { ...isPlain(out.style) ? out.style : {}, ...style };
   return out;
 }
 var VOTE_KEY = "vote.";
+var DATA = "data.";
+var STYLE = "style.";
+var ENTRY_MAPS = /* @__PURE__ */ new Set(["votes", "names", "cells"]);
+var FILE_ORDER = "data.files";
+var FILE_KEY = "file.";
+var isFileList = (v) => Array.isArray(v) && v.every((f) => isPlain(f) && typeof f.path === "string" && typeof f.content === "string");
+var isPlain = (v) => !!v && typeof v === "object" && !Array.isArray(v);
 function writeElToY(yEls, el) {
   const doc = yEls.doc;
   if (doc) doc.transact(() => writeEl(yEls, el));
@@ -9494,30 +9641,62 @@ function writeEl(yEls, el) {
     yEls.set(el.id, m);
   }
   const em = m;
-  const { votes, ...plain } = el;
-  const rec = plain;
-  for (const [k, v] of Object.entries(rec)) {
-    if (v === void 0) {
-      if (em.has(k)) em.delete(k);
-    } else if (!jsonEq(em.get(k), v)) {
-      em.set(k, v);
+  const { votes, data, style, text, ...plain } = el;
+  if (typeof text === "string") {
+    const cur = em.get("text");
+    if (cur instanceof YText) applyTextDiff(cur, text);
+    else {
+      const t = new YText();
+      t.insert(0, text);
+      em.set("text", t);
     }
+  } else if (text !== void 0) plain.text = text;
+  const want = /* @__PURE__ */ new Map();
+  for (const [k, v] of Object.entries(plain)) if (v !== void 0) want.set(k, v);
+  for (const [uid, n] of Object.entries(votes ?? {})) if (n > 0) want.set(VOTE_KEY + uid, n);
+  if (isPlain(data)) {
+    for (const [k, v] of Object.entries(data)) {
+      if (v === void 0) continue;
+      if (k === "files" && isFileList(v)) {
+        want.set(FILE_ORDER, v.map((f) => f.path));
+        for (const f of v) want.set(FILE_KEY + f.path, f.content);
+        continue;
+      }
+      if (ENTRY_MAPS.has(k) && isPlain(v)) {
+        want.set(DATA + k, {});
+        for (const [ek, ev] of Object.entries(v)) if (ev !== void 0) want.set(`${DATA}${k}.${ek}`, ev);
+      } else want.set(DATA + k, v);
+    }
+  } else if (data !== void 0) want.set("data", data);
+  if (isPlain(style)) {
+    for (const [k, v] of Object.entries(style)) if (v !== void 0) want.set(STYLE + k, v);
+  } else if (style !== void 0) want.set("style", style);
+  for (const [k, v] of want) if (!jsonEq(em.get(k), v)) em.set(k, v);
+  for (const k of [...em.keys()]) if (!want.has(k) && !(k === "text" && typeof text === "string")) em.delete(k);
+}
+function applyTextDiff(t, next) {
+  const cur = t.toString();
+  if (cur === next) return;
+  let start = 0;
+  const max2 = Math.min(cur.length, next.length);
+  while (start < max2 && cur.charCodeAt(start) === next.charCodeAt(start)) start++;
+  let endCur = cur.length, endNext = next.length;
+  while (endCur > start && endNext > start && cur.charCodeAt(endCur - 1) === next.charCodeAt(endNext - 1)) {
+    endCur--;
+    endNext--;
   }
-  const wantVotes = votes ?? {};
-  for (const [uid, n] of Object.entries(wantVotes)) {
-    const k = VOTE_KEY + uid;
-    if (n > 0) {
-      if (em.get(k) !== n) em.set(k, n);
-    } else if (em.has(k)) em.delete(k);
+  const high = (c) => c >= 55296 && c <= 56319;
+  const low = (c) => c >= 56320 && c <= 57343;
+  if (start > 0 && high(cur.charCodeAt(start - 1))) start--;
+  if (endCur < cur.length && low(cur.charCodeAt(endCur))) {
+    endCur++;
+    endNext++;
   }
-  for (const k of [...em.keys()]) {
-    if (k.startsWith(VOTE_KEY)) {
-      if (!(k.slice(VOTE_KEY.length) in wantVotes)) em.delete(k);
-    } else if (!(k in rec)) em.delete(k);
-  }
+  if (endCur > start) t.delete(start, endCur - start);
+  if (endNext > start) t.insert(start, next.slice(start, endNext));
 }
 
-// ../../packages/deltadraw/src/boardComments.ts
+// ../../packages/deltaboard/src/boardComments.ts
 var BOARD_THREAD_ID = "__board__";
 
 // ../../packages/deltagraph/src/board/membership.ts
@@ -10317,14 +10496,14 @@ function uncrossSharedFaces(items, boxOf) {
     }
   });
   const out = [];
-  for (const [key, idxs] of faces) {
+  for (const [key2, idxs] of faces) {
     if (idxs.length !== 2) continue;
     const [i, j] = idxs;
     const a = items[i], b = items[j];
     const before = routeCrossings(a.refined, b.refined);
     if (!before) continue;
-    const end = key.endsWith(":a") ? 0 : 1;
-    const horizontalFace = key.includes(":N:") || key.includes(":S:");
+    const end = key2.endsWith(":a") ? 0 : 1;
+    const horizontalFace = key2.includes(":N:") || key2.includes(":S:");
     const axis = horizontalFace ? 0 : 1;
     const at = (r2) => end === 0 ? 0 : r2.length - 1;
     const ai = at(a.raw), bi = at(b.raw);
@@ -10838,8 +11017,8 @@ function layeredLayout(ids, edges, base, cellW, cellH, dim, gapX = 64, gapY = 46
     const [w, h] = dim(id2);
     pos.set(id2, [x.get(id2) + shift - w / 2, yOf(expLayer.get(id2)) - h / 2]);
   }
-  for (const [key, chain] of chainOf) {
-    waypoints.set(key, chain.map((d) => [x.get(d) + shift, yOf(expLayer.get(d))]));
+  for (const [key2, chain] of chainOf) {
+    waypoints.set(key2, chain.map((d) => [x.get(d) + shift, yOf(expLayer.get(d))]));
   }
   return { pos, waypoints, layer, reversedEdges: [...reversed].map((i) => ({ from: rel[i].from, to: rel[i].to })) };
 }
@@ -11357,11 +11536,11 @@ function dgLayoutGraph(nodes, edges, opts = {}) {
   const MIN_TWO_LANE = 2 * LANE_GAP + 8;
   const pairedDone = /* @__PURE__ */ new Set();
   routable.forEach((e, i) => {
-    const key = e.from < e.to ? `${e.from}\0${e.to}` : `${e.to}\0${e.from}`;
-    if (pairedDone.has(key)) return;
+    const key2 = e.from < e.to ? `${e.from}\0${e.to}` : `${e.to}\0${e.from}`;
+    if (pairedDone.has(key2)) return;
     const j = routable.findIndex((o, k) => k !== i && o.from === e.to && o.to === e.from);
     if (j < 0) return;
-    pairedDone.add(key);
+    pairedDone.add(key2);
     const a = boxOf(e.from), b = boxOf(e.to);
     const [as] = edgeSides.get(i);
     const vertical = as === "N" || as === "S";
@@ -11383,11 +11562,11 @@ function dgLayoutGraph(nodes, edges, opts = {}) {
   const bFrac = /* @__PURE__ */ new Map();
   const clsOf = (i) => routable[i].cls ?? "normal";
   const mergeGroups = /* @__PURE__ */ new Map();
-  for (const [key, members] of sideGroups) {
-    const ci = key.lastIndexOf(":");
-    const nodeId = key.slice(0, ci);
+  for (const [key2, members] of sideGroups) {
+    const ci = key2.lastIndexOf(":");
+    const nodeId = key2.slice(0, ci);
     const hub = boxOf(nodeId);
-    const side = key.slice(ci + 1);
+    const side = key2.slice(ci + 1);
     if (!hub) continue;
     const shape = byId.get(nodeId)?.shape;
     const round = shape === "diamond" || shape === "ellipse";
@@ -11402,7 +11581,7 @@ function dgLayoutGraph(nodes, edges, opts = {}) {
     if (n === 1) {
       for (const m of ordered) (m.end === "a" ? aFrac : bFrac).set(m.i, 0.5);
     } else if (sameClass) {
-      mergeGroups.set(key, ordered.map((m) => m.i));
+      mergeGroups.set(key2, ordered.map((m) => m.i));
       const proj = (m) => clamp((m.key - spanStart) / spanLen, 0, 1);
       const aligned = ordered.filter((m) => {
         const f = proj(m);
@@ -11521,15 +11700,15 @@ function dgLayoutGraph(nodes, edges, opts = {}) {
   const funnelByIndex = /* @__PURE__ */ new Map();
   const funnelTrace = [];
   const orderedGroups = [...sideGroups].sort((a, b) => (mergeGroups.has(b[0]) ? 1 : 0) - (mergeGroups.has(a[0]) ? 1 : 0));
-  for (const [key, allMembers] of orderedGroups) {
+  for (const [key2, allMembers] of orderedGroups) {
     const members = allMembers.filter((m) => !waypointed.has(m.i));
     if (members.length < 2) continue;
-    const ci = key.lastIndexOf(":");
-    const hub = boxOf(key.slice(0, ci));
-    const side = key.slice(ci + 1);
+    const ci = key2.lastIndexOf(":");
+    const hub = boxOf(key2.slice(0, ci));
+    const side = key2.slice(ci + 1);
     if (!hub) continue;
     const horizontal = side === "N" || side === "S";
-    if (mergeGroups.has(key)) {
+    if (mergeGroups.has(key2)) {
       let any2 = false;
       let placed = 0;
       for (const m of members) {
@@ -11542,7 +11721,7 @@ function dgLayoutGraph(nodes, edges, opts = {}) {
         }
       }
       if (any2) {
-        funnelTrace.push({ hub: key.slice(0, ci), side, members: members.length, routed: placed, outcome: "merged" });
+        funnelTrace.push({ hub: key2.slice(0, ci), side, members: members.length, routed: placed, outcome: "merged" });
         continue;
       }
     }
@@ -11599,7 +11778,7 @@ function dgLayoutGraph(nodes, edges, opts = {}) {
       for (const [i, r2] of routed) if (!funnelByIndex.has(i)) funnelByIndex.set(i, r2);
     }
     funnelTrace.push({
-      hub: key.slice(0, ci),
+      hub: key2.slice(0, ci),
       side,
       members: members.length,
       routed: routed ? routed.size : 0,
@@ -11910,9 +12089,9 @@ ${open.id}`;
         errors.push(`Line ${i + 1}: could not parse field "${line}"`);
         continue;
       }
-      const [, key, value] = f;
-      if (key.toLowerCase() === "risk") open.risk = value;
-      open.fields.push(`${key}: ${value.replace(/^"|"$/g, "")}`);
+      const [, key2, value] = f;
+      if (key2.toLowerCase() === "risk") open.risk = value;
+      open.fields.push(`${key2}: ${value.replace(/^"|"$/g, "")}`);
       continue;
     }
     const o = OPEN_RE.exec(line);
@@ -11953,15 +12132,15 @@ var Projection = class {
   }
   els = [];
   n = 0;
-  next(key) {
+  next(key2) {
     this.n++;
     return {
-      id: `${this.prefix}~${key}`,
+      id: `${this.prefix}~${key2}`,
       z: String(1e6 + this.n).padStart(12, "0"),
-      seed: seedFrom(`${this.prefix}~${key}`)
+      seed: seedFrom(`${this.prefix}~${key2}`)
     };
   }
-  box(key, x, y, w, h, o = {}) {
+  box(key2, x, y, w, h, o = {}) {
     const style = {
       strokeColor: o.stroke ?? "#4c8dff",
       strokeWidth: 2,
@@ -11971,7 +12150,7 @@ var Projection = class {
     if (o.fill) style.backgroundColor = o.fill;
     if (o.dashed) style.strokeStyle = "dashed";
     const el = {
-      ...this.next(key),
+      ...this.next(key2),
       type: DgElementType.Rectangle,
       x,
       y,
@@ -11987,14 +12166,14 @@ var Projection = class {
     this.els.push(el);
     return el;
   }
-  ellipse(key, x, y, w, h, o = {}) {
-    const el = this.box(key, x, y, w, h, o);
+  ellipse(key2, x, y, w, h, o = {}) {
+    const el = this.box(key2, x, y, w, h, o);
     el.type = DgElementType.Ellipse;
     return el;
   }
-  text(key, x, y, w, h, text, o = {}) {
+  text(key2, x, y, w, h, text, o = {}) {
     const el = {
-      ...this.next(key),
+      ...this.next(key2),
       type: DgElementType.Text,
       x,
       y,
@@ -12009,13 +12188,13 @@ var Projection = class {
     return el;
   }
   /** A polyline. `arrow` gives it a head; otherwise it is a plain rule. */
-  poly(key, pts, o = {}) {
+  poly(key2, pts, o = {}) {
     const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]);
     const x = Math.min(...xs), y = Math.min(...ys);
     const style = { strokeColor: o.stroke ?? "#8892a6", strokeWidth: o.width ?? 2, opacity: o.opacity ?? 100 };
     if (o.dashed) style.strokeStyle = "dashed";
     const el = {
-      ...this.next(key),
+      ...this.next(key2),
       type: o.arrow ? DgElementType.Arrow : DgElementType.Line,
       x,
       y,
@@ -12029,8 +12208,8 @@ var Projection = class {
     this.els.push(el);
     return el;
   }
-  line(key, x1, y1, x2, y2, o = {}) {
-    return this.poly(key, [[x1, y1], [x2, y2]], o);
+  line(key2, x1, y1, x2, y2, o = {}) {
+    return this.poly(key2, [[x1, y1], [x2, y2]], o);
   }
   doc() {
     return { ...dgCreateEmptyBoard(), elements: this.els };
@@ -12811,10 +12990,10 @@ function dgBuildFromTreemap(doc) {
   const place = (nodes, rect, depth, path) => {
     const items = nodes.map((node) => ({ node, value: treeValue(node) }));
     for (const { node, rect: r2 } of squarify(items, rect)) {
-      const key = `${path}/${node.name}`;
+      const key2 = `${path}/${node.name}`;
       const col = seriesColor(depth === 0 ? nodes.indexOf(node) : depth + nodes.indexOf(node));
       const leaf = !node.children.length;
-      p.box(`cell${key}`, r2.x, r2.y, Math.max(1, r2.w - GAP), Math.max(1, r2.h - GAP), {
+      p.box(`cell${key2}`, r2.x, r2.y, Math.max(1, r2.w - GAP), Math.max(1, r2.h - GAP), {
         stroke: col,
         fill: leaf ? col : void 0,
         // A leaf's fill is a category tint, and at 62% it stopped being one: the
@@ -12826,13 +13005,13 @@ function dgBuildFromTreemap(doc) {
       if (r2.w > 46 && r2.h > 22) {
         const caption = leaf ? `${node.name}
 ${treeValue(node)}` : node.name;
-        p.text(`label${key}`, r2.x + 4, r2.y + 4, r2.w - 12, leaf ? 32 : 16, caption, {
+        p.text(`label${key2}`, r2.x + 4, r2.y + 4, r2.w - 12, leaf ? 32 : 16, caption, {
           fontSize: leaf ? 11 : 12,
           align: leaf ? DgAlign.Center : DgAlign.Left
         });
       }
       if (!leaf && r2.w > 30 && r2.h > HEAD + 12) {
-        place(node.children, { x: r2.x + GAP, y: r2.y + HEAD, w: r2.w - GAP * 2 - GAP, h: r2.h - HEAD - GAP * 2 }, depth + 1, key);
+        place(node.children, { x: r2.x + GAP, y: r2.y + HEAD, w: r2.w - GAP * 2 - GAP, h: r2.h - HEAD - GAP * 2 }, depth + 1, key2);
       }
     }
   };
@@ -13095,9 +13274,9 @@ function parseShape(delims) {
   if (delims.startsWith("<<")) {
     const inner = delims.slice(2, -2).trim();
     const pipe2 = inner.indexOf("|");
-    const key = (pipe2 >= 0 ? inner.slice(0, pipe2) : inner).trim();
-    const lbl = pipe2 >= 0 ? lab(inner.slice(pipe2 + 1)) : resolveWidgetLabel(key) ?? key;
-    return { type: DgElementType.Rectangle, label: lbl, buffer: false, widget: key };
+    const key2 = (pipe2 >= 0 ? inner.slice(0, pipe2) : inner).trim();
+    const lbl = pipe2 >= 0 ? lab(inner.slice(pipe2 + 1)) : resolveWidgetLabel(key2) ?? key2;
+    return { type: DgElementType.Rectangle, label: lbl, buffer: false, widget: key2 };
   }
   const inner2 = () => lab(delims.slice(2, -2));
   if (delims.startsWith("[[")) return { type: DgElementType.Rectangle, label: inner2(), buffer: true };
@@ -13318,8 +13497,8 @@ function dgBuildBoard(input, errors = []) {
     }
   }
   const takeSlug = (label, id2) => {
-    const key = slugify(label || id2, "");
-    const q = key ? slugQueue.get(key) : void 0;
+    const key2 = slugify(label || id2, "");
+    const q = key2 ? slugQueue.get(key2) : void 0;
     return q && q.length ? q.shift() : void 0;
   };
   const nodeEls = /* @__PURE__ */ new Map();
@@ -13634,7 +13813,7 @@ function dgBuildBoard(input, errors = []) {
   return { doc, errors };
 }
 
-// ../../packages/deltadraw/src/bindings.ts
+// ../../packages/deltaboard/src/bindings.ts
 function facingPortPairs(a, b) {
   const dx = b.x + b.w / 2 - (a.x + a.w / 2), dy = b.y + b.h / 2 - (a.y + a.h / 2);
   const horiz = [{ fx: dx > 0 ? 1 : 0, fy: 0.5 }, { fx: dx > 0 ? 0 : 1, fy: 0.5 }];
@@ -13656,13 +13835,24 @@ var ANCHORS = [
   { fx: 1, fy: 1 }
   // corners
 ];
-var BINDABLE = /* @__PURE__ */ new Set([
+var BINDABLE_TYPES = /* @__PURE__ */ new Set([
   DgElementType.Rectangle,
   DgElementType.Ellipse,
   DgElementType.Diamond,
   DgElementType.Sticky,
   DgElementType.Timer,
-  DgElementType.Poll
+  DgElementType.Poll,
+  DgElementType.Text,
+  DgElementType.Image,
+  DgElementType.Frame,
+  DgElementType.Zone,
+  DgElementType.Code,
+  DgElementType.Markdown,
+  DgElementType.Grid,
+  DgElementType.Notebook,
+  DgElementType.Embed,
+  DgElementType.Video,
+  DgElementType.Workspace
 ]);
 function anchorBox(el) {
   const b = elementAabb(el);
@@ -13977,6 +14167,12 @@ function edgeSyntax(e) {
   const label = [e.cls ? `#${e.cls}` : "", e.label ? esc(e.label) : ""].filter(Boolean).join(" ");
   return `${e.from} ${arrow}${label ? `|${label}|` : ""} ${e.to}`;
 }
+var MERMAID_DIR = {
+  [DgLayoutDirection.TopDown]: "TD",
+  [DgLayoutDirection.BottomTop]: "BT",
+  [DgLayoutDirection.LeftRight]: "LR",
+  [DgLayoutDirection.RightLeft]: "RL"
+};
 
 // ../../packages/deltagraph/src/text/edit.ts
 var DgShape = {
@@ -14317,12 +14513,12 @@ async function deltagraphHref(dsl, base = "/deltagraph", opts = {}) {
   return `${base}#${DG_FRAGMENT_KEY}=${await encodeDsl(dsl)}${optionsSuffix(opts)}`;
 }
 var DG_PLAIN_KEY = "dsl";
-function fragmentValue(hash, key) {
+function fragmentValue(hash, key2) {
   const cut = hash.indexOf("#");
   const h = cut >= 0 ? hash.slice(cut + 1) : hash;
   for (const part of h.split("&")) {
     const eq = part.indexOf("=");
-    if (eq > 0 && part.slice(0, eq) === key) return part.slice(eq + 1);
+    if (eq > 0 && part.slice(0, eq) === key2) return part.slice(eq + 1);
   }
   return null;
 }
@@ -14352,7 +14548,8 @@ var DgLinkOption = {
   Dir: "dir",
   Debug: "debug",
   Edit: "edit",
-  Bg: "bg"
+  Bg: "bg",
+  Embed: "embed"
 };
 var DG_HISTORY_KEY = "h";
 function bgParam(bg) {
@@ -14366,6 +14563,7 @@ function optionsSuffix(opts) {
   if (opts.dir) parts.push(`${DgLinkOption.Dir}=${opts.dir}`);
   if (opts.debug) parts.push(`${DgLinkOption.Debug}=true`);
   if (opts.edit) parts.push(`${DgLinkOption.Edit}=true`);
+  if (opts.embed) parts.push(`${DgLinkOption.Embed}=true`);
   if (opts.history?.length) parts.push(`${DG_HISTORY_KEY}=${opts.history.join(",")}`);
   return parts.length ? `&${parts.join("&")}` : "";
 }
@@ -14500,6 +14698,7 @@ async function joinWith(payload, me2, relay, opts = {}) {
     permission,
     leave: () => {
       clearInterval(beat);
+      stopWorking(bot);
       try {
         awareness.setLocalState(null);
         hubAw.setLocalState(null);
@@ -14674,9 +14873,47 @@ function park(b) {
   showCursor(b, pos);
   b.hubAw.setLocalStateField("viewFrac", s.length ? pos / s.length : null);
 }
+function addressFor(name, text) {
+  const a = addressingOf(text);
+  const to = a.to;
+  if (isAddressedTo({ to, agents: false, everyone: false }, name, true)) return { addressed: "you" /* You */, to };
+  if (a.agents) return { addressed: "agents" /* Agents */, to };
+  if (a.everyone) return { addressed: "everyone" /* Everyone */, to };
+  return { addressed: namesAnyone(a) ? "others" /* Others */ : "open" /* Open */, to };
+}
+var isAsked = (a) => a === "you" /* You */ || a === "agents" /* Agents */ || a === "everyone" /* Everyone */;
+var TYPING_REFRESH_MS = 3e3;
+var TYPING_GIVE_UP_MS = 9e4;
+var typingTimers = /* @__PURE__ */ new WeakMap();
+function startWorking(b) {
+  stopWorking(b);
+  b.hubAw.setLocalStateField("typing", Date.now());
+  const beat = setInterval(() => b.hubAw.setLocalStateField("typing", Date.now()), TYPING_REFRESH_MS);
+  const stop = setTimeout(() => stopWorking(b), TYPING_GIVE_UP_MS);
+  beat.unref();
+  stop.unref();
+  typingTimers.set(b, { beat, stop });
+}
+function stopWorking(b) {
+  const t = typingTimers.get(b);
+  if (t) {
+    clearInterval(t.beat);
+    clearTimeout(t.stop);
+    typingTimers.delete(b);
+  }
+  try {
+    b.hubAw.setLocalStateField("typing", null);
+  } catch {
+  }
+}
 function deliver(sink, m) {
   if (typeof sink === "function") sink(m);
   else appendFileSync(sink, JSON.stringify(m) + "\n");
+}
+function deliverFor(b, sink, m) {
+  const a = addressFor(b.name, m.text);
+  deliver(sink, { ...m, ...a });
+  if (isAsked(a.addressed)) startWorking(b);
 }
 var threads = /* @__PURE__ */ new Map();
 var botWriting = 0;
@@ -14688,6 +14925,7 @@ function listen(bots, inbox, quietMs = 6e3) {
     listenBoard(b, inbox);
     return;
   }
+  listenDocChat(b, inbox);
   const ours = new Set(bots.map((x) => x.doc.clientID));
   let baseline = b.text.toString();
   let timer = null;
@@ -14719,7 +14957,7 @@ function listen(bots, inbox, quietMs = 6e3) {
       const id2 = `m${++inboxSeq}`;
       threads.set(id2, { anchor: createRelativePositionFromTypeIndex(b.text, end, -1) });
       const author = humanName(b);
-      deliver(inbox, { id: id2, at: (/* @__PURE__ */ new Date()).toISOString(), author, text: added, context: now.slice(Math.max(0, pre - 1500), pre) });
+      deliverFor(b, inbox, { id: id2, at: (/* @__PURE__ */ new Date()).toISOString(), author, text: added, context: now.slice(Math.max(0, pre - 1500), pre) });
       log(`inbox ${id2} from ${author}: ${added.slice(0, 80).replace(/\n/g, " ")}`);
     }, quietMs);
   });
@@ -14733,6 +14971,8 @@ function humanName(b) {
 }
 async function reply(b, id2, body) {
   if (isBoard(b)) return boardReply(b, id2, body);
+  if (docChatReply(b, id2, body)) return true;
+  stopWorking(b);
   const t = threads.get(id2);
   if (!t) {
     log(`no inbox message ${id2}`);
@@ -14826,8 +15066,16 @@ function setText(b, ref, text) {
   }
   const m = b.els.get(el.id);
   if (!(m instanceof YMap)) return false;
-  m.set("text", text);
-  m.set("updatedAt", Date.now());
+  const cur = m.get("text");
+  m.doc?.transact(() => {
+    if (cur instanceof YText) applyTextDiff(cur, text);
+    else {
+      const t = new YText();
+      t.insert(0, text);
+      m.set("text", t);
+    }
+    m.set("updatedAt", Date.now());
+  });
   pointAt(b, el);
   log(`${b.name}: set ${el.id} to "${short(text)}"`);
   return true;
@@ -14877,16 +15125,17 @@ function vote(b, ref, remove = false) {
   }
   const m = b.els.get(el.id);
   if (!(m instanceof YMap)) return false;
-  const key = `vote.${b.id}`;
-  const cur = m.get(key) ?? 0;
+  const key2 = `vote.${b.id}`;
+  const cur = m.get(key2) ?? 0;
   const next = remove ? Math.max(0, cur - 1) : cur + 1;
-  if (next === 0) m.delete(key);
-  else m.set(key, next);
+  if (next === 0) m.delete(key2);
+  else m.set(key2, next);
   pointAt(b, el);
   log(`${b.name}: ${remove ? "took a vote back from" : "voted for"} ${el.id} "${short((el.text ?? "").replace(/\n/g, " "))}"`);
   return true;
 }
 function boardSay(b, body) {
+  stopWorking(b);
   const s = stamp();
   const c = { id: s.id, elementId: BOARD_THREAD_ID, author: { id: b.id, name: b.name }, body: body.trim(), createdAt: s.iso, resolved: false, replies: [] };
   b.comments.set(c.id, c);
@@ -14907,7 +15156,7 @@ function commentOn(b, ref, body) {
   return c.id;
 }
 function boardReply(b, id2, body) {
-  const c = b.comments.get(id2);
+  const c = b.comments.get(id2) ?? b.comments.get(replyParent.get(id2) ?? "");
   if (!c) {
     log(`${b.name}: no comment ${id2}`);
     return false;
@@ -14916,6 +15165,7 @@ function boardReply(b, id2, body) {
     boardSay(b, body);
     return true;
   }
+  stopWorking(b);
   const s = stamp();
   b.comments.set(c.id, { ...c, replies: [...c.replies, { id: s.id, author: { id: b.id, name: b.name }, body: body.trim(), createdAt: s.iso }] });
   log(`${b.name}: replied on ${c.elementId}`);
@@ -14928,27 +15178,78 @@ function pointAt(b, el) {
   const w = Math.max(640, a.w + 320), h = Math.max(400, a.h + 240);
   b.awareness.setLocalStateField("viewport", { x: a.x + a.w / 2 - w / 2, y: a.y + a.h / 2 - h / 2, zoom: 1, w, h });
 }
-function listenBoard(b, inbox) {
-  const seen = new Set(b.comments.keys());
+var replyParent = /* @__PURE__ */ new Map();
+function watchThreads(b, map3, inbox, where) {
+  const seen = /* @__PURE__ */ new Set();
+  const mark = () => {
+    for (const c of map3.values()) {
+      seen.add(c.id);
+      for (const r2 of c.replies ?? []) seen.add(r2.id);
+    }
+  };
+  mark();
   let settled = false;
   setTimeout(() => {
-    for (const k of b.comments.keys()) seen.add(k);
+    mark();
     settled = true;
   }, 4e3).unref();
-  b.comments.observe(() => {
+  map3.observe(() => {
     if (!settled) return;
-    for (const [id2, c] of b.comments.entries()) {
-      if (seen.has(id2)) continue;
-      seen.add(id2);
-      if (c.author.id.startsWith("bot_")) continue;
-      const kind = c.elementId === BOARD_THREAD_ID ? "discussion" : "comment";
-      const el = kind === "comment" ? boardElements(b).find((e) => e.id === c.elementId) : null;
-      deliver(inbox, { id: id2, at: c.createdAt, author: c.author.name, kind, text: c.body, elementId: kind === "comment" ? c.elementId : void 0, elementText: el ? short((el.text ?? "").replace(/\n/g, " ")) : void 0 });
-      log(`inbox ${id2} from ${c.author.name} (${kind}): ${short(c.body, 80)}`);
+    for (const c of map3.values()) {
+      const w = where(c);
+      const fresh = [];
+      if (!seen.has(c.id)) {
+        seen.add(c.id);
+        fresh.push(c);
+      }
+      for (const r2 of c.replies ?? []) if (!seen.has(r2.id)) {
+        seen.add(r2.id);
+        replyParent.set(r2.id, c.id);
+        fresh.push(r2);
+      }
+      if (!w) continue;
+      for (const m of fresh) {
+        if (m.author.id.startsWith("bot_")) continue;
+        deliverFor(b, inbox, { id: m.id, at: m.createdAt, author: m.author.name, text: m.body, ...w });
+        log(`inbox ${m.id} from ${m.author.name} (${w.kind}): ${short(m.body, 80)}`);
+      }
     }
   });
 }
-var VIEWER = "https://www.submillisecond.com/deltagraph";
+function listenBoard(b, inbox) {
+  watchThreads(b, b.comments, inbox, (c) => {
+    if (c.elementId === BOARD_THREAD_ID) return { kind: "discussion" };
+    const el = boardElements(b).find((e) => e.id === c.elementId);
+    return { kind: "comment", elementId: c.elementId, elementText: el ? short((el.text ?? "").replace(/\n/g, " ")) : void 0 };
+  });
+}
+var docComments = (b) => b.doc.getMap("comments");
+function listenDocChat(b, inbox) {
+  watchThreads(b, docComments(b), inbox, (c) => c.anchor?.kind === "doc" ? { kind: "discussion" } : { kind: "comment", elementText: c.anchor?.exact ? short(c.anchor.exact.replace(/\n/g, " ")) : void 0 });
+}
+function docSay(b, body) {
+  stopWorking(b);
+  const s = stamp();
+  const c = { id: s.id, anchor: { kind: "doc" }, author: { id: b.id, name: b.name }, body: body.trim(), createdAt: s.iso, resolved: false, replies: [] };
+  docComments(b).set(c.id, c);
+  log(`${b.name}: said in the chat: ${short(body, 80)}`);
+  return c.id;
+}
+function docChatReply(b, id2, body) {
+  const map3 = docComments(b);
+  const c = map3.get(id2) ?? map3.get(replyParent.get(id2) ?? "");
+  if (!c) return false;
+  if (c.anchor?.kind === "doc") {
+    docSay(b, body);
+    return true;
+  }
+  stopWorking(b);
+  const s = stamp();
+  map3.set(c.id, { ...c, replies: [...c.replies, { id: s.id, author: { id: b.id, name: b.name }, body: body.trim(), createdAt: s.iso }] });
+  log(`${b.name}: replied on a comment`);
+  return true;
+}
+var VIEWER = "https://deltagraph.submillisecond.com/";
 function writeDelta(b, d, what) {
   b.doc.transact(() => {
     for (const el of d.upserts) writeElToY(b.els, { ...el, updatedAt: Date.now() });
@@ -15181,14 +15482,27 @@ var ROOM_PROP = {
   type: "string",
   description: "Room handle from deltalab_join (r1, r2, ...). Omit for the room joined most recently."
 };
-var SERVER_INSTRUCTIONS = [
+var ROOM_RULES = [
   "You are a participant in a live, end-to-end encrypted deltalab document or board that people are editing at the same time.",
   "Everyone in the room sees you as a robot avatar with your name, your cursor, and who runs you.",
   "Read before you write (deltalab_read). Keep to the section or area you were asked to work on; other people and agents are writing elsewhere at the same moment.",
   "If your permission is suggest (a Review link, or the owner switched the whole document to Review), propose changes with deltalab_suggest. A direct write would be dropped by every other participant.",
-  "When someone talks to you in the document or the board discussion, it arrives in deltalab_inbox. Answer with deltalab_reply. To keep a conversation going, call deltalab_inbox with wait_seconds.",
+  "When someone talks in the document, its chat or the board discussion, it arrives in deltalab_inbox. Answer with deltalab_reply; start a conversation or hand something over with deltalab_say. To keep a conversation going, call deltalab_inbox with wait_seconds.",
   "Leave with deltalab_leave when the work is done, so your avatar goes."
-].join(" ");
+];
+var WORKING_TOGETHER = [
+  "Use the conversation to coordinate. Before a large change, say what you plan and ask for objections. When you disagree with a request or with another agent's work, say so, give the reason, and propose what you would do.",
+  "Settle the direction in the conversation first, then change the work in small steps and say what changed after each, so people can steer between steps.",
+  "Other agents may be in the room. Agree who takes which part before you start, keep to your part, and review each other's work with suggestions or comments.",
+  "The chat is one room for people and agents. Every message reaches every agent, marked with who it was for: to you (tagged by your name), to every agent (@Agent-Smith-All or @agents), to everyone (@all), to someone else, or open (no tag). Answer what is to you, to every agent or to everyone. Leave a message tagged to someone else to them unless you hold something they need. Answer open talk when you are the only agent, or when it is plainly about your part.",
+  "Tag people and agents by their handle, as typed in the chat (@Agent-Smith-B, @Ada-Lovelace), when you ask something or hand work over; your own handle is your name."
+];
+var BY_KIND = [
+  "Boards: talk in the board discussion (deltalab_board say) and comment on the element you mean; votes show which options have support. Evolve the diagram with edit_diagram, one change at a time, and read the board again before each change, because others edit it too.",
+  "Documents (markdown, code and other text files): reply where you were asked (deltalab_reply), write under your own heading or at the lines you were given, and use deltalab_suggest on anyone else's text. In code, keep a change to the lines you were asked about and say what it does.",
+  "Drawings, notebooks and record files (tasks, decisions, retros and the like) are not supported by these tools yet. If you are asked to work in one, say so rather than writing into it."
+];
+var SERVER_INSTRUCTIONS = [...ROOM_RULES, ...WORKING_TOGETHER, ...BY_KIND].join(" ");
 function toolList() {
   return [
     {
@@ -15307,6 +15621,17 @@ function toolList() {
       annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }
     },
     {
+      name: "deltalab_say" /* Say */,
+      title: "Say something in the chat",
+      description: "Post a message in the room's chat: the document's discussion, or the board's. Tag someone with @ and their handle (@Agent-Smith-B, @Agent-Smith-All, @all) to ask them or hand work over. For an answer to an inbox message use deltalab_reply.",
+      inputSchema: {
+        type: "object",
+        properties: { room: ROOM_PROP, text: { type: "string" } },
+        required: ["text"]
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: true }
+    },
+    {
       name: "deltalab_leave" /* Leave */,
       title: "Leave a room",
       description: "Leave the room; the agent's avatar and cursor go at once.",
@@ -15314,6 +15639,19 @@ function toolList() {
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true }
     }
   ];
+}
+var ADDRESS_WORDS = {
+  ["you" /* You */]: "to you",
+  ["agents" /* Agents */]: "to every agent",
+  ["everyone" /* Everyone */]: "to everyone",
+  ["others" /* Others */]: "to someone else",
+  ["open" /* Open */]: "open, no tag"
+};
+function formatInboxLine(m) {
+  const where = m.kind === "comment" ? ` on "${m.elementText ?? m.elementId ?? "a passage"}"` : m.kind === "discussion" ? " in the chat" : "";
+  const to = m.addressed === "others" /* Others */ && m.to?.length ? `to ${m.to.map((h) => "@" + h).join(", ")}` : m.addressed ? ADDRESS_WORDS[m.addressed] : "";
+  return `[${m.room} ${m.id}] ${m.author}${where}${to ? `, ${to}` : ""}:
+${m.text}`;
 }
 var PERMISSION_WORDS = {
   edit: "edit: you may write directly",
@@ -15488,11 +15826,7 @@ ${text.replace(/\n*$/, "")}`);
         const wait = Math.min(55, Math.max(0, int(args2.wait_seconds) ?? 0));
         const msgs = await rooms2.inbox(str(args2.room), wait * 1e3);
         if (!msgs.length) return ok(wait ? `nothing new in ${wait}s` : "nothing new");
-        return ok(msgs.map((m) => {
-          const where = m.kind === "comment" ? ` on "${m.elementText ?? m.elementId}"` : m.kind === "discussion" ? " in the discussion" : "";
-          return `[${m.room} ${m.id}] ${m.author}${where}:
-${m.text}`;
-        }).join("\n\n"));
+        return ok(msgs.map((m) => formatInboxLine(m)).join("\n\n"));
       }
       case "deltalab_reply" /* Reply */: {
         const { bot } = rooms2.live(str(args2.room));
@@ -15501,6 +15835,14 @@ ${m.text}`;
         if (!id2 || !text) return fail("reply needs id and text");
         refuseUnlessEdit(bot);
         return await reply(bot, id2, text) ? ok(`replied to ${id2}`) : fail(`no inbox message ${id2}`);
+      }
+      case "deltalab_say" /* Say */: {
+        const { bot } = rooms2.live(str(args2.room));
+        const text = str(args2.text);
+        if (!text) return fail("say needs text");
+        refuseUnlessEdit(bot);
+        const id2 = isBoard(bot) ? boardSay(bot, text) : docSay(bot, text);
+        return ok(`said in the chat (${id2})`);
       }
       case "deltalab_leave" /* Leave */: {
         const room = rooms2.leave(str(args2.room));
@@ -15516,7 +15858,7 @@ ${m.text}`;
 
 // agent/mcp/server.ts
 var MCP_PROTOCOL_VERSION = "2025-06-18";
-var MCP_SERVER_INFO = { name: "deltalab", title: "deltalab", version: "0.2.0" };
+var MCP_SERVER_INFO = { name: "deltalab", title: "deltalab", version: "0.3.0" };
 async function handleMcpMessage(rooms2, msg) {
   const req = msg;
   if (!req || req.jsonrpc !== "2.0" || typeof req.method !== "string") {
@@ -15581,7 +15923,7 @@ if (typeof globalThis.WebSocket !== "function" || typeof globalThis.crypto?.subt
 setAgentLog((line) => process.stderr.write(`deltalab: ${line}
 `));
 var serial = Math.floor(Math.random() * 999) + 1;
-var NAME = process.env.DELTALAB_AGENT_NAME?.trim() || `Agent ${String(serial).padStart(3, "0")}-${String.fromCharCode(65 + Math.floor(Math.random() * 26))}`;
+var NAME = mentionHandle(process.env.DELTALAB_AGENT_NAME?.trim() || "") || agentHandle(Math.floor(Math.random() * 26));
 var RUN_BY = process.env.DELTALAB_RUN_BY?.trim() || (() => {
   try {
     return userInfo().username;

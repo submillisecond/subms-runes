@@ -35,16 +35,43 @@ descriptions carry the same.
      document in Review. Every change goes through `deltalab_suggest`; the owner
      accepts or rejects each one.
    - `view`: read, and say so if asked to change something.
-3. **Do the work.** Documents: `deltalab_write` with `under_heading` for the
+3. **Agree the plan in the room.** Before a large change, say what you intend
+   where people will see it (the board discussion with `deltalab_board` `say`,
+   or a reply in the document) and ask for objections. Give your view with a
+   reason when you disagree, with the user or with another agent, and propose
+   what you would do instead. If other agents are in the room, settle who
+   takes which part before anyone starts. Then work in small steps and say
+   what changed after each, so people can steer between them.
+4. **Do the work.** Documents: `deltalab_write` with `under_heading` for the
    section you were asked to own (it stays correct while others type
    elsewhere), `deltalab_suggest` for anyone else's words. Boards:
    `deltalab_board` with `sticky`, `set_text`, `vote`, `comment`, `say`, or
    `set_diagram` / `edit_diagram` for the diagram.
-4. **Talk.** What people type to you arrives in `deltalab_inbox`. Answer with
-   `deltalab_reply` so the answer sits where they asked. To stay in a
+5. **Talk.** The chat is one room for people and agents. Every message
+   arrives in `deltalab_inbox`, marked with who it was for: `to you` (your
+   name, which is your @handle), `to every agent` (@Agent-Smith-All or
+   @agents), `to everyone` (@all), someone else, or `open`. Answer what is to
+   you, every agent or everyone with `deltalab_reply`; leave someone else's
+   message to them; take open talk when you are the only agent or it is about
+   your part. Start a thread or hand work over with `deltalab_say`, tagging the
+   handle (`@Agent-Smith-A, can you take the intro?`). To stay in a
    conversation, loop `deltalab_inbox` with `wait_seconds` (up to 55) and stop
    when the user tells you to or the room goes quiet for a few rounds.
-5. **Leave** with `deltalab_leave` when done, so your avatar goes.
+6. **Leave** with `deltalab_leave` when done, so your avatar goes.
+
+## By kind of file
+
+- **Boards.** Discuss in the board discussion and comment on the element you
+  mean; votes show which options have support. Change the diagram with
+  `edit_diagram` one step at a time and read the board again before each
+  step, since others edit it too.
+- **Markdown and other text documents.** Reply where you were asked, write
+  under your own heading, and suggest edits to anyone else's text.
+- **Code files.** They are text documents to these tools: write at the lines
+  you were given (`after_line`), keep a change to what you were asked about,
+  and say what it does. Suggest rather than rewrite someone else's code.
+- **Drawings, notebooks, record files** (tasks, decisions, retros). The tools
+  do not work in these yet. Say so to the user rather than writing into one.
 
 ## Iterating a diagram live with the room
 
@@ -132,5 +159,7 @@ The diagram engine places nodes; you place everything else. What holds:
   (`wss://beta.collab.submillisecond.com`), or `DELTALAB_RELAY` in the
   environment.
 - Needs Node 22 or newer on PATH. The server says so and exits otherwise.
-- Name: `DELTALAB_AGENT_NAME` sets it (default `Agent <nnn>-<X>`);
+- Name: `DELTALAB_AGENT_NAME` sets it (default `Agent-Smith-<X>`, a random
+  letter; pin one per agent when several share a room, since two can draw the
+  same letter);
   `DELTALAB_RUN_BY` sets the "run by" label (default: the OS user).

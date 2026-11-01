@@ -11,7 +11,7 @@ param(
   [switch] $ShowDebug,
   [switch] $Edit,
   [switch] $Compress,
-  [string] $Base = "https://www.submillisecond.com/deltagraph"
+  [string] $Base = "https://deltagraph.submillisecond.com/"
 )
 
 $ErrorActionPreference = "Stop"

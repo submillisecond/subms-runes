@@ -53,8 +53,8 @@ Generated from `plugins/` by `.github/scripts/inventory.sh`; CI fails when it is
 | | `img-save` | Copy a selected set of images to a folder (bug-report bundle / share set). |
 | | `img-organize` | Restructure (year/month, albums) / rename / archive / delete images in a folder, in place (dry-run + confirm; `--copy`). |
 | | `img-dedup` | Find exact-duplicate images and remove/archive the extras, keeping one (dry-run + confirm). |
-| `deltagraph` | `dg` | Hand over a diagram as a `submillisecond.com/deltagraph` link instead of a mermaid fence; the source rides in the URL fragment. The hosted MCP server checks, renders and debugs it first. Offline, `dg-url` builds the link and `dg-debug` calls the debugger over HTTP. |
-| `deltadraw` | `dd` | Hand over a picture (a scene, an illustration, a sketch) as a `submillisecond.com/deltadraw` link that also opens in deltalab as a painting. The hosted MCP server compiles it and returns a PNG to look at first. Offline, `dd-url` builds the link and `dd-png` fetches the picture. |
+| `deltagraph` | `dg` | Hand over a diagram as a `deltagraph.submillisecond.com` link instead of a mermaid fence; the source rides in the URL fragment. The hosted MCP server checks, renders and debugs it first. Offline, `dg-url` builds the link and `dg-debug` calls the debugger over HTTP. |
+| `deltadraw` | `dd` | Hand over a picture (a scene, an illustration, a sketch) as a `deltadraw.submillisecond.com` link that also opens in deltalab as a painting. The hosted MCP server compiles it and returns a PNG to look at first. Offline, `dd-url` builds the link and `dd-png` fetches the picture. |
 | `deltalab` | `deltalab` | Join a live deltalab document or board from a share link and work beside the people there: write, suggest changes in Review, add stickies, votes and comments, edit the board diagram, answer messages. A local MCP server; the share key stays on the machine. |
 
 ## Platforms

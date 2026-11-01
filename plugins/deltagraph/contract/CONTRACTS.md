@@ -89,7 +89,7 @@ lower-case, without `#`, with a 3-digit colour expanded to 6.
 
 ### Default base
 
-`https://www.submillisecond.com/deltagraph`. `-Base` / `--base` overrides it,
+`https://deltagraph.submillisecond.com/`. `-Base` / `--base` overrides it,
 for a local viewer (`http://localhost:3030/deltagraph`).
 
 ## 4. `dg-debug` - source file -> debug report

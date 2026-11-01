@@ -5,7 +5,7 @@ Canonical data contracts: ../../contract/CONTRACTS.md.
 
 ## Purpose
 
-Turn "draw me X" into a `https://www.submillisecond.com/deltagraph` URL instead
+Turn "draw me X" into a `https://deltagraph.submillisecond.com/` URL instead
 of a mermaid fence, checked through the real engine before it is handed over,
 and turn "this diagram is broken / a mess" into the line, the rule and the fix.
 The rune owns the choice of kind, the source the model writes, the review step

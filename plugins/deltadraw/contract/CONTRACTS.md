@@ -83,7 +83,7 @@ normalised to LF.
 
 ### Default base
 
-`https://www.submillisecond.com/deltadraw`. `-Base` / `--base` overrides it.
+`https://deltadraw.submillisecond.com/`. `-Base` / `--base` overrides it.
 
 ## 4. `dd-png` - scene file -> PNG file
 

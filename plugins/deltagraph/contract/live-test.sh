@@ -12,7 +12,7 @@ command -v curl >/dev/null 2>&1 || { echo "live-test: curl is required"; exit 2;
 MCP="$(sed -n 's/.*"url": *"\([^"]*\)".*/\1/p' "$PACK/.mcp.json" | head -1)"
 HOST="${MCP%/mcp}"
 [ "${1:-}" = "--host" ] && HOST="${2:-$HOST}"
-VIEWER="https://www.submillisecond.com/deltagraph"
+VIEWER="https://deltagraph.submillisecond.com/"
 echo "host: $HOST"
 
 echo "== 1. every tool the pack names is served =="
@@ -41,7 +41,7 @@ get() { curl -sS --max-time 30 -o /dev/null -w '%{http_code} %{content_type}' "$
 has "svg from a #dsl= link" "$(get "$HOST/svg?${PLAIN#*#}")" '^200 image/svg\+xml'
 has "png from a #d1= link" "$(get "$HOST/png?${PACKED#*#}")" '^200 image/png'
 has "viewer is up" "$(get "$VIEWER")" '^200 text/html'
-has "viewer skill.md names the debug tool" "$(curl -sS --max-time 30 "$VIEWER/skill.md")" 'deltagraph_debug'
+has "viewer skill.md names the debug tool" "$(curl -sS --max-time 30 "${VIEWER}skill.md")" 'deltagraph_debug'
 
 echo "== 3. dg-debug against the live /debug =="
 OUT="$(bash "$SCRIPTS/dg-debug.sh" "$FIX" --host "$HOST" --no-optimise)"; RC=$?

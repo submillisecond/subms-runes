@@ -5,7 +5,7 @@ Canonical data contracts: ../../contract/CONTRACTS.md.
 
 ## Purpose
 
-Turn "draw me X" into a `https://www.submillisecond.com/deltadraw` URL that
+Turn "draw me X" into a `https://deltadraw.submillisecond.com/` URL that
 compiles a scene in the reader's browser, checked and looked at through the real
 engine before it is handed over. The rune owns the choice between drawing and
 diagramming, the scene the model writes, the look step and the hand-off.

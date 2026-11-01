@@ -1,13 +1,13 @@
 ---
 name: dd
-description: This skill should be used whenever a PICTURE is wanted rather than a diagram - "draw me", "illustrate", "sketch", "paint", "a scene with", "make an image of", "cover art", "poster", "hand-drawn", "/dd" - and whenever a deltadraw link draws wrong ("the ship is off the edge", "fix this drawing", "make the sky darker"). Produces a submillisecond.com/deltadraw URL that compiles the scene in the reader's browser, checked and looked at through the bundled deltadraw MCP server before it is handed over. Carries when to draw versus diagram, the shape of a scene, the built-in symbol conventions and the draw -> look -> refine loop; fetches the generated spec for the grammar.
+description: This skill should be used whenever a PICTURE is wanted rather than a diagram - "draw me", "illustrate", "sketch", "paint", "a scene with", "make an image of", "cover art", "poster", "hand-drawn", "/dd" - and whenever a deltadraw link draws wrong ("the ship is off the edge", "fix this drawing", "make the sky darker"). Produces a deltadraw.submillisecond.com URL that compiles the scene in the reader's browser, checked and looked at through the bundled deltadraw MCP server before it is handed over. Carries when to draw versus diagram, the shape of a scene, the built-in symbol conventions and the draw -> look -> refine loop; fetches the generated spec for the grammar.
 version: 1.1.0
 ---
 
 # dd - draw a picture as a deltadraw URL
 
 A deltadraw link IS the drawing: a short scene rides in the URL fragment and the
-viewer at `https://www.submillisecond.com/deltadraw` compiles and draws it. It
+viewer at `https://deltadraw.submillisecond.com/` compiles and draws it. It
 opens in deltalab as an ordinary painting the reader can keep working on.
 
 The grammar is generated from the compiler and served at

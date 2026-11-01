@@ -3,7 +3,7 @@
 # dg-url.sh <file|-> [--title T] [--theme light|dark] [--bg transparent|black|white|auto|<hex>] [--dir LR|TD] [--debug] [--edit] [--compress] [--base URL]
 set -eu
 
-BASE="https://www.submillisecond.com/deltagraph"
+BASE="https://deltagraph.submillisecond.com/"
 FILE=""; TITLE=""; THEME=""; BG=""; DIR=""; DEBUG=0; EDIT=0; COMPRESS=0
 while [ $# -gt 0 ]; do
   case "$1" in

@@ -8,6 +8,9 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Added
 
+- `deltagraph` and `deltadraw` packs: the viewers moved to `https://deltagraph.submillisecond.com/` and `https://deltadraw.submillisecond.com/`. `dg-url` / `dd-url` (both backends) default to the new base, the skills, SPECs, CONTRACTS, live tests and plugin descriptions say so, and the contract tests check the new form (106 and 101 checks, all passing). Old `www.submillisecond.com/deltagraph#...` links still open: www redirects with the fragment. The `deltalab` bundle is rebuilt for its new deltagraph link (70 checks passing). Pack versions move with the next release.
+- `deltalab` 0.3.0: the room's chat is a first-class surface. Inbox lines say who a message was for (`to you`, `to every agent`, `to everyone`, `to @Handle`, `open, no tag`) after the unchanged `[rN mK] author` prefix; text documents' chat and comment replies now arrive; new tool `deltalab_say` posts in the chat; agents are named `Agent-Smith-<X>` and tagged as `@Agent-Smith-B`, every agent as `@Agent-Smith-All` or `@agents`, everyone as `@all`. CONTRACTS.md, SKILL.md, SPEC.md and contract-test.sh swept together; bundle rebuilt.
+- `deltalab` skill: a new step, agree the plan in the room (say what you intend in the board discussion or a reply, ask for objections, disagree with a reason and a proposal, settle who takes which part with other agents, then work in small steps), and a "By kind of file" section for boards, text documents, code files, and the kinds the tools do not work in. The bundled server is rebuilt with the matching `initialize` instructions; the contract test checks both new rules are in them (65 checks, all passing). SPEC records that the skill restates the server's guidance and names the supported kinds.
 - `deltadraw` `dd` skill: PNG and GIF renders now embed the serif, mono and hand faces plus italics, so the note that they drew everything as Inter is replaced with the one remaining gap (hand text has no bold or italic in a PNG).
 - `deltalab` `plugin.json` licence is `MIT`, matching the repo `LICENSE` and README; it said `MIT OR Apache-2.0` with no Apache text in the repo.
 - `deltalab` `plugin.json` carries `privacyPolicyUrl` (https://www.submillisecond.com/deltalab/privacy), which the other hosted-service packs already had.
@@ -86,5 +89,6 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Fixed
 
+- `deltagraph` live test fetched `//skill.md` from the viewer host and failed: the new `VIEWER` base ends in `/`, the old www path did not. It now joins without the extra slash; 22 checks pass against the hosted worker.
 - `secret-scan.ps1 -Redact` leaked part of a secret when text held two kinds: matches were found in the original text but cut from a copy earlier replacements had already resized, so later cuts landed at the wrong offset. Spans are now merged and cut right to left.
 - `secret-scan.sh --redact` used `sed -i -E ... gI`, which BSD sed reads as a backup suffix and an unknown flag, and `|| true` hid the failure, so on macOS the redacted copy kept its secrets. It now uses perl, and a failed rewrite blanks the copy.
