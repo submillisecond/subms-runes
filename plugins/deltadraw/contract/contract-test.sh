@@ -138,7 +138,7 @@ MCP="$(cat "$PACK/.mcp.json")"
 has ".mcp.json registers deltadraw over http" "$MCP" '"type": "http"'
 has ".mcp.json points at the documented endpoint" "$MCP" '"url": "https://deltadraw\.submillisecond\.com/mcp"'
 has "CONTRACTS.md names the same endpoint" "$CONTRACT" 'https://deltadraw\.submillisecond\.com/mcp'
-SKILL="$(cat "$PACK/skills/dd/SKILL.md")"
+SKILL="$(cat "$PACK/skills/deltadraw/SKILL.md")"
 has "SKILL.md points at the contract, not a copy" "$SKILL" 'contract/CONTRACTS.md'
 has "SKILL.md points at the generated spec" "$SKILL" '/deltadraw/spec.md'
 for word in deltadraw_png deltadraw_pack dd-png '-Compress' '--compress'; do

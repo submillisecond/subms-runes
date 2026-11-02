@@ -8,25 +8,9 @@
   },
   "plugins": [
     {
-      "name": "clipboard",
-      "source": "./plugins/clipboard",
-      "description": "Clipboard runes: clip (ask about what you copied), clip-copy (Claude output -> clipboard), clip-ocr (image text -> clipboard), clip-edit (reformat/redact/convert and put it back), clip-save (save to disk), clip-history (typed, searchable recall), clip-snippet (named text/image library). Secret-aware: credentials flagged, never stored.",
-      "author": {
-        "name": "Kieran Smith"
-      }
-    },
-    {
-      "name": "imageverse",
-      "source": "./plugins/imageverse",
-      "description": "imageverse - image runes: img (questions about recent screenshots or any folder), img-edit (crop / resize / redact / annotate / rotate / convert into a new image), img-save (copy a selection out), img-organize (restructure / rename / archive / delete in place), img-dedup (remove exact-duplicate images).",
-      "author": {
-        "name": "Kieran Smith"
-      }
-    },
-    {
       "name": "deltagraph",
       "source": "./plugins/deltagraph",
-      "description": "deltagraph rune: dg (draw any diagram as a deltagraph.submillisecond.com URL instead of a mermaid fence; the source travels in the URL fragment and the viewer lays it out). Installs the hosted deltagraph MCP server, so every diagram is checked through the real engine, looked at as a PNG, and debugged when it fails or reads badly: each dropped line named with the rule it broke, the layout scored, and a better direction or declaration order found when one exists. Without MCP, a zero-dep dg-url script builds the link offline and dg-debug reaches the same debugger over plain HTTP, on Windows and POSIX.",
+      "description": "deltagraph rune: /deltagraph (draw any diagram as a deltagraph.submillisecond.com URL instead of a mermaid fence; the source travels in the URL fragment and the viewer lays it out). Installs the hosted deltagraph MCP server, so every diagram is checked through the real engine, looked at as a PNG, and debugged when it fails or reads badly: each dropped line named with the rule it broke, the layout scored, and a better direction or declaration order found when one exists. Without MCP, a zero-dep dg-url script builds the link offline and dg-debug reaches the same debugger over plain HTTP, on Windows and POSIX.",
       "author": {
         "name": "Kieran Smith"
       }
@@ -34,7 +18,7 @@
     {
       "name": "deltadraw",
       "source": "./plugins/deltadraw",
-      "description": "deltadraw rune: dd (draw a picture - a scene, an illustration, a hand-drawn sketch - as a deltadraw.submillisecond.com URL; the scene travels in the URL fragment and the viewer compiles it, and it opens in deltalab as a painting you can keep working on). Installs the hosted deltadraw MCP server, so every drawing is compiled through the real engine and looked at as a PNG before it is handed over; scenes can animate (pages, tween) and render as GIFs. Without MCP, a zero-dep dd-url script builds the link offline and dd-png and dd-gif fetch a picture, a frame or an animation over plain HTTP, on Windows and POSIX.",
+      "description": "deltadraw rune: /deltadraw (draw a picture - a scene, an illustration, a hand-drawn sketch - as a deltadraw.submillisecond.com URL; the scene travels in the URL fragment and the viewer compiles it, and it opens in deltalab as a painting you can keep working on). Installs the hosted deltadraw MCP server, so every drawing is compiled through the real engine and looked at as a PNG before it is handed over; scenes can animate (pages, tween) and render as GIFs. Without MCP, a zero-dep dd-url script builds the link offline and dd-png and dd-gif fetch a picture, a frame or an animation over plain HTTP, on Windows and POSIX.",
       "author": {
         "name": "Kieran Smith"
       }

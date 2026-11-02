@@ -1,10 +1,10 @@
 ---
-name: dd
-description: This skill should be used whenever a PICTURE is wanted rather than a diagram - "draw me", "illustrate", "sketch", "paint", "a scene with", "make an image of", "cover art", "poster", "hand-drawn", "/dd" - and whenever a deltadraw link draws wrong ("the ship is off the edge", "fix this drawing", "make the sky darker"). Produces a deltadraw.submillisecond.com URL that compiles the scene in the reader's browser, checked and looked at through the bundled deltadraw MCP server before it is handed over. Carries when to draw versus diagram, the shape of a scene, the built-in symbol conventions and the draw -> look -> refine loop; fetches the generated spec for the grammar.
+name: deltadraw
+description: This skill should be used whenever a PICTURE is wanted rather than a diagram - "draw me", "illustrate", "sketch", "paint", "a scene with", "make an image of", "cover art", "poster", "hand-drawn", "/deltadraw" - and whenever a deltadraw link draws wrong ("the ship is off the edge", "fix this drawing", "make the sky darker"). Produces a deltadraw.submillisecond.com URL that compiles the scene in the reader's browser, checked and looked at through the bundled deltadraw MCP server before it is handed over. Carries when to draw versus diagram, the shape of a scene, the built-in symbol conventions and the draw -> look -> refine loop; fetches the generated spec for the grammar.
 version: 1.1.0
 ---
 
-# dd - draw a picture as a deltadraw URL
+# deltadraw - draw a picture as a deltadraw URL
 
 A deltadraw link IS the drawing: a short scene rides in the URL fragment and the
 viewer at `https://deltadraw.submillisecond.com/` compiles and draws it. It
@@ -17,9 +17,9 @@ syntax. The pack's contract is `../../contract/CONTRACTS.md`.
 
 ## Draw or diagram
 
-Boxes and arrows, flows, architectures, sequences: use `dg` (deltagraph) - it
+Boxes and arrows, flows, architectures, sequences: use `/deltagraph` - it
 lays the graph out and routes the edges. A scene, an illustration, a cover, a
-sketch with a look and a place: use `dd`.
+sketch with a look and a place: use `/deltadraw`.
 
 ## The loop, with the bundled server
 

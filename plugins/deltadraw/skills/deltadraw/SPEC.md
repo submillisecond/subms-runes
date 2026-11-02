@@ -1,4 +1,4 @@
-# dd - reference
+# deltadraw - reference
 
 Follows /docs/SPEC-TEMPLATE.md (REFERENCE kind).
 Canonical data contracts: ../../contract/CONTRACTS.md.
@@ -29,7 +29,7 @@ Three paths, best first:
 
 ## Logic / algorithm
 
-1. Decide: drawing (`dd`) or diagram (`dg`).
+1. Decide: drawing (`/deltadraw`) or diagram (`/deltagraph`).
 2. Write the scene against the spec; prefer built-in symbols.
 3. Check, render, look, fix; repeat.
 4. Hand back the viewer URL; carry history with `previous_url` on a revision.

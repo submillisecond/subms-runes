@@ -1,4 +1,4 @@
-# dg - reference
+# deltagraph - reference
 
 Follows /docs/SPEC-TEMPLATE.md (REFERENCE kind).
 Canonical data contracts: ../../contract/CONTRACTS.md.

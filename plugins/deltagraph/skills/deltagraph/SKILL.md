@@ -1,10 +1,10 @@
 ---
-name: dg
-description: This skill should be used whenever a diagram is wanted or would help - "draw this", "diagram", "flowchart", "sequence diagram", "architecture diagram", "state machine", "ERD", "mind map", "timeline", "kanban", "show me how X flows", "/dg", or any moment you would otherwise write a mermaid fence - and whenever a deltagraph link does not render, renders wrong, or reads badly ("why is this diagram broken", "tidy this diagram", "the arrows are a mess", "debug this deltagraph"). Produces a deltagraph.submillisecond.com URL that renders the diagram laid out and routed, checked through the real engine via the bundled deltagraph MCP server, and debugs a failing or tangled one down to the line and rule. Carries the per-kind table, the native DSL essentials, the hard rules and the substitutes for mermaid kinds the engine does not draw; fetches the generated spec for anything beyond that.
+name: deltagraph
+description: This skill should be used whenever a diagram is wanted or would help - "draw this", "diagram", "flowchart", "sequence diagram", "architecture diagram", "state machine", "ERD", "mind map", "timeline", "kanban", "show me how X flows", "/deltagraph", or any moment you would otherwise write a mermaid fence - and whenever a deltagraph link does not render, renders wrong, or reads badly ("why is this diagram broken", "tidy this diagram", "the arrows are a mess", "debug this deltagraph"). Produces a deltagraph.submillisecond.com URL that renders the diagram laid out and routed, checked through the real engine via the bundled deltagraph MCP server, and debugs a failing or tangled one down to the line and rule. Carries the per-kind table, the native DSL essentials, the hard rules and the substitutes for mermaid kinds the engine does not draw; fetches the generated spec for anything beyond that.
 version: 1.0.0
 ---
 
-# dg - draw a diagram as a deltagraph URL instead of a mermaid fence
+# deltagraph - draw a diagram as a deltagraph URL instead of a mermaid fence
 
 A deltagraph link IS the diagram: the source rides in the URL fragment and the
 viewer at `https://deltagraph.submillisecond.com/` lays it out, routes it and

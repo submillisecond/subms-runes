@@ -5,7 +5,7 @@ required sections, tone). This file states ONLY what is specific to deltagraph.
 
 ## Which skills get which docs
 
-- **`dg` is REFERENCE-kind**, one combined `SPEC.md`. It is a thin wrapper over
+- **`deltagraph` is REFERENCE-kind**, one combined `SPEC.md`. It is a thin wrapper over
   one encoder script plus a pointer at a specification that lives elsewhere; the
   design rationale (why the URL carries the source, why the fragment, why the
   grammar is generated and never copied) belongs to the `subms-ui` design docs,

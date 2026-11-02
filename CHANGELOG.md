@@ -6,6 +6,11 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The deltagraph and deltadraw runes are cast as `/deltagraph` and `/deltadraw` (were `/dg` and `/dd`), matching `/deltalab`: two-letter names said nothing and `dd` is a Unix command. Skill folders, `name:`, headings, trigger lists, descriptions, contract tests and README follow; the `dg-url` / `dd-png` / `dd-gif` scripts keep their names. After updating the packs, `/dg` and `/dd` no longer exist.
+- clipboard and imageverse are held back from the marketplace until they are ready to ship: removed from `marketplace.json`, code kept, and an `UNLISTED` file in each pack says why. `validate.sh` accepts an unlisted pack on disk and fails one that is both marked `UNLISTED` and listed. The README and install examples now lead with deltagraph.
+
 ### Added
 
 - `deltalab` skill: "Writing in the room": plain English, one point per message in two or three sentences, no praise, thanks, sign-offs or self-introductions, work shared only through the room (viewer links, the board, the document) and never as a file on disk, even between agents on the same machine, confirm work is final before building on it, and no repeat paints. Taken from the messages of a two-agent session (900-1200 character messages, compliments, closing rituals, an assembly from a stale file). The bundled server's instructions say the same; the contract test checks it (72 checks).

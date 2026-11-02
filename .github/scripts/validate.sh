@@ -77,6 +77,12 @@ if [ "$market_ok" = 1 ]; then
     listed="$(jq -r '.plugins[].name' "$MARKET" 2>/dev/null)"
     for m in "${ondisk[@]:-}"; do
         [ -n "$m" ] || continue
+        # A pack held back from the marketplace says so with an UNLISTED file
+        # (its reason inside); anything else on disk must be listed.
+        if [ -f "$PLUGINS/$m/UNLISTED" ]; then
+            printf '%s\n' "$listed" | grep -qxF "$m" && fail "pack '$m' is marked UNLISTED but marketplace.json lists it"
+            continue
+        fi
         printf '%s\n' "$listed" | grep -qxF "$m" || fail "pack '$m' on disk but not in marketplace.json"
     done
     while IFS= read -r m; do

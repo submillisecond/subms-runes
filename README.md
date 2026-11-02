@@ -27,12 +27,14 @@ Generated from `plugins/` by `.github/scripts/inventory.sh`; CI fails when it is
 <!-- inventory:start -->
 | Pack | Version | Runes | Runs on | Tests |
 |---|---|---|---|---|
-| `clipboard` | 0.1.0 | `/clip` `/clip-copy` `/clip-edit` `/clip-history` `/clip-ocr` `/clip-save` `/clip-snippet` | Windows (4 .ps1), macOS + Linux (4 .sh) | contract, functional |
-| `deltadraw` | 1.0.0 | `/dd` | Windows (2 .ps1), macOS + Linux (2 .sh), hosted MCP | contract, live nightly |
-| `deltagraph` | 1.0.0 | `/dg` | Windows (2 .ps1), macOS + Linux (2 .sh), hosted MCP | contract, live nightly |
-| `deltalab` | 0.2.0 | `/deltalab` | local MCP (Node 22) | contract |
-| `imageverse` | 0.1.0 | `/img` `/img-dedup` `/img-edit` `/img-montage` `/img-organize` `/img-save` `/img-search` `/img-settings` | Windows (17 .ps1), macOS + Linux (17 .sh) | contract, functional |
+| `clipboard` (unlisted, not released yet) | 0.1.0 | `/clip` `/clip-copy` `/clip-edit` `/clip-history` `/clip-ocr` `/clip-save` `/clip-snippet` | Windows (4 .ps1), macOS + Linux (4 .sh) | contract, functional |
+| `deltadraw` | 1.1.0 | `/deltadraw` | Windows (3 .ps1), macOS + Linux (3 .sh), hosted MCP | contract, live nightly |
+| `deltagraph` | 1.0.0 | `/deltagraph` | Windows (2 .ps1), macOS + Linux (2 .sh), hosted MCP | contract, live nightly |
+| `deltalab` | 0.3.0 | `/deltalab` | local MCP (Node 22) | contract |
+| `imageverse` (unlisted, not released yet) | 0.1.0 | `/img` `/img-dedup` `/img-edit` `/img-montage` `/img-organize` `/img-save` `/img-search` `/img-settings` | Windows (17 .ps1), macOS + Linux (17 .sh) | contract, functional |
 <!-- inventory:end -->
+
+clipboard and imageverse are held back from the marketplace until they are ready: their code is here, but `claude plugin install` does not offer them. A pack is held back by an `UNLISTED` file in its folder, which CI checks against `marketplace.json`.
 
 ## Packs
 
@@ -53,8 +55,8 @@ Generated from `plugins/` by `.github/scripts/inventory.sh`; CI fails when it is
 | | `img-save` | Copy a selected set of images to a folder (bug-report bundle / share set). |
 | | `img-organize` | Restructure (year/month, albums) / rename / archive / delete images in a folder, in place (dry-run + confirm; `--copy`). |
 | | `img-dedup` | Find exact-duplicate images and remove/archive the extras, keeping one (dry-run + confirm). |
-| `deltagraph` | `dg` | Hand over a diagram as a `deltagraph.submillisecond.com` link instead of a mermaid fence; the source rides in the URL fragment. The hosted MCP server checks, renders and debugs it first. Offline, `dg-url` builds the link and `dg-debug` calls the debugger over HTTP. |
-| `deltadraw` | `dd` | Hand over a picture (a scene, an illustration, a sketch) as a `deltadraw.submillisecond.com` link that also opens in deltalab as a painting. The hosted MCP server compiles it and returns a PNG to look at first. Offline, `dd-url` builds the link and `dd-png` fetches the picture. |
+| `deltagraph` | `deltagraph` | Hand over a diagram as a `deltagraph.submillisecond.com` link instead of a mermaid fence; the source rides in the URL fragment. The hosted MCP server checks, renders and debugs it first. Offline, `dg-url` builds the link and `dg-debug` calls the debugger over HTTP. |
+| `deltadraw` | `deltadraw` | Hand over a picture (a scene, an illustration, a sketch) as a `deltadraw.submillisecond.com` link that also opens in deltalab as a painting. The hosted MCP server compiles it and returns a PNG to look at first. Offline, `dd-url` builds the link and `dd-png` fetches the picture. |
 | `deltalab` | `deltalab` | Join a live deltalab document or board from a share link and work beside the people there: write, suggest changes in Review, add stickies, votes and comments, edit the board diagram, answer messages. A local MCP server; the share key stays on the machine. |
 
 ## Platforms
@@ -82,7 +84,7 @@ With the `claude` CLI on PATH:
 
 ```bash
 claude plugin marketplace add submillisecond/subms-runes
-claude plugin install clipboard@subms-runes   # or imageverse, deltagraph, deltadraw, deltalab
+claude plugin install deltagraph@subms-runes   # or deltadraw, deltalab
 ```
 
 Restart the Claude Code session, then use a rune, e.g.:

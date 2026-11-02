@@ -37,7 +37,8 @@ inventory() {
     [ -f "plugins/$p/contract/contract-test.sh" ] && tests="contract"
     [ -f "tests/$p.tests.ps1" ] && tests="${tests:+$tests, }functional"
     [ -f "plugins/$p/contract/live-test.sh" ] && tests="${tests:+$tests, }live nightly"
-    echo "| \`$p\` | $(jqv "plugins/$p/.claude-plugin/plugin.json") | ${runes% } | $runs | ${tests:--} |"
+    held=""; [ -f "plugins/$p/UNLISTED" ] && held=" (unlisted, not released yet)"
+    echo "| \`$p\`$held | $(jqv "plugins/$p/.claude-plugin/plugin.json") | ${runes% } | $runs | ${tests:--} |"
   done
 }
 

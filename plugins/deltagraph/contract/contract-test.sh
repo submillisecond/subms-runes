@@ -138,7 +138,7 @@ MCP="$(cat "$PACK/.mcp.json")"
 has ".mcp.json registers deltagraph over http" "$MCP" '"type": "http"'
 has ".mcp.json points at the documented endpoint" "$MCP" '"url": "https://deltagraph\.submillisecond\.com/mcp"'
 has "CONTRACTS.md names the same endpoint" "$CONTRACT" 'https://deltagraph\.submillisecond\.com/mcp'
-SKILL="$(cat "$PACK/skills/dg/SKILL.md")"
+SKILL="$(cat "$PACK/skills/deltagraph/SKILL.md")"
 has "SKILL.md points at the contract, not a copy" "$SKILL" 'contract/CONTRACTS.md'
 has "SKILL.md points at the generated spec" "$SKILL" '/deltagraph/spec.md'
 for word in deltagraph_debug dg-debug '-Compress' '--compress' '-Bg' '--bg'; do
