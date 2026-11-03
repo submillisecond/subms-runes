@@ -12,9 +12,10 @@ required sections, tone). This file states ONLY what is specific to deltalab.
 
 ## Pack notes
 
-- The server is a build artefact of `subms-ui/apps/deltalab`. A change to a
-  tool is made there, rebuilt (`pnpm mcp:build`), copied to `server/`, and the
-  contract, the contract test and the SKILL.md move in the same sweep.
-- `contract-test.sh` needs only Node: it starts the bundle and checks the
+- The client is a build artefact of `subms-ui/apps/deltalab`, signed and
+  published by its deploy; this pack holds only the loader. A change to a tool
+  is made there and deployed, and the contract, the contract test and the
+  SKILL.md move in the same sweep.
+- `contract-test.sh` needs only Node: it starts the loader and checks the
   handshake, the tool list against the contract table, and the refusal paths.
   It never joins a room.

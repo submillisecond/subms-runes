@@ -2,14 +2,32 @@
 
 The canonical contract for the deltalab pack. Skill docs under `../skills/`
 POINT here; they do not restate it. ASCII only. Guarded by `contract-test.sh`,
-which starts the bundled server and checks it against this file.
+which starts the server through the loader and checks it against this file.
 
 ## 1. What the pack ships, and what it does not own
 
-- `server/deltalab-mcp.mjs`: one bundled file, the deltalab MCP server. Built
-  from `subms-ui/apps/deltalab` (`pnpm mcp:build`, then copied here); its first
-  lines say so. Never edited in this repo.
-- `.mcp.json`: starts it with `node ${CLAUDE_PLUGIN_ROOT}/server/deltalab-mcp.mjs`.
+- `server/deltalab-mcp.mjs`: the loader, a few dozen lines with no
+  dependencies. The deltalab client (room protocol, agent, MCP server) is not in
+  this pack. At each start the loader fetches `manifest.json`, `manifest.sig` and
+  the client file the manifest names from `DELTALAB_CLIENT_BASE`, and runs the
+  client from memory only when all of these hold:
+  - `manifest.sig` is an Ed25519 signature over the exact bytes of
+    `manifest.json` by the key whose public half is built into the loader;
+  - the client's size and SHA-256 equal the manifest's `size` and `sha256`;
+  - the manifest's `name` is `deltalab-client`, its `version` is `0.4.x`, and
+    its `builtAt` is no earlier than the loader's minimum, so an older signed
+    client cannot be replayed.
+  Otherwise it writes `deltalab: not starting: <reason>` to stderr and exits 1
+  without running any of it. On start it writes `deltalab: client <build>
+  (deltalab <deploy>), built <builtAt>, signature verified`; the deploy part
+  appears when the manifest carries one.
+- The client and its signed manifest are published by deltalab's deploy
+  (`subms-ui/apps/deltalab/scripts/sign-client.mjs`, at
+  `https://deltalab.submillisecond.com/runes/deltalab/`). Every prod deploy
+  signs it and stamps `version` (the client's MCP API version), `build` (that version plus the signing time), `builtAt`, and `deploy` and `commit` (the deltalab deploy version and commit, as in its `build-info.json`) into the manifest; a prod
+  deploy without the signing key fails. The private key never leaves the
+  deploying machine.
+- `.mcp.json`: starts the loader with `node ${CLAUDE_PLUGIN_ROOT}/server/deltalab-mcp.mjs`.
 
 The room protocol, the signing, the share link format and the relay are
 `subms-ui`'s. This pack fixes only the MCP surface below. The server runs
@@ -40,10 +58,11 @@ omitted, it is the room joined most recently.
 | `deltalab_read` | `room`, `from_line`, `to_line`, `numbered` | Document: outline plus numbered lines. Board: elements, discussion, diagram DSL, viewer link. |
 | `deltalab_write` | `room`, **`text`**, `under_heading`, `after_line` | Direct write into a document. Refused unless permission is `edit`. |
 | `deltalab_suggest` | `room`, **`find`**, **`replace`**, `why` | Propose a replacement for the owner to accept. Refused for view-only. |
-| `deltalab_board` | `room`, **`action`**, `ref`, `text`, `near`, `x`, `y`, `w`, `h`, `dsl`, `ops` | Board change; `action` is one of `sticky`, `set_text`, `vote`, `unvote`, `comment`, `say`, `set_diagram`, `edit_diagram`, `relayout`, `move`, `resize`. A sticky lands right of the board's content unless `near` or `x`/`y` place it. `move` takes `ref`, `x`, `y`; `resize` takes `ref`, `w`, `h`. Refused unless `edit`. The diagram actions are done by the deltagraph worker (`POST /board`): the server carries no layout engine, so they need the network; a board read still answers without it, with the diagram marked unreadable. |
+| `deltalab_board` | `room`, **`action`**, `ref`, `text`, `near`, `x`, `y`, `w`, `h`, `dsl`, `ops`, `url`, `link`, `to`, `shape`, `highlight`, `note`, `image`, `accent`, `fill`, `stroke`, `size`, `code_lang` | Board change; `action` is one of `sticky`, `set_text`, `vote`, `unvote`, `comment`, `say`, `set_diagram`, `edit_diagram`, `relayout`, `move`, `resize`, `image` (a web picture at `x`, `y`, `w`, uploaded encrypted to the room), `card` (title, `highlight`, `note`, `image`, `link`, `accent`; height from the text), `frame` (a titled section; add it before its contents), `shape` (`rectangle`, `ellipse`, `diamond`, `text`, `markdown`, `code`, `table`), `embed` (a live web page), `connect` (`ref` to `to`, an edge-to-edge arrow that does not follow later moves), `link` (open `url` from `ref`), `delete` (one or more refs), and `check` (lists overlaps, overhangs and overflowing text; run it after every batch). A sticky lands right of the board's content unless `near` or `x`/`y` place it. `move` takes `ref`, `x`, `y`; `resize` takes `ref`, `w`, `h`. Refused unless `edit`. The diagram actions are done by the deltagraph worker (`POST /board`): the server carries no layout engine, so they need the network; a board read still answers without it, with the diagram marked unreadable. |
 | `deltalab_inbox` | `room`, `wait_seconds` (0-55) | Messages people wrote since the last call: paragraphs typed into a document, chat messages and thread replies, comments. Each is `[rN mK] author[ where][, to whom]:` then the text. `where` is ` in the chat` or ` on "..."`; `to whom` is `to you`, `to every agent` (@agent-valkyrie-all or @agents), `to everyone` (@all), `to @Handle, ...` (someone else) or `open, no tag`. Every agent gets every message from a person; the tag says whether it is asked. A message from another agent arrives only when it tags this agent by name (`to you`), and an agent never sees its own. |
 | `deltalab_reply` | `room`, **`id`**, **`text`** | Answer an inbox message where it was written: below the paragraph, as a new chat message, or in the comment's thread. Clears the agent's "working on a reply" mark. |
 | `deltalab_say` | `room`, **`text`** | Post a message in the room's chat (a document's discussion or a board's). Tag with `@` and a handle. Refused unless `edit`. |
+| `deltalab_draw` | `room`, **`scene`** | Paint a deltadraw scene (scene text, or a `#d1=` / `#dsl=` / `#p1=` link) into a shared paint file; layers match by name. The scene is compiled by the deltadraw worker (`POST /doc`), so the server carries no drawing engine and this needs the network. Check the scene with the deltadraw tools first. Refused unless `edit`. |
 | `deltalab_leave` | `room` | Leave; presence clears at once. |
 
 Room states in `deltalab_status`: `joining`, `waiting`, `live`, `closed`,
@@ -61,4 +80,6 @@ set the whole document to Review), `view`.
 | `DELTALAB_AGENT_NAME` | The name people see and @mention; spaces become hyphens | `agent-valkyrie-<rune>`, a random Elder Futhark rune per process; agents are named for 40 runes, the Elder then the Younger Futhark (fehu, uruz, ... reidh), then round again as `-2`, `-3`. The old `@Agent-Smith-All` tag still reaches every agent |
 | `DELTALAB_RUN_BY` | The "run by" label on the avatar | the OS user |
 | `DELTALAB_RELAY` | Relay for links that do not name one (localhost) | inferred from the link; codes use production |
+| `DELTALAB_CLIENT_BASE` | Where the loader fetches the signed client from: `https://`, `file://`, or a localhost `http://` address; anything else is refused | `https://deltalab.submillisecond.com/runes/deltalab/` |
+| `DELTALAB_CLIENT_CACHE` | A folder that keeps the last verified client, used when the fetch fails (offline); `1` picks the OS cache folder (`%LOCALAPPDATA%\subms\deltalab-client`, `~/Library/Caches/subms/deltalab-client`, `$XDG_CACHE_HOME/subms/deltalab-client`). A cached client is checked the same way each time, and a newer one is never replaced by an older | unset: nothing is written to disk |
 | `DELTALAB_DG_HOST` | The deltagraph worker that does the board's diagram work (`set_diagram`, `edit_diagram`, `relayout`, and the diagram part of `deltalab_read`) | `https://deltagraph.submillisecond.com` |

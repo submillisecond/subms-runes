@@ -26,7 +26,7 @@
     {
       "name": "deltalab",
       "source": "./plugins/deltalab",
-      "description": "deltalab rune: deltalab (join a live deltalab document or board from a share link and work in it beside the people already there, as a named robot participant). A local MCP server in one bundled file (Node 22, no install) reads and writes the shared markdown, suggests changes when the owner has the document in Review, adds stickies, votes, comments and reshapes a board's diagram, and answers what people write to the agent. The share key stays on this machine; the relay only sees ciphertext.",
+      "description": "deltalab rune: deltalab (join a live deltalab document or board from a share link and work in it beside the people already there, as a named robot participant). A local MCP server (a signed client fetched from deltalab at each start by a small loader; Node 22, no install) reads and writes the shared markdown, suggests changes when the owner has the document in Review, adds stickies, votes, comments and reshapes a board's diagram, and answers what people write to the agent. The share key stays on this machine; the relay only sees ciphertext.",
       "author": {
         "name": "Kieran Smith"
       }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# contract-test: start the bundled MCP server over stdio and check the handshake, tools, refusals, version and bundle.
+# contract-test: start the MCP server through the loader over stdio and check the handshake, tools, refusals, version, and the loader's signature checks.
 # Offline; the live room path is subms-ui's pnpm mcp:e2e.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -8,13 +8,20 @@ PACK="$(cd "$HERE/.." && pwd)"
 contract_isolate
 
 command -v node >/dev/null 2>&1 || { echo "contract-test: node is required"; exit 2; }
-BUNDLE="$PACK/server/deltalab-mcp.mjs"
+LOADER="$PACK/server/deltalab-mcp.mjs"
+# The signed client: DELTALAB_CLIENT_BASE if set, else a local deltalab build
+# beside this repo (subms-ui static build), else the production host.
+SIGNED="$PACK/../../../subms-ui/apps/deltalab/out/runes/deltalab"
+if [ -z "${DELTALAB_CLIENT_BASE:-}" ] && [ -f "$SIGNED/manifest.json" ]; then
+  export DELTALAB_CLIENT_BASE="file://$(cd "$SIGNED" && pwd -W 2>/dev/null || pwd)/"
+fi
+unset DELTALAB_CLIENT_CACHE
 CONTRACT="$(cat "$HERE/CONTRACTS.md")"
 VERSION="$(sed -n 's/.*"version": *"\([^"]*\)".*/\1/p' "$PACK/.claude-plugin/plugin.json" | head -1)"
 
 # One session: every request on stdin, the replies as `<id>\t<json>` lines.
 rpc() {
-  printf '%s\n' "$@" | node "$BUNDLE" 2>"$T/stderr" | node -e '
+  printf '%s\n' "$@" | node "$LOADER" 2>"$T/stderr" | node -e '
     let d = ""; process.stdin.on("data", (c) => (d += c)).on("end", () => {
       for (const l of d.split("\n").filter(Boolean)) { const m = JSON.parse(l); console.log(m.id + "\t" + JSON.stringify(m)); }
     });'
@@ -75,16 +82,32 @@ has "bad link: says why" "$(js "$(reply 4)" 'm.result.content[0].text')" 'does n
 has "read before join: says to join" "$(js "$(reply 5)" 'm.result.content[0].text')" 'deltalab_join'
 has "bad code: shows the shape" "$(js "$(reply 6)" 'm.result.content[0].text')" 'KQ47-XMP0'
 
-echo "== 4. the bundle and the pack agree =="
-has "bundle says where it is built" "$(head -3 "$BUNDLE")" 'subms-ui/apps/deltalab'
-eq "bundle is ASCII" "$(LC_ALL=C grep -c '[^ -~]' "$BUNDLE" | tr -d ' ')" "0"
-has ".mcp.json runs the bundle" "$(cat "$PACK/.mcp.json")" 'CLAUDE_PLUGIN_ROOT}/server/deltalab-mcp.mjs'
+echo "== 4. the loader and the pack agree =="
+has "loader says what it is" "$(head -3 "$LOADER")" 'deltalab MCP loader'
+eq "loader is ASCII" "$(LC_ALL=C grep -c '[^ -~]' "$LOADER" | tr -d ' ')" "0"
+has "loader reported the verified client" "$(cat "$T/stderr")" 'signature verified'
+has ".mcp.json runs the loader" "$(cat "$PACK/.mcp.json")" 'CLAUDE_PLUGIN_ROOT}/server/deltalab-mcp.mjs'
 SKILL="$(cat "$PACK/skills/deltalab/SKILL.md")"
 has "SKILL.md points at the contract" "$SKILL" 'contract/CONTRACTS.md'
 for t in $NAMES; do has "SKILL.md or contract covers $t" "$SKILL$CONTRACT" "$t"; done
-for v in DELTALAB_AGENT_NAME DELTALAB_RUN_BY DELTALAB_RELAY; do
+for v in DELTALAB_AGENT_NAME DELTALAB_RUN_BY DELTALAB_RELAY DELTALAB_CLIENT_BASE DELTALAB_CLIENT_CACHE; do
   has "contract documents $v" "$CONTRACT" "$v"
-  has "bundle reads $v" "$(grep -o "process.env.$v" "$BUNDLE" | head -1)" "$v"
 done
+for v in DELTALAB_CLIENT_BASE DELTALAB_CLIENT_CACHE; do
+  has "loader reads $v" "$(grep -o "process.env.$v" "$LOADER" | head -1)" "$v"
+done
+
+echo "== 5. the loader runs nothing it cannot verify =="
+case "${DELTALAB_CLIENT_BASE:-}" in
+  file://*)
+    SRC="${DELTALAB_CLIENT_BASE#file://}"
+    cp -r "$SRC" "$T/tamper" && for f in "$T"/tamper/client-*.mjs; do printf '\n//x' >> "$f"; done
+    has "a changed client is refused" "$(DELTALAB_CLIENT_BASE="file://$(cd "$T/tamper" && pwd -W 2>/dev/null || pwd)/" node "$LOADER" </dev/null 2>&1)" 'do not match the signed manifest'
+    cp -r "$SRC" "$T/forge" && sed -i 's/"version": "\([0-9.]*\)"/"version": "\1-x"/' "$T/forge/manifest.json"
+    has "a changed manifest is refused" "$(DELTALAB_CLIENT_BASE="file://$(cd "$T/forge" && pwd -W 2>/dev/null || pwd)/" node "$LOADER" </dev/null 2>&1)" "does not match deltalab's key"
+    ;;
+  *) echo "  (skipped: tamper checks need a local signed build; run subms-ui's static build first)" ;;
+esac
+has "a remote http base is refused" "$(DELTALAB_CLIENT_BASE=http://example.com/ node "$LOADER" </dev/null 2>&1)" 'must be https://'
 
 contract_result

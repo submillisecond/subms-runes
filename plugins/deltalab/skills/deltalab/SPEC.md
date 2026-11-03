@@ -42,6 +42,10 @@ environment are in `../../contract/CONTRACTS.md`; this file does not repeat them
 - `deltalab_join` accepts a code in either field, names a document key as
   not a share, and sends codes to the production relay. The rune therefore
   joins on whatever the user pasted and only asks when the tool refuses.
+- The pack carries no client: `server/deltalab-mcp.mjs` is a loader that
+  fetches the signed client from deltalab at each start, checks its Ed25519
+  signature, size and hash, and runs it from memory (CONTRACTS.md section 1).
+  No proprietary code ships in this public pack.
 - The server carries no diagram engine (the build fails if one is bundled):
   `set_diagram`, `edit_diagram`, `relayout` and reading the diagram back go
   to the deltagraph worker's `POST /board`, which returns the delta the server
@@ -55,7 +59,9 @@ environment are in `../../contract/CONTRACTS.md`; this file does not repeat them
 
 ## Verification
 
-- `../../contract/contract-test.sh`: the server against the contract, offline.
+- `../../contract/contract-test.sh`: the server, started through the loader,
+  against the contract, plus the loader refusing a changed client and a
+  changed manifest. Offline when a local signed build exists beside the repo.
 - `subms-ui/apps/deltalab`: `pnpm test` (the tool layer against an in-memory
   room) and `pnpm mcp:e2e` (the built bundle in a fresh room on the beta
   relay: join, read, section write, presence, inbox, reply, suggest, leave).
