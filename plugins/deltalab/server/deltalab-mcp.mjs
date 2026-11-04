@@ -27,7 +27,11 @@ import { fileURLToPath } from "node:url";
 const PUBLIC_KEY = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEA1dfK00SpCTHaC+XGc/vWX1B+4bB5ytIqPBSW+pCj9uI=
 -----END PUBLIC KEY-----`;
+// This pack's version: equal to .claude-plugin/plugin.json (the contract test
+// checks). Compared with the newest pack the signed manifest names.
+const PACK_VERSION = "0.4.0";
 const API = "0.4";
+const UPDATE = "claude plugin marketplace update subms-runes && claude plugin update deltalab@subms-runes";
 const MIN_BUILT_AT = "2026-11-03T00:00:00Z";
 const DEFAULT_BASE = "https://deltalab.submillisecond.com/runes/deltalab/";
 const FETCH_TIMEOUT_MS = 15_000;
@@ -51,6 +55,14 @@ function cacheDir() {
   if (process.platform === "win32") return join(process.env.LOCALAPPDATA || join(homedir(), "AppData", "Local"), "subms", "deltalab-client");
   if (process.platform === "darwin") return join(homedir(), "Library", "Caches", "subms", "deltalab-client");
   return join(process.env.XDG_CACHE_HOME || join(homedir(), ".cache"), "subms", "deltalab-client");
+}
+
+/** True when x.y.z `a` is newer than `b`. */
+function newer(a, b) {
+  const p = (v) => v.split(".").map(Number);
+  const [x, y] = [p(a), p(b)];
+  for (let i = 0; i < 3; i++) if (x[i] !== y[i]) return x[i] > y[i];
+  return false;
 }
 
 async function get(name) {
@@ -135,5 +147,11 @@ if (!r.client) {
   keep(dir, r);
 }
 
+const latest = typeof r.manifest.pack === "string" ? r.manifest.pack : null;
+if (latest && newer(latest, PACK_VERSION)) {
+  say(`this pack is ${PACK_VERSION} and ${latest} is out. Update it, then restart Claude Code: ${UPDATE}`);
+}
+// The client tells the model, which tells the person (agent/mcp/packUpdate.ts).
+globalThis.__deltalabLoader = { pack: PACK_VERSION, latest };
 say(`client ${r.manifest.build}${r.manifest.deploy ? ` (deltalab ${r.manifest.deploy})` : ""}, built ${r.manifest.builtAt}, signature verified`);
 await import(`data:text/javascript;base64,${r.client.toString("base64")}`);

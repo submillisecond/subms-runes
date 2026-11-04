@@ -86,6 +86,7 @@ echo "== 4. the loader and the pack agree =="
 has "loader says what it is" "$(head -3 "$LOADER")" 'deltalab MCP loader'
 eq "loader is ASCII" "$(LC_ALL=C grep -c '[^ -~]' "$LOADER" | tr -d ' ')" "0"
 has "loader reported the verified client" "$(cat "$T/stderr")" 'signature verified'
+eq "loader PACK_VERSION == plugin.json version" "$(sed -n 's/^const PACK_VERSION = "\([^"]*\)";/\1/p' "$LOADER")" "$VERSION"
 has ".mcp.json runs the loader" "$(cat "$PACK/.mcp.json")" 'CLAUDE_PLUGIN_ROOT}/server/deltalab-mcp.mjs'
 SKILL="$(cat "$PACK/skills/deltalab/SKILL.md")"
 has "SKILL.md points at the contract" "$SKILL" 'contract/CONTRACTS.md'

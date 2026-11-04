@@ -30,7 +30,7 @@ Generated from `plugins/` by `.github/scripts/inventory.sh`; CI fails when it is
 | `clipboard` (unlisted, not released yet) | 0.1.0 | `/clip` `/clip-copy` `/clip-edit` `/clip-history` `/clip-ocr` `/clip-save` `/clip-snippet` | Windows (4 .ps1), macOS + Linux (4 .sh) | contract, functional |
 | `deltadraw` | 1.1.0 | `/deltadraw` | Windows (3 .ps1), macOS + Linux (3 .sh), hosted MCP | contract, live nightly |
 | `deltagraph` | 1.0.0 | `/deltagraph` | Windows (2 .ps1), macOS + Linux (2 .sh), hosted MCP | contract, live nightly |
-| `deltalab` | 0.4.0 | `/deltalab` | local loader, signed client (Node 22) | contract |
+| `deltalab` | 0.4.0 | `/deltalab` | local MCP (Node 22) | contract |
 | `imageverse` (unlisted, not released yet) | 0.1.0 | `/img` `/img-dedup` `/img-edit` `/img-montage` `/img-organize` `/img-save` `/img-search` `/img-settings` | Windows (17 .ps1), macOS + Linux (17 .sh) | contract, functional |
 <!-- inventory:end -->
 
@@ -86,6 +86,15 @@ With the `claude` CLI on PATH:
 claude plugin marketplace add submillisecond/subms-runes
 claude plugin install deltagraph@subms-runes   # or deltadraw, deltalab
 ```
+
+Update later with:
+
+```bash
+claude plugin marketplace update subms-runes
+claude plugin update deltalab@subms-runes      # or deltagraph, deltadraw
+```
+
+Claude Code does not update third-party marketplaces on its own unless you turn it on: `/plugin`, Marketplaces, `subms-runes`, Enable auto-update. The deltalab pack (0.4.0 and later) tells you through the agent when a newer pack is out; its client updates itself at every start.
 
 Restart the Claude Code session, then use a rune, e.g.:
 
