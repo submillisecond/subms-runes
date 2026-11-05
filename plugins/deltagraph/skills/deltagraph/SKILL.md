@@ -50,10 +50,10 @@ draw from terraform, CloudFormation, Cargo or a Kafka Streams topology,
 
 Pick the kind. For a system, a pipeline, a hot path or an architecture, the
 native DSL. Otherwise the mermaid header for the kind: `flowchart TD`,
-`sequenceDiagram`, `stateDiagram-v2`, `erDiagram`, `mindmap`,
+`sequenceDiagram`, `stateDiagram-v2`, `erDiagram`, `classDiagram`, `mindmap`,
 `requirementDiagram`, `journey`, `kanban`, `timeline`, `gitGraph`,
 `quadrantChart`, `radar`, `treemap`. Not drawn, use instead: `gantt` ->
-`timeline`; `pie` -> `treemap`; `classDiagram` -> `erDiagram`; C4 /
+`timeline`; `pie` -> `treemap`; C4 /
 `architecture` / `block` / `sankey` / `packet` -> native DSL; `xychart` ->
 `radar`; `zenuml` -> `sequenceDiagram`.
 
