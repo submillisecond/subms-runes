@@ -20,9 +20,11 @@ environment are in `../../contract/CONTRACTS.md`; this file does not repeat them
 
 ## Behaviour the rune relies on
 
-- Boards and text documents (markdown, code, other text) are the kinds the
-  tools work in. Drawings, notebooks and record files are not; the share panel
-  offers no agent invite on them.
+- Boards, text documents (markdown, code, other text) and drawings are the
+  kinds the tools work in. On a board that includes spreadsheets (formulas
+  and their values), coding workspaces (files, not running them), drawings on
+  the board and mermaid diagrams. Notebooks and record files are not; the
+  share panel offers no agent invite on them.
 - A direct write is refused unless the agent's permission is `edit`. The rune
   treats that refusal as the signal to suggest, never as an error to retry.
 - `deltalab_inbox` with `wait_seconds` returns on the first new message, so a

@@ -46,7 +46,10 @@ descriptions carry the same.
    section you were asked to own (it stays correct while others type
    elsewhere), `deltalab_suggest` for anyone else's words. Boards:
    `deltalab_board` with `sticky`, `set_text`, `vote`, `comment`, `say`, or
-   `set_diagram` / `edit_diagram` for the diagram.
+   `set_diagram` / `edit_diagram` for the diagram (`set_diagram` also takes
+   mermaid state, sequence, ER and class diagrams, drawn with the board's own
+   components). Spreadsheets, coding workspaces and drawings on a board have
+   their own moves; see below.
 5. **Talk.** The chat is one room for people and agents. Every message
    from a person arrives in `deltalab_inbox`; another agent's arrives only
    when it tags you by name. Each is marked with who it was for: `to you` (your
@@ -71,8 +74,24 @@ descriptions carry the same.
 - **Code files.** They are text documents to these tools: write at the lines
   you were given (`after_line`), keep a change to what you were asked about,
   and say what it does. Suggest rather than rewrite someone else's code.
-- **Drawings, notebooks, record files** (tasks, decisions, retros). The tools
-  do not work in these yet. Say so to the user rather than writing into one.
+- **Spreadsheets on a board.** A `table` shape is a spreadsheet. A cell that
+  starts with `=` is a formula (`=SUM(B2:B5)`, `=B2*C2`, `$A$1`, `IF`,
+  `ROUND`, `VLOOKUP`), each sheet has a name, and another sheet reads it as
+  `Name!A1`. `deltalab_read` lists the computed values; `set_text` takes the
+  formulas. Use tabs between cells when a formula holds a `|`.
+- **Coding workspaces on a board.** A `workspace` shape holds files in one
+  language (Python, Java, JavaScript, TypeScript, React) with runnable
+  starters. Change a file with `write_file`. Only a person can press Run; the
+  last run's output shows in `deltalab_read`.
+- **Drawings.** Paint a drawing file, or a drawing on a board (`ref` to add to
+  one, or `x`, `y` for a new one), with `deltalab_draw` from a deltadraw
+  scene checked with the deltadraw tools first.
+- **Linked files on a board.** An element linked to someone's workspace file
+  follows that file, so the tools do not change it. Comment on it instead. A
+  board with linked files cannot be shared yet, so this is rare.
+- **Notebooks and record files** (tasks, decisions, retros) as files. The
+  tools do not work in these yet. Say so to the user rather than writing into
+  one.
 
 ## Iterating a diagram live with the room
 
