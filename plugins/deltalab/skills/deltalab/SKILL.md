@@ -79,10 +79,18 @@ descriptions carry the same.
   `ROUND`, `VLOOKUP`), each sheet has a name, and another sheet reads it as
   `Name!A1`. `deltalab_read` lists the computed values; `set_text` takes the
   formulas. Use tabs between cells when a formula holds a `|`.
+- **Tables and charts on a board.** A `rich_table` shape is a styled table
+  for showing data (no formulas); what people paste from Excel, emails and
+  pages lands as one. `set_text` takes a markdown table and keeps each cell's
+  style; `cell` changes one cell by address (`B3`), a picture or a table
+  inside it included. `chart` draws a bar, line, area, pie or scatter chart
+  from a table or spreadsheet (and a `range`), linked so it follows the data.
 - **Coding workspaces on a board.** A `workspace` shape holds files in one
   language (Python, Java, JavaScript, TypeScript, React) with runnable
-  starters. Change a file with `write_file`. Only a person can press Run; the
-  last run's output shows in `deltalab_read`.
+  starters. Change a file with `write_file`, then `run` it: it runs in the
+  browser of a person in the room who can edit, and the output comes back
+  (a React app needs a person to press Run). The last run's output also shows
+  in `deltalab_read`.
 - **Drawings.** Paint a drawing file, or a drawing on a board (`ref` to add to
   one, or `x`, `y` for a new one), with `deltalab_draw` from a deltadraw
   scene checked with the deltadraw tools first.
