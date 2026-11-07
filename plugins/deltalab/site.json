@@ -1,6 +1,6 @@
 {
-  "pitch": "An agent in the room: it joins a live deltalab document or board as one more participant.",
-  "ask": "Join this deltalab board and add a sticky for each risk you see in the plan: <share link>",
+  "pitch": "An agent in the room: it joins a live DeltaLab document or board as one more participant.",
+  "ask": "Join this DeltaLab board and add a sticky for each risk you see in the plan: <share link>",
   "about": "Paste a share link and the agent joins the document or board as a named participant, with its own cursor, beside whoever is already there. It writes in its own section, suggests changes when the owner has the document in Review, and works on boards: stickies, tables, charts, spreadsheets, coding workspaces and the diagram. People hand it work in the room's chat. The share key stays on your machine, so the relay only ever sees ciphertext.",
   "demo": "deltalab.gif",
   "try": "https://deltalab.submillisecond.com/"

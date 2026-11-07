@@ -1,4 +1,4 @@
-# subms-runes
+# <img src="https://www.submillisecond.com/products/icons/subms-runes.svg" width="40" height="40" alt=""> subms-runes
 
 <!-- badges:start -->
 [![checks](https://img.shields.io/github/actions/workflow/status/submillisecond/subms-runes/release.yml?branch=main&label=checks&labelColor=0d1117)](https://github.com/submillisecond/subms-runes/actions/workflows/release.yml)
@@ -11,7 +11,7 @@
 Claude Code plugins from submillisecond. Each plugin is a pack: a skill that tells
 the agent how to do one job, and usually the MCP server it does the job with. The
 three that are live draw diagrams (deltagraph) and pictures (deltadraw) as links,
-and put an agent in a live deltalab document or board (deltalab).
+and put an agent in a live DeltaLab document or board (deltalab).
 
 ## Install
 
@@ -36,9 +36,9 @@ claude plugin marketplace update subms-runes   # refreshes the catalog only
 claude plugin update deltalab@subms-runes      # then each pack you have
 ```
 
-A pack that falls behind keeps working for the most part. deltalab fetches its
-client at every start and the deltagraph and deltadraw engines are hosted, so only
-the skill text and the deltalab loader wait for an update. When one is behind, its
+A pack that falls behind keeps working for the most part. The deltalab pack
+fetches its client at every start and the DeltaGraph and DeltaDraw engines are
+hosted, so only the skill text and the deltalab loader wait for an update. When one is behind, its
 server tells you through the agent and gives these steps.
 
 A team can switch auto-update on for everyone in the project's
@@ -54,7 +54,7 @@ A team can switch auto-update on for everyone in the project's
 ```
 
 Restart Claude Code and ask for something: "draw how an order flows through our
-gateway as a diagram", or paste a deltalab share link and ask the agent to join.
+gateway as a diagram", or paste a DeltaLab share link and ask the agent to join.
 
 ## Packs
 
@@ -93,10 +93,10 @@ folder holds it back, and CI checks that against `marketplace.json`.
 | | `img-save` | Copy a selected set of images to a folder (bug-report bundle / share set). |
 | | `img-organize` | Restructure (year/month, albums) / rename / archive / delete images in a folder, in place (dry-run + confirm; `--copy`). |
 | | `img-dedup` | Find exact-duplicate images and remove/archive the extras, keeping one (dry-run + confirm). |
-| `deltagraph` | `deltagraph` | Hand over a diagram as a `deltagraph.submillisecond.com` link instead of a mermaid fence; the source rides in the URL fragment. The hosted MCP server checks, renders and debugs it first. Offline, `dg-url` builds the link and `dg-debug` calls the debugger over HTTP. |
-| `deltadraw` | `deltadraw` | Hand over a picture (a scene, an illustration, a sketch) as a `deltadraw.submillisecond.com` link that also opens in deltalab as a painting. The hosted MCP server compiles it and returns a PNG to look at first. Offline, `dd-url` builds the link and `dd-png` fetches the picture. |
-| `subms-runes` | - | A bundle: installs `deltagraph`, `deltadraw` and `deltalab` in one step. No skills or servers of its own. |
-| `deltalab` | `deltalab` | Join a live deltalab document or board from a share link and work beside the people there: write, suggest changes in Review, add stickies, votes and comments, edit the board diagram, answer messages. A local MCP server; the share key stays on the machine. |
+| <img src="https://www.submillisecond.com/products/icons/deltagraph.svg" width="20" height="20" alt=""> `deltagraph` | `deltagraph` | Hand over a diagram as a `deltagraph.submillisecond.com` link instead of a Mermaid fence; the source rides in the URL fragment. The hosted MCP server checks, renders and debugs it first. Offline, `dg-url` builds the link and `dg-debug` calls the debugger over HTTP. |
+| <img src="https://www.submillisecond.com/products/icons/deltadraw.svg" width="20" height="20" alt=""> `deltadraw` | `deltadraw` | Hand over a picture (a scene, an illustration, a sketch) as a `deltadraw.submillisecond.com` link that also opens in DeltaLab as a painting. The hosted MCP server compiles it and returns a PNG to look at first. Offline, `dd-url` builds the link and `dd-png` fetches the picture. |
+| <img src="https://www.submillisecond.com/products/icons/subms-runes.svg" width="20" height="20" alt=""> `subms-runes` | - | A bundle: installs `deltagraph`, `deltadraw` and `deltalab` in one step. No skills or servers of its own. |
+| <img src="https://www.submillisecond.com/products/icons/deltalab.svg" width="20" height="20" alt=""> `deltalab` | `deltalab` | Join a live DeltaLab document or board from a share link and work beside the people there: write, suggest changes in Review, add stickies, votes and comments, edit the board diagram, answer messages. A local MCP server; the share key stays on the machine. |
 
 ## Platforms
 
@@ -152,7 +152,7 @@ add a rune or a pack.
 
 Run any of it locally: `bash .github/scripts/contracts.sh` (add `--live` for the hosted checks), `bash .github/scripts/inventory.sh`.
 
-## Agents in deltalab rooms
+## Agents in DeltaLab rooms
 
 The `deltalab` pack puts an agent you run into a shared room, beside other people
 and their agents. You run it, on your machine, with your AI provider, so what it
@@ -164,10 +164,10 @@ post messages and pictures, and ask for code to run in the browser of someone in
 the room. Anyone in the room can write instructions it may follow, including ones
 meant to misuse it; the pack's rules guide the model and guarantee nothing. Its
 diagram, drawing and board-picture actions send the board's content to the
-deltagraph and deltadraw services, unencrypted, to be drawn.
+DeltaGraph and DeltaDraw services, unencrypted, to be drawn.
 
 The packs come as is, with no warranty and no liability, under the licence below.
-The [deltalab terms](https://deltalab.submillisecond.com/terms) (section 7) and
+The [DeltaLab terms](https://deltalab.submillisecond.com/terms) (section 7) and
 [privacy page](https://www.submillisecond.com/deltalab/privacy) also apply.
 
 ## Licence

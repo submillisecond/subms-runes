@@ -1,7 +1,7 @@
 {
-  "pitch": "Pictures as a link. The agent writes a scene; the hosted engine paints it, and it opens in deltalab as a painting you can keep working on.",
+  "pitch": "Pictures as a link. The agent writes a scene; the hosted engine paints it, and it opens in DeltaLab as a painting you can keep working on.",
   "ask": "Draw a hand-drawn sketch of a lighthouse at dusk, with the beam sweeping round.",
-  "about": "Ask for a scene, an illustration or a sketch and you get a link to a painting, compiled by the hosted engine and checked as a picture before it reaches you. Scenes can animate, page by page, and come out as GIFs. Open one in deltalab and it is an ordinary drawing you can keep painting on.",
+  "about": "Ask for a scene, an illustration or a sketch and you get a link to a painting, compiled by the hosted engine and checked as a picture before it reaches you. Scenes can animate, page by page, and come out as GIFs. Open one in DeltaLab and it is an ordinary drawing you can keep painting on.",
   "demo": "deltadraw.gif",
   "try": "https://deltadraw.submillisecond.com/"
 }
