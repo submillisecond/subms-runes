@@ -6,6 +6,8 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ## [Unreleased]
 
+## deltalab 0.5.0 - 2026-11-07
+
 ### Changed
 
 - `deltalab` skill: a session asked to draw a diagram loaded this skill (the request said deltalab) and asked the user to create and share a board, because nothing here said a diagram needs no room. The description now says a standalone diagram or picture is not this skill's job, and the body opens with where to go instead: the deltagraph pack (hosted MCP, `dg-url`, the `#dsl=` link and `/png?dsl=` picture) or deltadraw for pictures, with a by-hand fallback when neither is installed. Share links in the description now include `/join/#/room/...`.

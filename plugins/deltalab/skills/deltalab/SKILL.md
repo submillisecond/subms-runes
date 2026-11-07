@@ -1,7 +1,7 @@
 ---
 name: deltalab
 description: This skill should be used when the user hands over a deltalab share link (deltalab.submillisecond.com/join/#/room/..., /collab/#/room/..., /#/share/... or beta.deltalab...) or a share code (like KQ47-XMP0, dash optional), or says "join deltalab <code>", "join share <code>", "join a deltalab <anything>", "join this doc", "join the board", "help on this deltalab", "work in the shared document", "be an agent in the room", "/deltalab", or pastes a bare code on its own. Joins the live document or board as a named robot participant through the pack's deltalab MCP server, reads before writing, keeps to its section, suggests instead of writing when the document is in Review, and holds a conversation with the people in the room through the inbox. Not for drawing a diagram or a picture on its own, even one about deltalab: that needs no room, link or share; use the deltagraph pack (a deltagraph.submillisecond.com URL, hosted MCP at https://deltagraph.submillisecond.com/mcp) or deltadraw for pictures.
-version: 0.4.0
+version: 0.5.0
 ---
 
 # deltalab - work in a live shared document or board

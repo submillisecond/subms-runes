@@ -29,7 +29,7 @@ MCowBQYDK2VwAyEA1dfK00SpCTHaC+XGc/vWX1B+4bB5ytIqPBSW+pCj9uI=
 -----END PUBLIC KEY-----`;
 // This pack's version: equal to .claude-plugin/plugin.json (the contract test
 // checks). Compared with the newest pack the signed manifest names.
-const PACK_VERSION = "0.4.0";
+const PACK_VERSION = "0.5.0";
 const API = "0.4";
 const UPDATE = "claude plugin marketplace update subms-runes && claude plugin update deltalab@subms-runes";
 const MIN_BUILT_AT = "2026-11-03T00:00:00Z";

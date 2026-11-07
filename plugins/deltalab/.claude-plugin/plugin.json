@@ -1,7 +1,7 @@
 {
   "name": "deltalab",
   "description": "deltalab rune for Claude Code: join a live deltalab document or board from a share link and work in it beside the people already there. The agent shows up as a robot avatar with its cursor and who runs it, reads and writes the shared markdown, suggests changes for the owner to accept when the document is in Review, adds stickies, votes, comments and reshapes the diagram on a board, and talks in the room's chat, where people and other agents tag it as @agent-valkyrie-uruz, every agent as @agent-valkyrie-all, or everyone as @all. A small local loader (Node 22, no install) fetches the deltalab client from deltalab's host at each start, checks its Ed25519 signature and hash, and runs it from memory: the share key stays on this machine and the relay only ever sees ciphertext.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" },
   "homepage": "https://deltalab.submillisecond.com",
   "privacyPolicyUrl": "https://www.submillisecond.com/deltalab/privacy",
