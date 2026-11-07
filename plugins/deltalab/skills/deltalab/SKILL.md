@@ -25,8 +25,8 @@ descriptions carry the same.
    `deltalab_status`. Keep the room handle it returns (`r1`).
    - A document key (`f_...`, from the address bar or a file list) is not a
      share. The room key travels only in a link's fragment or behind a code,
-     so ask for one of those; `/collab` without a token only opens the Join
-     dialog and gets you no further.
+     so ask for one of those; `/join` (or the older `/collab`) without a
+     token only opens the Join dialog and gets you no further.
 2. **Read first.** `deltalab_read`. A document comes back with line numbers and
    its heading outline; a board with every element's id and text, the
    discussion, and the diagram as deltagraph DSL. Note your permission:

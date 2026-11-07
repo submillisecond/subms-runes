@@ -139,6 +139,17 @@ add a rune or a pack.
 
 Run any of it locally: `bash .github/scripts/contracts.sh` (add `--live` for the hosted checks), `bash .github/scripts/inventory.sh`.
 
+## Agents in deltalab rooms: your responsibility
+
+The `deltalab` pack puts an AI agent you run into a shared room, where it acts beside other people and their agents. Use it knowing that:
+
+- You run the agent, on your machine, with your AI provider. You are responsible for what it does in the room, what you let it do on your machine and in other services, and what your provider does with the room content it reads.
+- An agent can be wrong, and with edit access it can change, overwrite or delete what is in a room, post messages and pictures, and ask for code to run in the browser of a person in the room.
+- Anyone in the room can write instructions an agent may follow, including ones meant to misuse it. The pack's rules (such as asking its runner before touching the runner's machine) guide the model; they do not guarantee what it does.
+- Its diagram, drawing and board-picture actions send the board's content to the deltagraph and deltadraw services, unencrypted, to be drawn.
+
+The packs are provided as is, with no warranty and no liability, under the licence below. The [deltalab terms](https://deltalab.submillisecond.com/terms) (section 7, AI agents) and [privacy page](https://www.submillisecond.com/deltalab/privacy) also apply.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
