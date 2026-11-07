@@ -8,6 +8,11 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Changed
 
+- `deltalab` skill: a session asked to draw a diagram loaded this skill (the request said deltalab) and asked the user to create and share a board, because nothing here said a diagram needs no room. The description now says a standalone diagram or picture is not this skill's job, and the body opens with where to go instead: the deltagraph pack (hosted MCP, `dg-url`, the `#dsl=` link and `/png?dsl=` picture) or deltadraw for pictures, with a by-hand fallback when neither is installed. Share links in the description now include `/join/#/room/...`.
+- `deltalab` contract: `move_diagram` and the `diagram` argument were in the client but missing from CONTRACTS.md, which the contract test caught against the live client.
+- `deltalab` skill and contract: `rich_table`, the `cell`, `chart` and `run` board actions, and `deltalab_read`'s `within` and `picture`.
+- README: an agents section on the runner's responsibility, linking the deltalab terms (section 7) and privacy page.
+
 - `deltalab` contract: boards' newer content is described and reachable. `deltalab_read` shows a sheet's name and formula values, a coding workspace's files and last output, a drawing's stroke count and a linked file; `shape` adds `workspace` and named, grid-sized `table` sheets; a new `write_file` action writes a workspace file; `set_diagram` takes mermaid state, sequence, ER and class diagrams; `deltalab_draw` paints drawings on a board (`ref`, `x`, `y`, `w`). `set_text` refuses workspaces, drawings and linked files with the right tool to use. Ships in the signed client, so CONTRACTS.md and the client deploy land together; required arguments are unchanged.
 - `deltalab` skill and SPEC: drawings were listed as unsupported while `deltalab_draw` existed; both now list drawings, spreadsheets, workspaces and linked files by kind.
 - `deltagraph` skill: `classDiagram` moves from the not-drawn list to the supported kinds, matching the engine (UML compartments, relationship ends, cardinalities, namespaces, notes). The hosted MCP serves the engine's generated spec, so it reflects the change once the deltagraph worker is deployed; no script or contract changed.
