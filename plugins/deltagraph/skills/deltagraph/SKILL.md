@@ -36,8 +36,9 @@ tools are available, use them; they run the real engine.
    source it found, plus the picture with problem edges amber and clipped
    nodes red. Take a better source only when it keeps the author's labels,
    shapes and groups; a reorder moves declarations, nothing else.
-5. **`deltagraph_url`** for the links. Hand back the viewer URL on its own
-   line and say in a few words what it shows. When the diagram is a new
+5. **`deltagraph_url`** for the links. Hand back the viewer URL as a named
+   markdown link (see Handing diagrams over) and say in a few words what it
+   shows. When the diagram is a new
    version of one you handed back before, pass `previous_url` so the link
    carries its history.
 
@@ -75,6 +76,24 @@ Native DSL essentials:
 
 Titles are plain noun phrases: "Tick to trade", never "Tick to trade, four
 versions".
+
+## Handing diagrams over
+
+A link full of encoded source is unreadable, and a wall of them is worse.
+
+- **One named markdown link per diagram, to the viewer:**
+  `[Architecture](https://deltagraph.submillisecond.com/#d1=...&title=Architecture)`,
+  then a line on what it shows. Use the `#d1=` form and set `title`. Several
+  diagrams are a short list of these, one per line.
+- **Never print the raw URL** in prose, a table or a code block, and never
+  the `/svg`, `/png` or `/check` addresses used to test a render. Those are
+  for checking. Report "all six render" and hand over the viewer links.
+- **To paste somewhere else** (Slack, email, a ticket), or when a terminal
+  shows the whole address, make a short link: `POST https://www.submillisecond.com/l`
+  with `{"target": "<viewer url>", "title": "<name>"}` returns
+  `{"short": "https://www.submillisecond.com/l/<id>"}`, which previews as the
+  diagram. It stores the diagram on the server until 30 days after its last
+  visit, so ask first for anything private; the viewer link stores nothing.
 
 ## Without the server
 

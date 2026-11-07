@@ -6,6 +6,18 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- `deltalab` pack: registers only its own MCP server (the loader for rooms). A second registration of the hosted deltagraph server was tried and removed before release. It duplicated the deltagraph pack's server under a second tool prefix for anyone with both packs. It added nothing to rooms either, since the deltalab client already does a board's diagram work through the deltagraph worker (`POST /board`). A standalone diagram is the deltagraph pack's job; the deltalab skill points there.
+- `subms-runes` bundle: `claude plugin install subms-runes@subms-runes` installs and enables deltagraph, deltadraw and deltalab. It holds no skills or servers; each pack keeps its own version. The README install section leads with it and with turning on auto-update, which Claude Code leaves off for third-party marketplaces.
+- Update notices from every pack give the same steps: `/plugin`, Marketplaces, subms-runes, Update marketplace (which updates every installed pack) and Enable auto-update, or the terminal pair.
+- Each listed pack has a `site.json` card for the subms-runes product page on submillisecond.com; CI requires it.
+- `inventory.sh` handles a pack with no skills, listing what a bundle installs.
+- `deltalab` loader: when it refuses to start (pack and service out of step, a signature failure, no network and no cache, Node older than 22, a bad `DELTALAB_CLIENT_BASE`) it no longer exits. Exiting showed only a failed server in `/mcp`, so the agent had no tools and could not say why. It now answers MCP with the reason and the fix in its instructions and in one `deltalab_status` tool that returns an error. A pack older than the service gets the update command; a service older than the pack is reported as deltalab's problem, because updating the pack would not fix it. The stderr lines are unchanged, and the contract test checks the refusal reply.
+- `deltalab` contract test: the client's `serverInfo.version` is checked against the loader's API line (major.minor) instead of being required to equal the pack's version. Requiring equality let a 0.5.0 client ship that every installed loader refused; the client is a compatibility line (0.4.x), the pack is 0.5.0.
+
+- `deltagraph` skill: diagrams were handed over as raw addresses, including the `/svg?d1=` ones used to test a render, hundreds of encoded characters each in a table. The skill now says to hand each diagram over as a named markdown link to the viewer (`#d1=` with a title), never to print raw or test addresses, and to make a `www.submillisecond.com/l` short link for pasting elsewhere, asking first for anything private since a short link stores the diagram on the server until 30 days after its last visit.
+
 ## deltalab 0.5.0 - 2026-11-07
 
 ### Changed

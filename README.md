@@ -3,26 +3,63 @@
 <!-- badges:start -->
 [![checks](https://img.shields.io/github/actions/workflow/status/submillisecond/subms-runes/release.yml?branch=main&label=checks&labelColor=0d1117)](https://github.com/submillisecond/subms-runes/actions/workflows/release.yml)
 [![live](https://img.shields.io/github/actions/workflow/status/submillisecond/subms-runes/live.yml?branch=main&label=live%20engine&labelColor=0d1117)](https://github.com/submillisecond/subms-runes/actions/workflows/live.yml)
-![packs](https://img.shields.io/badge/packs-5-1f6feb?labelColor=0d1117)
+![packs](https://img.shields.io/badge/packs-6-1f6feb?labelColor=0d1117)
 ![runes](https://img.shields.io/badge/runes-18-1f6feb?labelColor=0d1117)
 ![licence](https://img.shields.io/badge/licence-MIT-9d2235?labelColor=0d1117)
 <!-- badges:end -->
 
-A Claude Code skill marketplace. Each plugin is a themed pack; each skill is a
-rune you cast.
+Claude Code plugins from submillisecond. Each plugin is a pack: a skill that tells
+the agent how to do one job, and usually the MCP server it does the job with. The
+three that are live draw diagrams (deltagraph) and pictures (deltadraw) as links,
+and put an agent in a live deltalab document or board (deltalab).
 
+## Install
+
+With the `claude` CLI on your PATH:
+
+```bash
+claude plugin marketplace add submillisecond/subms-runes
+claude plugin install subms-runes@subms-runes  # deltagraph, deltadraw and deltalab
 ```
-marketplace  subms-runes        (this repo)
-  -> plugin  <pack>             (a themed group: clipboard, ...)
-       -> skill <rune>          (e.g. clip)
+
+The `subms-runes` bundle has nothing of its own. It installs the three packs, and
+each keeps its own version. To take one pack only, install it by name, for example
+`claude plugin install deltagraph@subms-runes`.
+
+Then turn on auto-update once: in Claude Code, `/plugin`, Marketplaces,
+`subms-runes`, Enable auto-update. Claude Code leaves it off for third-party
+marketplaces and no plugin can switch it on for you. Without it, Update marketplace
+on the same screen updates every installed pack, or from a terminal:
+
+```bash
+claude plugin marketplace update subms-runes   # refreshes the catalog only
+claude plugin update deltalab@subms-runes      # then each pack you have
 ```
 
-Skills are grouped into packs so you install only what you use - a flat pile of
-20-50 skills would load every description into context permanently.
+A pack that falls behind keeps working for the most part. deltalab fetches its
+client at every start and the deltagraph and deltadraw engines are hosted, so only
+the skill text and the deltalab loader wait for an update. When one is behind, its
+server tells you through the agent and gives these steps.
 
-## Inventory
+A team can switch auto-update on for everyone in the project's
+`.claude/settings.json`:
 
-Generated from `plugins/` by `.github/scripts/inventory.sh`; CI fails when it is stale.
+```json
+{
+  "extraKnownMarketplaces": {
+    "subms-runes": { "source": { "source": "github", "repo": "submillisecond/subms-runes" }, "autoUpdate": true }
+  },
+  "enabledPlugins": { "subms-runes@subms-runes": true }
+}
+```
+
+Restart Claude Code and ask for something: "draw how an order flows through our
+gateway as a diagram", or paste a deltalab share link and ask the agent to join.
+
+## Packs
+
+Packs keep context small. A flat pile of 30 skills would put every description in
+every session; a pack loads only when you install it.
 
 <!-- inventory:start -->
 | Pack | Version | Runes | Runs on | Tests |
@@ -32,11 +69,12 @@ Generated from `plugins/` by `.github/scripts/inventory.sh`; CI fails when it is
 | `deltagraph` | 1.0.0 | `/deltagraph` | Windows (2 .ps1), macOS + Linux (2 .sh), hosted MCP | contract, live nightly |
 | `deltalab` | 0.5.0 | `/deltalab` | local MCP (Node 22) | contract |
 | `imageverse` (unlisted, not released yet) | 0.1.0 | `/img` `/img-dedup` `/img-edit` `/img-montage` `/img-organize` `/img-save` `/img-search` `/img-settings` | Windows (17 .ps1), macOS + Linux (17 .sh) | contract, functional |
+| `subms-runes` | 1.0.0 | bundle: installs deltagraph, deltadraw, deltalab | - | - |
 <!-- inventory:end -->
 
-clipboard and imageverse are held back from the marketplace until they are ready: their code is here, but `claude plugin install` does not offer them. A pack is held back by an `UNLISTED` file in its folder, which CI checks against `marketplace.json`.
-
-## Packs
+clipboard and imageverse are held back until they are ready. Their code is here,
+but `claude plugin install` does not offer them; an `UNLISTED` file in a pack's
+folder holds it back, and CI checks that against `marketplace.json`.
 
 | Pack | Rune | What |
 |---|---|---|
@@ -57,6 +95,7 @@ clipboard and imageverse are held back from the marketplace until they are ready
 | | `img-dedup` | Find exact-duplicate images and remove/archive the extras, keeping one (dry-run + confirm). |
 | `deltagraph` | `deltagraph` | Hand over a diagram as a `deltagraph.submillisecond.com` link instead of a mermaid fence; the source rides in the URL fragment. The hosted MCP server checks, renders and debugs it first. Offline, `dg-url` builds the link and `dg-debug` calls the debugger over HTTP. |
 | `deltadraw` | `deltadraw` | Hand over a picture (a scene, an illustration, a sketch) as a `deltadraw.submillisecond.com` link that also opens in deltalab as a painting. The hosted MCP server compiles it and returns a PNG to look at first. Offline, `dd-url` builds the link and `dd-png` fetches the picture. |
+| `subms-runes` | - | A bundle: installs `deltagraph`, `deltadraw` and `deltalab` in one step. No skills or servers of its own. |
 | `deltalab` | `deltalab` | Join a live deltalab document or board from a share link and work beside the people there: write, suggest changes in Review, add stickies, votes and comments, edit the board diagram, answer messages. A local MCP server; the share key stays on the machine. |
 
 ## Platforms
@@ -77,32 +116,6 @@ Clipboard file-lists are Windows + Linux (uri-list) only; not macOS.
 `img-edit` writes edited images with a built-in backend where possible: Windows
 `System.Drawing`, macOS `sips` (resize/rotate/flip/convert). Its draw-based ops
 (redact/box/text) and Linux use ImageMagick (`brew`/`apt install imagemagick`).
-
-## Install
-
-With the `claude` CLI on PATH:
-
-```bash
-claude plugin marketplace add submillisecond/subms-runes
-claude plugin install deltagraph@subms-runes   # or deltadraw, deltalab
-```
-
-Update later with:
-
-```bash
-claude plugin marketplace update subms-runes
-claude plugin update deltalab@subms-runes      # or deltagraph, deltadraw
-```
-
-Claude Code does not update third-party marketplaces on its own unless you turn it on: `/plugin`, Marketplaces, `subms-runes`, Enable auto-update. The deltalab pack (0.4.0 and later) tells you through the agent when a newer pack is out; its client updates itself at every start.
-
-Restart the Claude Code session, then use a rune, e.g.:
-
-```
-/clip summarize what I copied
-/clip-edit reformat this as pretty JSON
-/clip-save stash this screenshot as notes/shot.png
-```
 
 ## Develop
 
@@ -139,16 +152,23 @@ add a rune or a pack.
 
 Run any of it locally: `bash .github/scripts/contracts.sh` (add `--live` for the hosted checks), `bash .github/scripts/inventory.sh`.
 
-## Agents in deltalab rooms: your responsibility
+## Agents in deltalab rooms
 
-The `deltalab` pack puts an AI agent you run into a shared room, where it acts beside other people and their agents. Use it knowing that:
+The `deltalab` pack puts an agent you run into a shared room, beside other people
+and their agents. You run it, on your machine, with your AI provider, so what it
+does in the room is your responsibility, and so is what you let it touch on your
+machine and what your provider does with the room content it reads.
 
-- You run the agent, on your machine, with your AI provider. You are responsible for what it does in the room, what you let it do on your machine and in other services, and what your provider does with the room content it reads.
-- An agent can be wrong, and with edit access it can change, overwrite or delete what is in a room, post messages and pictures, and ask for code to run in the browser of a person in the room.
-- Anyone in the room can write instructions an agent may follow, including ones meant to misuse it. The pack's rules (such as asking its runner before touching the runner's machine) guide the model; they do not guarantee what it does.
-- Its diagram, drawing and board-picture actions send the board's content to the deltagraph and deltadraw services, unencrypted, to be drawn.
+An agent can be wrong. With edit access it can change or delete what is in a room,
+post messages and pictures, and ask for code to run in the browser of someone in
+the room. Anyone in the room can write instructions it may follow, including ones
+meant to misuse it; the pack's rules guide the model and guarantee nothing. Its
+diagram, drawing and board-picture actions send the board's content to the
+deltagraph and deltadraw services, unencrypted, to be drawn.
 
-The packs are provided as is, with no warranty and no liability, under the licence below. The [deltalab terms](https://deltalab.submillisecond.com/terms) (section 7, AI agents) and [privacy page](https://www.submillisecond.com/deltalab/privacy) also apply.
+The packs come as is, with no warranty and no liability, under the licence below.
+The [deltalab terms](https://deltalab.submillisecond.com/terms) (section 7) and
+[privacy page](https://www.submillisecond.com/deltalab/privacy) also apply.
 
 ## Licence
 

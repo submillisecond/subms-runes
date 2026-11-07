@@ -45,6 +45,16 @@ for p in "${packs[@]:-}"; do
     [ "$name" = "$p" ] || fail "$p: plugin.json name '$name' != dir '$p'"
     [[ "$ver" =~ $semver ]] || fail "$p: version '$ver' is not semver"
 
+    # The site's subms-runes product page is built from site.json, so a listed
+    # pack with runes needs one. A bundle (no skills) and an UNLISTED pack do not.
+    if [ -d "$pdir/skills" ] && [ ! -f "$pdir/UNLISTED" ]; then
+        sj="$pdir/site.json"
+        if [ ! -f "$sj" ]; then fail "$p: missing site.json (the product page card)"
+        elif ! jq -e '(.pitch | type == "string" and length > 0) and (.about | type == "string" and length > 0) and (.demo | type == "string")' "$sj" >/dev/null 2>&1; then
+            fail "$p: site.json needs pitch, about and demo"
+        fi
+    fi
+
     sdir="$pdir/skills"
     if [ -d "$sdir" ]; then
         for skill in "$sdir"/*/; do

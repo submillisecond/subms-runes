@@ -44,7 +44,9 @@ OUT="$(rpc \
 echo "== 1. handshake =="
 INIT="$(reply 1)"
 eq "serverInfo.name" "$(js "$INIT" 'm.result.serverInfo.name')" "deltalab"
-eq "serverInfo.version == pack version" "$(js "$INIT" 'm.result.serverInfo.version')" "$VERSION"
+# Loaders run only a client on their API line; the pack version is unrelated.
+LOADER_API="$(sed -n 's/^const API = "\([^"]*\)";/\1/p' "$LOADER")"
+eq "serverInfo.version is on the loader's API line ($LOADER_API.x)" "$(js "$INIT" 'm.result.serverInfo.version.split(".").slice(0,2).join(".")')" "$LOADER_API"
 eq "protocolVersion" "$(js "$INIT" 'm.result.protocolVersion')" "2025-06-18"
 has "instructions carry the Review rule" "$(js "$INIT" 'm.result.instructions')" 'deltalab_suggest'
 has "instructions ask agents to coordinate in the room" "$(js "$INIT" 'm.result.instructions')" 'Agree who takes which part'
@@ -110,5 +112,9 @@ case "${DELTALAB_CLIENT_BASE:-}" in
   *) echo "  (skipped: tamper checks need a local signed build; run subms-ui's static build first)" ;;
 esac
 has "a remote http base is refused" "$(DELTALAB_CLIENT_BASE=http://example.com/ node "$LOADER" </dev/null 2>&1)" 'must be https://'
+# A refusing loader still answers MCP so the agent can say why.
+REFUSED="$(printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18"}}' '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"deltalab_status","arguments":{}}}' | DELTALAB_CLIENT_BASE=http://example.com/ node "$LOADER" 2>/dev/null)"
+has "a refusal answers initialize with the reason" "$(printf '%s\n' "$REFUSED" | head -1)" 'not available in this session'
+has "a refusal's tool call is an error with the fix" "$(printf '%s\n' "$REFUSED" | sed -n 2p)" '"isError":true'
 
 contract_result

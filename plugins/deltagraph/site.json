@@ -1,0 +1,7 @@
+{
+  "pitch": "Diagrams as a link. The agent writes a few lines of text; the engine places the boxes and routes the arrows, the same way every time.",
+  "ask": "Draw how a request flows through our API, from the load balancer to the database, as a diagram.",
+  "about": "Ask for a diagram and you get a link that opens anywhere, with the source carried inside it, so nothing is stored. Before you see it, the agent checks the diagram against the real engine and looks at the picture; when a diagram is tangled or a line was dropped, the engine says which rule broke and whether the other direction lays out better. It can also start from code: Terraform, CloudFormation, a Cargo workspace or a Kafka Streams topology.",
+  "demo": "deltagraph.gif",
+  "try": "https://deltagraph.submillisecond.com/"
+}

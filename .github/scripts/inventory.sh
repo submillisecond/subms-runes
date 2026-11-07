@@ -25,7 +25,8 @@ inventory() {
   echo "|---|---|---|---|---|"
   local p runes runs tests nps nsh
   for p in "${packs[@]}"; do
-    runes="$(for s in $(ls -1 "plugins/$p/skills" | LC_ALL=C sort); do [ -f "plugins/$p/skills/$s/SKILL.md" ] || continue; printf '`/%s` ' "$s"; done)"
+    # A bundle has no skills of its own; it lists the packs it installs.
+    runes="$(for s in $(ls -1 "plugins/$p/skills" 2>/dev/null | LC_ALL=C sort); do [ -f "plugins/$p/skills/$s/SKILL.md" ] || continue; printf '`/%s` ' "$s"; done)"
     nps="$(find "plugins/$p" -name '*.ps1' | wc -l | tr -d ' ')"
     nsh="$(find "plugins/$p" -name '*.sh' -not -path '*/contract/*' | wc -l | tr -d ' ')"
     runs=""
@@ -38,10 +39,13 @@ inventory() {
     [ -f "tests/$p.tests.ps1" ] && tests="${tests:+$tests, }functional"
     [ -f "plugins/$p/contract/live-test.sh" ] && tests="${tests:+$tests, }live nightly"
     held=""; [ -f "plugins/$p/UNLISTED" ] && held=" (unlisted, not released yet)"
-    echo "| \`$p\`$held | $(jqv "plugins/$p/.claude-plugin/plugin.json") | ${runes% } | $runs | ${tests:--} |"
+    deps="$(sed -n 's/.*"dependencies": *\[\(.*\)\].*/\1/p' "plugins/$p/.claude-plugin/plugin.json" | tr -d '" ' | sed 's/,/, /g')"
+    [ -z "$runes" ] && [ -n "$deps" ] && runes="bundle: installs $deps"
+    echo "| \`$p\`$held | $(jqv "plugins/$p/.claude-plugin/plugin.json") | ${runes% } | ${runs:--} | ${tests:--} |"
   done
 }
 
+shopt -s nullglob
 for p in "${packs[@]}"; do for s in plugins/$p/skills/*/SKILL.md; do runes_total=$((runes_total + 1)); done; done
 
 # Replace the lines between <!-- name:start --> and <!-- name:end --> with $2.

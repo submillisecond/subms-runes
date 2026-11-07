@@ -8,6 +8,14 @@
   },
   "plugins": [
     {
+      "name": "subms-runes",
+      "source": "./plugins/subms-runes",
+      "description": "All of the listed packs in one install: deltagraph, deltadraw and deltalab. Installing it installs and enables the three; each keeps its own version and updates.",
+      "author": {
+        "name": "Kieran Smith"
+      }
+    },
+    {
       "name": "deltagraph",
       "source": "./plugins/deltagraph",
       "description": "deltagraph rune: /deltagraph (draw any diagram as a deltagraph.submillisecond.com URL instead of a mermaid fence; the source travels in the URL fragment and the viewer lays it out). Installs the hosted deltagraph MCP server, so every diagram is checked through the real engine, looked at as a PNG, and debugged when it fails or reads badly: each dropped line named with the rule it broke, the layout scored, and a better direction or declaration order found when one exists. Without MCP, a zero-dep dg-url script builds the link offline and dg-debug reaches the same debugger over plain HTTP, on Windows and POSIX.",

@@ -11,7 +11,7 @@
 //   - the client's size and SHA-256 match the signed manifest;
 //   - the manifest's API version matches API, and it was built no earlier than
 //     MIN_BUILT_AT, so an older signed client cannot be replayed.
-// Anything else and it exits without running a byte of it.
+// If any check fails the client is not run, and the reason is served instead.
 //
 // Environment:
 //   DELTALAB_CLIENT_BASE   where the manifest lives (default below; file:// works for local builds)
@@ -37,15 +37,55 @@ const DEFAULT_BASE = "https://deltalab.submillisecond.com/runes/deltalab/";
 const FETCH_TIMEOUT_MS = 15_000;
 
 const say = (s) => process.stderr.write(`deltalab: ${s}\n`);
-const fail = (s) => { say(s); process.exit(1); };
+// A server that exits shows only as "failed" in /mcp, so a refusal keeps
+// answering MCP and its one tool carries the reason for the agent to pass on.
+const fail = (s, fix) => { say(s); return serveRefusal(fix ?? s); };
+
+/** A minimal MCP server that only explains why deltalab is not available. */
+function serveRefusal(why) {
+  const text = `deltalab is not available in this session. ${why}`;
+  const send = (m) => process.stdout.write(`${JSON.stringify(m)}\n`);
+  const handle = (m) => {
+    if (!m || m.id === undefined || m.id === null) return;
+    const ok = (result) => send({ jsonrpc: "2.0", id: m.id, result });
+    if (m.method === "initialize") {
+      return ok({
+        protocolVersion: typeof m.params?.protocolVersion === "string" ? m.params.protocolVersion : "2025-06-18",
+        capabilities: { tools: {} },
+        serverInfo: { name: "deltalab", title: "deltalab", version: PACK_VERSION },
+        instructions: `${text} Tell the person this once, in plain words, with the fix, before anything else that needs deltalab.`,
+      });
+    }
+    if (m.method === "tools/list") {
+      return ok({ tools: [{ name: "deltalab_status", description: `deltalab could not start. ${why} Call this for the message to give the person.`, inputSchema: { type: "object", properties: {} } }] });
+    }
+    if (m.method === "tools/call") return ok({ content: [{ type: "text", text }], isError: true });
+    if (m.method === "ping") return ok({});
+    send({ jsonrpc: "2.0", id: m.id, error: { code: -32601, message: text } });
+  };
+  let buf = "";
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (d) => {
+    buf += d;
+    for (let i = buf.indexOf("\n"); i >= 0; i = buf.indexOf("\n")) {
+      const line = buf.slice(0, i).trim();
+      buf = buf.slice(i + 1);
+      if (!line) continue;
+      try { handle(JSON.parse(line)); } catch { /* not JSON: ignore */ }
+    }
+  });
+  process.stdin.on("end", () => process.exit(1));
+  // Nothing below may run: the real client is not loaded.
+  return new Promise(() => {});
+}
 
 if (Number(process.versions.node.split(".")[0]) < 22) {
-  fail(`needs Node 22 or newer (built-in WebSocket and WebCrypto). Found ${process.version}`);
+  await fail(`needs Node 22 or newer (built-in WebSocket and WebCrypto). Found ${process.version}`, `It needs Node 22 or newer and found ${process.version}. Install Node 22 or newer, then restart Claude Code.`);
 }
 
 const base = (process.env.DELTALAB_CLIENT_BASE || DEFAULT_BASE).replace(/\/?$/, "/");
 if (!/^(https:\/\/|file:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/)/.test(base)) {
-  fail(`DELTALAB_CLIENT_BASE must be https://, file:// or a localhost http:// address; got ${base}`);
+  await fail(`DELTALAB_CLIENT_BASE must be https://, file:// or a localhost http:// address; got ${base}`, `DELTALAB_CLIENT_BASE is set to ${base}, which is not allowed: it must be https://, file:// or a localhost http:// address. Fix or unset it, then restart Claude Code.`);
 }
 
 function cacheDir() {
@@ -82,7 +122,14 @@ function check(manifestBytes, sig, client) {
   try { m = JSON.parse(manifestBytes.toString("utf8")); } catch { return { reason: "the manifest is not JSON" }; }
   if (m.name !== "deltalab-client") return { reason: `the manifest is for ${m.name}` };
   if (typeof m.version !== "string" || m.version.split(".").slice(0, 2).join(".") !== API) {
-    return { reason: `the client speaks ${m.version}, this pack needs ${API}.x; update the deltalab pack` };
+    // Updating the pack only helps when the pack is the side that is behind.
+    const serviceNewer = typeof m.version === "string" && newer(`${m.version.split(".").slice(0, 2).join(".")}.0`, `${API}.0`);
+    return {
+      reason: `the client speaks ${m.version}, this pack needs ${API}.x; update the deltalab pack`,
+      fix: serviceNewer
+        ? `This deltalab pack (${PACK_VERSION}) is older than the deltalab service (client ${m.version}). Update it: in Claude Code run /plugin, open Marketplaces, pick subms-runes and choose Update marketplace (it updates every subms-runes pack), and choose Enable auto-update there so this does not happen again. Or in a terminal: \`${UPDATE}\`. Then restart Claude Code.`
+        : `The deltalab service (client ${m.version}) is older than this pack (${PACK_VERSION}) expects. That is on deltalab's side and should clear shortly; try again later, and report it if it lasts.`,
+    };
   }
   if (!(Date.parse(m.builtAt) >= Date.parse(MIN_BUILT_AT))) return { reason: `the client was built ${m.builtAt}, before this pack accepts` };
   if (!client) return { manifest: m };
@@ -132,7 +179,7 @@ let r;
 try {
   r = await fromNetwork();
 } catch (e) {
-  r = { reason: `could not fetch the client from ${base} (${e.message})`, offline: true };
+  r = { reason: `could not fetch the client from ${base} (${e.message})`, offline: true, fix: `It could not reach deltalab (${e.message}). Check the network connection, then restart Claude Code.` };
 }
 if (!r.client) {
   if (r.offline && dir) {
@@ -142,7 +189,9 @@ if (!r.client) {
       r = cached;
     }
   }
-  if (!r.client) fail(`not starting: ${r.reason}`);
+  if (!r.client) {
+    await fail(`not starting: ${r.reason}`, r.fix ?? `Its client failed a safety check (${r.reason}), so it was not run. Do not work around this; report it to deltalab.`);
+  }
 } else if (dir) {
   keep(dir, r);
 }

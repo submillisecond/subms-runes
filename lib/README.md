@@ -1,24 +1,18 @@
 # lib - shared rune tooling
 
-Repo-level shared code for subms-runes DEV/TEST tooling, organised into packages
-by concern. Sourced by the per-pack contract tests and the functional suites.
+Shared code for the repo's development and test tooling: the per-pack contract
+tests and the functional suites source it.
 
-> Plugin RUNTIME scripts cannot live here. Plugin isolation copies each pack's own
-> `scripts/` under `${CLAUDE_PLUGIN_ROOT}`, so a rune can only reference scripts
-> inside its own plugin. This `lib/` is for tooling that runs FROM THE REPO (CI,
-> contract tests, suites) - never shipped inside a plugin.
->
-> It also stays in subms-runes, NOT subms-infra: the contract tests run in this
-> repo's CI and must not depend on the private operator repo (subms-infra holds the
-> `runes.ps1` operator dispatcher only).
+Nothing here ships in a plugin. Claude Code copies each pack's own folder into its
+cache, so a rune can only call scripts inside its own plugin; `lib/` is for code
+that runs from the repo, in CI and in local tests. It lives here, and stays out of
+subms-infra, because this repo's CI must not depend on the private operator repo.
 
 ## Packages
 
 | Package | Contents | Used by |
 |---|---|---|
-| `test/` | `contract-lib.sh` (bash: assertions, isolated store, SKILL<->.columns guard, result) + `suite-lib.ps1` (PowerShell: Run/NewTemp/Check/Has/Complete-Suite) | each pack's `contract/contract-test.sh` (sh) and `tests/*.tests.ps1` (ps1) |
+| `test/` | `contract-lib.sh` (bash: assertions, isolated store, SKILL<->.columns guard, result) and `suite-lib.ps1` (PowerShell: Run/NewTemp/Check/Has/Complete-Suite) | each pack's `contract/contract-test.sh` and `tests/*.tests.ps1` |
 
-Both backends are provided per the org dual-backend convention: `.sh` for the bash
-contract tests, `.ps1` for the PowerShell functional suites. New shared concerns get
-their own sibling package under `lib/` (e.g. a future `lib/fixtures/`), not a flat
-dumping ground.
+There is a bash and a PowerShell side to match the org's two backends. A new
+shared concern gets its own folder under `lib/`, such as `lib/fixtures/`.
