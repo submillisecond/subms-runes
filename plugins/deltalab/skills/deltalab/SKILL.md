@@ -124,6 +124,73 @@ one. A diagram made this way can be dropped on a board later.
   tools do not work in these yet. Say so to the user rather than writing into
   one.
 
+## Vendor icons on a board diagram
+
+When someone asks for real logos (AWS, Azure, GCP, Kafka, Postgres...), write
+the node as a branded mark in the diagram you send with `set_diagram` or
+`edit_diagram`: `id<<group:service|Label>>`. The board draws the vendor's
+official icon, the same ones its "Cloud and components" picker inserts.
+
+```
+direction: top_down
+subgraph Ingest
+  dms<<aws:database-migration-service|DMS CDC>>
+  msk<<aws:managed-streaming-for-apache-kafka|MSK>>
+end
+subgraph Store
+  s3<<aws:simple-storage-service|S3 bronze>>
+  rs<<aws:redshift|Redshift gold>>
+end
+dms --> msk
+msk --> s3
+s3 --> rs
+```
+
+- Keys are the provider's service names in kebab case: `aws:rds`,
+  `aws:kinesis-data-streams`, `aws:transfer-family`, `aws:appflow`,
+  `aws:managed-service-for-apache-flink`, `aws:glue`, `aws:lake-formation`,
+  `aws:athena`, `aws:sagemaker`, `aws:step-functions`, `aws:cloudwatch`,
+  `aws:managed-workflows-for-apache-airflow`, `aws:simple-queue-service`,
+  `aws:lambda`, `aws:dynamodb`, `aws:eventbridge`. Short forms resolve for a
+  few: `aws:s3`, `aws:sqs`, `aws:ddb`, `aws:apigw`, `aws:ecs`, `aws:eks`.
+- Other groups: `database:` (postgresql, redis, mongodb), `queue:`
+  (apachekafka, rabbitmq), `infra:` (docker, kubernetes, terraform),
+  `observability:` (grafana, prometheus, datadog), `ai:`, `agents:`, `mcp:`,
+  `frontend:`, `language:`, and `azure:` / `gcp:`.
+- The full list is the "Branded marks" section of the deltagraph spec: the
+  `deltagraph_spec` tool if the deltagraph pack is installed, or
+  `https://www.submillisecond.com/deltagraph/spec.md`. If you cannot reach
+  either, use the keys above and read the board back: a key that does not
+  resolve draws as a plain box, so check each icon appeared before saying it
+  is done.
+
+## Painting one picture with other agents
+
+Three agents once split a canvas into three vertical bands, each painting its
+own sky and ground to an agreed horizon and palette, and the result was three
+pictures side by side. What they agreed afterwards, and what holds:
+
+- **Split by depth, not by band.** One agent paints the background across the
+  whole canvas first: sky, light, ridges, ground, water. The others then paint
+  subjects on top of it. Bands give seams that no later pass can hide.
+- **Settle layer order before anyone paints.** A new layer stacks on top of
+  every layer before it, and drawing only adds strokes, so a unifying layer
+  painted late can only cover things. The shared background has to be the
+  first thing painted.
+- **Agree shapes, not only numbers.** A horizon height and hex colours were
+  not enough. Agree the ridge profiles, the ground height where parts meet,
+  the river or path that crosses them, and the scale of figures, in the chat
+  and before painting.
+- **Show it before painting it.** Post the scene, or a rough block of it, in
+  the chat as a `deltadraw` block for a yes, and look at the PNG yourself.
+  Painting is cheap to add and impossible to take back.
+- **Do not paint blind.** If the check or the PNG fails (the drawing service
+  sheds load and answers busy), say so and wait, or ask a person to look.
+  Keep preview scenes light. Never paint a scene nobody has seen.
+- **Do not take an absent agent's part in a hurry.** Ask first, wait a
+  minute, and paint it in the style already agreed, or the picture gains a
+  third style.
+
 ## Iterating a diagram live with the room
 
 A common session: the user joins the agent to a board, asks for a diagram,
