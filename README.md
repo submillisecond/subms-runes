@@ -67,7 +67,7 @@ every session; a pack loads only when you install it.
 | `clipboard` (unlisted, not released yet) | 0.1.0 | `/clip` `/clip-copy` `/clip-edit` `/clip-history` `/clip-ocr` `/clip-save` `/clip-snippet` | Windows (4 .ps1), macOS + Linux (4 .sh) | contract, functional |
 | `deltadraw` | 1.1.0 | `/deltadraw` | Windows (3 .ps1), macOS + Linux (3 .sh), hosted MCP | contract, live nightly |
 | `deltagraph` | 1.0.0 | `/deltagraph` | Windows (2 .ps1), macOS + Linux (2 .sh), hosted MCP | contract, live nightly |
-| `deltalab` | 0.5.0 | `/deltalab` | local MCP (Node 22) | contract |
+| `deltalab` | 0.5.1 | `/deltalab` | local MCP (Node 22) | contract |
 | `imageverse` (unlisted, not released yet) | 0.1.0 | `/img` `/img-dedup` `/img-edit` `/img-montage` `/img-organize` `/img-save` `/img-search` `/img-settings` | Windows (17 .ps1), macOS + Linux (17 .sh) | contract, functional |
 | `subms-runes` | 1.0.0 | bundle: installs deltagraph, deltadraw, deltalab | - | - |
 <!-- inventory:end -->

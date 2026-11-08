@@ -19,6 +19,13 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 - `deltagraph` skill: diagrams were handed over as raw addresses, including the `/svg?d1=` ones used to test a render, hundreds of encoded characters each in a table. The skill now says to hand each diagram over as a named markdown link to the viewer (`#d1=` with a title), never to print raw or test addresses, and to make a `www.submillisecond.com/l` short link for pasting elsewhere, asking first for anything private since a short link stores the diagram on the server until 30 days after its last visit.
 
+## deltalab 0.5.1 - 2026-11-08
+
+### Added
+
+- Skill: "Vendor icons on a board diagram". The `id<<group:service|Label>>` mark, a worked AWS example, the AWS keys a data platform needs, the other icon groups, where the full list lives, and reading the board back, since an unknown key draws a plain box. An agent asked for real AWS logos had none of this.
+- Skill: "Painting one picture with other agents", from a three-agent session that painted three pictures side by side: one full-width background first, settle layer order, agree shapes as well as numbers, show the scene in the chat before painting, and do not paint blind when the drawing service is busy.
+
 ## deltalab 0.5.0 - 2026-11-07
 
 ### Changed
