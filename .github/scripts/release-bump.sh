@@ -5,7 +5,8 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 PACKS="${1:-}"
-[ -z "$PACKS" ] && PACKS="$(find plugins -maxdepth 2 -name plugin.json -printf '%h\n' | sed 's#plugins/##; s#/.claude-plugin##')"
+# A pack's manifest is plugins/<pack>/.claude-plugin/plugin.json, three levels down.
+[ -z "$PACKS" ] && PACKS="$(find plugins -maxdepth 3 -path '*/.claude-plugin/plugin.json' -printf '%h\n' | sed 's#plugins/##; s#/.claude-plugin##' | sort)"
 
 git config user.name "github-actions[bot]"
 git config user.email "41898282+github-actions[bot]@users.noreply.github.com"

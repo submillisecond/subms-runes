@@ -6,6 +6,10 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ## [Unreleased]
 
+### Fixed
+
+- Release CI: a `[release]` commit with no packs named bumped nothing and still passed ("nothing to release"). The pack search stopped at depth 2 and every manifest sits at `plugins/<pack>/.claude-plugin/plugin.json`, depth 3; manual runs that named their packs were unaffected.
+
 ### Changed
 
 - The deltagraph, deltadraw and deltalab plugin and marketplace descriptions open with "DeltaGraph / DeltaDraw / DeltaLab by submillisecond.com", so the listing names who makes each product. Pack ids and commands are unchanged. Released as a version bump so installed copies pick the new descriptions up; Claude Code refreshes a plugin's manifest only when its version changes.
