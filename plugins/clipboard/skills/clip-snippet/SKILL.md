@@ -1,7 +1,7 @@
 ---
 name: clip-snippet
 description: This skill should be used when the user asks to "/clip-snippet", "save this as a snippet called X", "save the clipboard as 'mit-header'", "save this image as a logo snippet", "paste my mit-header snippet", "recall the X snippet", "what snippets do I have", "list my snippets", "delete the X snippet", or otherwise wants to keep a NAMED, reusable clipboard snippet (text or image) and recall it onto the clipboard later. Distinct from /clip-history (automatic chronological log) - this is a curated library you name.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # clip-snippet - a named, curated snippet library

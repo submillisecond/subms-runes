@@ -1,7 +1,7 @@
 ---
 name: img-save
 description: This skill should be used when the user asks to "/img-save", "save my last N screenshots to <folder>", "bundle my recent screenshots", "copy the images from <folder> to <dest>", or otherwise wants a selection of image files copied to a destination (for sharing or a bug report).
-version: 0.1.0
+version: 0.2.0
 ---
 
 # img-save - copy a selection of images to a folder

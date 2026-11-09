@@ -1,7 +1,7 @@
 ---
 name: clip-history
 description: This skill should be used when the user asks to "/clip-history", "show my clipboard history", "what did I copy earlier", "recall the last URL I copied", "re-copy that python function", "paste back the command from before", "search my clip history for X", "clear my clipboard history", or "enable/disable clipboard history". Manages the durable, typed, searchable history of clipboard operations and re-copies a recalled entry back onto the clipboard.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # clip-history - recall and manage your clipboard history

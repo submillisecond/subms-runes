@@ -1,7 +1,7 @@
 ---
 name: clip-ocr
 description: This skill should be used when the user asks to "/clip-ocr", "what does this screenshot say", "read the text in my clipboard image", "transcribe this image", "extract the text from this screenshot", "ocr <path-to-image>", "transcribe this attached image", "OCR the clipboard", and (only if they say so) "...and copy it" / "...and save it to a file". The image can come from an attachment in the prompt, an explicit file path in the arguments, or the clipboard (default). By default it PRINTS the transcribed text in the reply; copying to the clipboard or saving to a file are opt-in.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # clip-ocr - read the text out of a clipboard image

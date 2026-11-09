@@ -1,7 +1,7 @@
 ---
 name: img-search
 description: This skill should be used when the user asks to "/img-search", "find the screenshot with X", "which photo shows Y", "search my images for Z", "find photos near <place>", "all photos near Paris in 2026", "find receipts in <folder>", or otherwise wants to SEARCH a folder of images by CONTENT (what they show) and/or METADATA (date, place, size). It reuses a cached, content-addressed index so repeated searches don't re-read pixels. For a single image on the clipboard use /clip-ocr; to ASK questions about a few recent screenshots use /img.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # img-search - find images by content + metadata, with a reusable index

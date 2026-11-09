@@ -1,7 +1,7 @@
 ---
 name: clip-edit
 description: This skill should be used when the user asks to "/clip-edit", "reformat my clipboard", "fix what I copied and put it back", "clean up the clipboard", "convert my clipboard to ...", "redact my clipboard", "translate my clipboard", "make this paste-ready", or otherwise wants the clipboard text TRANSFORMED and written back so it is ready to paste.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # clip-edit - transform the clipboard, paste-ready

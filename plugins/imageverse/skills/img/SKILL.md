@@ -1,7 +1,7 @@
 ---
 name: img
 description: This skill should be used when the user asks to "/img", "what's in my recent screenshots", "look at the last N screenshots", "what does this screenshot/image say", "ask about the photos in <folder>", "compare my last few screenshots", or otherwise wants recent screenshots (or images in a folder) pulled in and questions answered about them.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # img - ask questions about your images

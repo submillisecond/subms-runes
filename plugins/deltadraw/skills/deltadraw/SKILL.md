@@ -1,7 +1,7 @@
 ---
 name: deltadraw
 description: This skill should be used whenever a PICTURE is wanted rather than a diagram - "draw me", "illustrate", "sketch", "paint", "a scene with", "make an image of", "cover art", "poster", "hand-drawn", "/deltadraw" - and whenever a deltadraw link draws wrong ("the ship is off the edge", "fix this drawing", "make the sky darker"). Produces a deltadraw.submillisecond.com URL that compiles the scene in the reader's browser, checked and looked at through the bundled deltadraw MCP server before it is handed over. Carries when to draw versus diagram, the shape of a scene, the built-in symbol conventions and the draw -> look -> refine loop; fetches the generated spec for the grammar.
-version: 1.1.0
+version: 1.2.0
 ---
 
 # deltadraw - draw a picture as a deltadraw URL

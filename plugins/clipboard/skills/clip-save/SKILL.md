@@ -1,7 +1,7 @@
 ---
 name: clip-save
 description: This skill should be used when the user asks to "/clip-save", "save my clipboard to <path>", "stash this screenshot", "write what I copied to a file", "save the copied files to <folder>", or otherwise wants the clipboard contents written to a file or folder on disk.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # clip-save - save the clipboard to disk

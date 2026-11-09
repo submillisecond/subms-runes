@@ -1,7 +1,7 @@
 ---
 name: clip
 description: This skill should be used when the user asks to "read my clipboard", "what's on my clipboard", "/clip", "ask about what I copied", "summarize what I copied", "what does this screenshot say", or otherwise wants the contents of the clipboard (text, an image, or copied files) inspected and questions answered about them.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # clip - ask questions about your clipboard

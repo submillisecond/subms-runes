@@ -1,7 +1,7 @@
 ---
 name: img-montage
 description: This skill should be used when the user asks to "/img-montage", "generate a montage for album <name>", "montage this folder <path>", "show me everything in <album> as one image", "make a contact sheet of <folder>", or otherwise wants a single compact overview image of what an album/folder contains. Builds a DEDUPED, densely-packed montage (one cell per distinct shot) so even a 100+ image album fits in a sheet or two.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # img-montage - one compact picture of what's in an album / folder

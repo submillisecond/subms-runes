@@ -1,7 +1,7 @@
 ---
 name: img-edit
 description: This skill should be used when the user asks to "/img-edit", "crop this screenshot", "redact the secrets/emails in this image", "resize my screenshot to 800px", "blank out / black-box this part", "add a red box around the error", "rotate / flip this photo", "convert this png to jpg", "make this image grayscale", or otherwise wants an image TRANSFORMED into a new image file. Deterministic edits only (crop / resize / redact / annotate / rotate / convert) - NOT generative edits.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # img-edit - edit an image into a new image

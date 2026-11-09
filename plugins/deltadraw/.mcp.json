@@ -4,7 +4,7 @@
       "type": "http",
       "url": "https://deltadraw.submillisecond.com/mcp",
       "headers": {
-        "X-Runes-Pack": "deltadraw/1.1.0"
+        "X-Runes-Pack": "deltadraw/1.2.0"
       }
     }
   }

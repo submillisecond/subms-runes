@@ -1,7 +1,7 @@
 ---
 name: clip-copy
 description: This skill should be used when the user asks to "/clip-copy", "copy that", "copy that to my clipboard", "copy the code", "copy just the command", "copy the URL/email/path", "copy the last answer as plain text", "put that on my clipboard", or otherwise wants a clean deliverable from YOUR recent output placed on the system clipboard. This is the Claude-output -> clipboard direction (the inverse of /clip, which reads the clipboard).
-version: 0.1.0
+version: 0.2.0
 ---
 
 # clip-copy - put a clean deliverable from your output onto the clipboard

@@ -1,7 +1,7 @@
 ---
 name: img-organize
 description: This skill should be used when the user asks to "/img-organize", "organize my photos by year/month", "sort this folder into albums", "rename my last N screenshots by content", "delete screenshots older than X days", "archive last week's screenshots to <folder>", "tidy up my phone photo dump", or otherwise wants images in a folder restructured, renamed, archived, or deleted in place.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # img-organize - restructure / rename / archive / delete images in place

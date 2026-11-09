@@ -1,7 +1,7 @@
 {
   "name": "subms-runes",
   "description": "Every listed subms-runes pack in one install: deltagraph (diagrams), deltadraw (pictures) and deltalab (live shared documents and boards). It holds no skills or servers of its own; each pack keeps its own version, MCP server and update notice.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" },
   "homepage": "https://github.com/submillisecond/subms-runes",
   "license": "MIT",

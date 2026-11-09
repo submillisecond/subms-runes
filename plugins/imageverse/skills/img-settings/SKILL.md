@@ -1,7 +1,7 @@
 ---
 name: img-settings
 description: This skill should be used when the user asks to "/img-settings", "recognise this person as <Name>" (with attached/clipboard/path images), "remember our dog/pet/object", "set my home location/town", "what are my image settings", "list the people I've registered", "forget <Name>", or otherwise wants to VIEW or CHANGE the persistent imageverse settings (home location, known people, known objects, defaults) that the other imageverse skills (img-organize, img-search, img) use.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # img-settings - the one place to manage imageverse settings

@@ -1,7 +1,7 @@
 ---
 name: img-dedup
 description: This skill should be used when the user asks to "/img-dedup", "find duplicate photos", "remove duplicate images", "dedupe my photos folder", "how many duplicate photos do I have", or otherwise wants exact-duplicate images in a folder found and (on confirmation) removed or archived.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # img-dedup - find and remove duplicate images

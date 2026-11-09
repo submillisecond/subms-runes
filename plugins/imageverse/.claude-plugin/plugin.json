@@ -1,6 +1,6 @@
 {
   "name": "imageverse",
   "description": "imageverse - image runes for Claude Code: img (questions about recent screenshots or any folder), img-search (find images by content + metadata via a reusable cached index), img-edit (crop / resize / redact / annotate / rotate / convert into a new image), img-save (copy a selection out), img-organize (restructure / rename / archive / delete in place), img-dedup (remove exact-duplicate images).",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": { "name": "Kieran Smith", "email": "oss@submillisecond.com" }
 }
