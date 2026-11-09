@@ -8,7 +8,7 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 
 ### Changed
 
-- The deltagraph, deltadraw and deltalab plugin and marketplace descriptions open with "DeltaGraph / DeltaDraw / DeltaLab by submillisecond.com", so the listing names who makes each product. Pack ids and commands are unchanged.
+- The deltagraph, deltadraw and deltalab plugin and marketplace descriptions open with "DeltaGraph / DeltaDraw / DeltaLab by submillisecond.com", so the listing names who makes each product. Pack ids and commands are unchanged. Released as a version bump so installed copies pick the new descriptions up; Claude Code refreshes a plugin's manifest only when its version changes.
 
 - README and the deltadraw and deltalab `site.json` cards name the products DeltaGraph, DeltaDraw and DeltaLab in prose, as the site does. Pack ids, commands and URLs stay lowercase.
 - `deltalab` pack: registers only its own MCP server (the loader for rooms). A second registration of the hosted deltagraph server was tried and removed before release. It duplicated the deltagraph pack's server under a second tool prefix for anyone with both packs. It added nothing to rooms either, since the deltalab client already does a board's diagram work through the deltagraph worker (`POST /board`). A standalone diagram is the deltagraph pack's job; the deltalab skill points there.
