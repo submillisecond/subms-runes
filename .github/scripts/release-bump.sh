@@ -41,5 +41,6 @@ if [ ${#summary[@]} -eq 0 ]; then echo "nothing to release"; exit 0; fi
 
 git commit -m "chore(release): $(IFS=,; echo "${summary[*]}") [skip ci]"
 for t in "${tags[@]}"; do git tag "$t"; done
-git push origin HEAD:main --follow-tags
+# --follow-tags pushes annotated tags only; these are lightweight, so name them.
+git push origin HEAD:main "${tags[@]/#/refs/tags/}"
 echo "RELEASE_DONE: ${summary[*]}"
