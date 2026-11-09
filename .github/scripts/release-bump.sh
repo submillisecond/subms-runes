@@ -39,6 +39,10 @@ done
 
 if [ ${#summary[@]} -eq 0 ]; then echo "nothing to release"; exit 0; fi
 
+# The README inventory lists each pack's version and CI checks it: bump it with them.
+bash .github/scripts/inventory.sh
+git add README.md
+
 git commit -m "chore(release): $(IFS=,; echo "${summary[*]}") [skip ci]"
 for t in "${tags[@]}"; do git tag "$t"; done
 # --follow-tags pushes annotated tags only; these are lightweight, so name them.
