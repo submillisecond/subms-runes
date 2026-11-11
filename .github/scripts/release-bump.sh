@@ -28,6 +28,15 @@ for p in $PACKS; do
     sed -i -E "s#(\"X-Runes-Pack\"[[:space:]]*:[[:space:]]*\"$p/)[0-9]+\.[0-9]+\.[0-9]+#\1$new#" "$mj"
     git add "$mj"
   fi
+  # A pack whose local server reports its own version (deltalab's loader) keeps it
+  # in a PACK_VERSION constant; the pack's tests require it to match plugin.json.
+  for js in plugins/"$p"/server/*.mjs; do
+    [ -f "$js" ] || continue
+    if grep -qE '^const PACK_VERSION = "[0-9]+\.[0-9]+\.[0-9]+";' "$js"; then
+      sed -i -E "s/^(const PACK_VERSION = \")[0-9]+\.[0-9]+\.[0-9]+(\";)/\1$new\2/" "$js"
+      git add "$js"
+    fi
+  done
   for sf in plugins/"$p"/skills/*/SKILL.md; do
     [ -f "$sf" ] || continue
     sed -i -E "s/^(version:[[:space:]]*)[0-9]+\.[0-9]+\.[0-9]+[[:space:]]*$/\1$new/" "$sf"

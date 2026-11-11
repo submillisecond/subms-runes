@@ -11,6 +11,7 @@ also appear as GitHub Releases (tag `<pack>--vX.Y.Z`). Format follows
 - Release CI: a `[release]` commit with no packs named bumped nothing and still passed ("nothing to release"). The pack search stopped at depth 2 and every manifest sits at `plugins/<pack>/.claude-plugin/plugin.json`, depth 3; manual runs that named their packs were unaffected.
 - Release CI pushed the bump commit but not its tags: the tags are lightweight and `git push --follow-tags` sends annotated tags only. The script now pushes each tag by name. The 2026-11-09 release (deltagraph 1.1.0, deltadraw 1.2.0, deltalab 0.6.0 and the rest) went out untagged; the next push without `[release]` tags the current versions.
 - Release CI bumped versions without regenerating the README inventory, so the next push failed `inventory.sh --check` before anything ran. The bump now regenerates the inventory and commits it with the versions.
+- Release CI left the deltalab loader's `PACK_VERSION` at 0.5.1 when plugin.json went to 0.6.0, and the pack's contract test (loader version equals plugin.json) failed the next push. Set to 0.6.0; the bump now updates a `const PACK_VERSION` in a pack's `server/*.mjs` along with plugin.json.
 
 ### Changed
 

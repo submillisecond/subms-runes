@@ -130,7 +130,7 @@ encoded. The worker also answers plain HTTP: `/check`, `/debug`, `/svg`,
 ## Hard rules
 
 Each is a silent failure in the viewer, and each is one `deltagraph_debug`
-names by line. One arrow per line. No raw `|` in a label. A node's shape on
+names by line. Every arrow in a chain needs a node on each side. No raw `|` in a label. A node's shape on
 first use, bare after. One `subgraph` per node. No closing delimiter inside a
 shape. At most one `:::pulse`. Only the six edge classes colour a path.
 Draw it architecture-grade, with zones, matching shapes, classed
